@@ -1,0 +1,96 @@
+import AppLayout from "@/components/layout/AppLayout";
+import { useRouter } from "next/router";
+import {
+  Card,
+  Row,
+  Col,
+  Form,
+  Input,
+  DatePicker,
+  TimePicker,
+  Select,
+  Button,
+  List,
+  Space,
+  message,
+} from "antd";
+import { useState } from "react";
+
+export default function JobSchedulerPage() {
+  const router = useRouter();
+  const { jobId } = router.query as { jobId?: string };
+  const [meetings, setMeetings] = useState<string[]>([
+    "Alex - Frontend - Today 3:00 PM",
+    "Sam - Backend - Tomorrow 11:00 AM",
+  ]);
+
+  const [form] = Form.useForm();
+
+  const onSchedule = async () => {
+    try {
+      const v = await form.validateFields();
+      const when = `${v.date?.format("YYYY-MM-DD")} ${v.time?.format("HH:mm")}`;
+      const notes = v.notes ? ` - Notes: ${v.notes}` : "";
+      setMeetings((m) => [
+        `${v.candidate} - ${v.role || "Interview"} - ${when}`,
+        ...m,
+      ]);
+      form.resetFields();
+      message.success("Meeting scheduled");
+    } catch {}
+  };
+
+  return (
+    <AppLayout
+      title={`Scheduler - ${jobId || "..."}`}
+      subtitle="Fix meetings with candidates"
+    >
+      <Row gutter={[16, 16]}>
+        <Col xs={24} md={12}>
+          <Card title="Schedule Interview">
+            <Form form={form} layout="vertical" onFinish={onSchedule}>
+              <Form.Item
+                label="Candidate"
+                name="candidate"
+                rules={[{ required: true }]}
+              >
+                <Input placeholder="Candidate name" />
+              </Form.Item>
+              <Form.Item label="Role" name="role">
+                <Input placeholder="e.g., Frontend" />
+              </Form.Item>
+              <Form.Item label="Date" name="date" rules={[{ required: true }]}>
+                <DatePicker style={{ width: "100%" }} />
+              </Form.Item>
+              <Form.Item label="Time" name="time" rules={[{ required: true }]}>
+                <TimePicker format="HH:mm" style={{ width: "100%" }} />
+              </Form.Item>
+              <Form.Item label="Attendees" name="attendees">
+
+              <Form.Item label="Notes" name="notes">\n                <Input.TextArea rows={3} placeholder="Add meeting notes..." />\n              </Form.Item>
+                <Select mode="tags" placeholder="Enter emails" />
+
+              <Form.Item label="Notes" name="notes">\n                <Input.TextArea rows={3} placeholder="Add meeting notes..." />\n              </Form.Item>
+              </Form.Item>
+
+              <Form.Item label="Notes" name="notes">\n                <Input.TextArea rows={3} placeholder="Add meeting notes..." />\n              </Form.Item>
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <Button type="primary" htmlType="submit">
+                  Schedule
+                </Button>
+              </div>
+            </Form>
+          </Card>
+        </Col>
+        <Col xs={24} md={12}>
+          <Card title="Upcoming Meetings">
+            <List
+              dataSource={meetings}
+              renderItem={(item) => <List.Item>{item}</List.Item>}
+            />
+          </Card>
+        </Col>
+      </Row>
+    </AppLayout>
+  );
+}

@@ -1,0 +1,219 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  id              Int       @id @default(autoincrement())
+  companyUuid     String    @unique @default(uuid())
+  name            String
+  address         String
+  country         String
+  logo            String?
+  mapLocation     String?
+  linkedinProfile String?
+  website         String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  jobPosts        JobPost[]
+  users           User[]
+
+  @@map("companies")
+}
+
+model User {
+  id                Int                @id @default(autoincrement())
+  email             String             @unique
+  name              String
+  password          String
+  type              UserType
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  companyId         Int?
+  generatedJobPosts GeneratedJobPost[]
+  jobPosts          JobPost[]
+  company           Company?           @relation(fields: [companyId], references: [id])
+  meetings          Meeting[]
+  uploadedResumes   Resume[]
+
+  meetingNotes      MeetingNote[]
+}
+
+model JobPost {
+  id                  String             @id @default(cuid())
+  jobTitle            String
+  companyName         String
+  location            String
+  jobType             String
+  experienceLevel     String
+  salaryRange         String?
+  skillsRequired      String
+  jobDescription      String?
+  keyResponsibilities String?
+  qualifications      String?
+  benefits            String?
+  isActive            Boolean            @default(true)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  companyId           Int
+  createdById         Int
+  generatedPosts      GeneratedJobPost[]
+  company             Company            @relation(fields: [companyId], references: [id])
+  createdBy           User               @relation(fields: [createdById], references: [id])
+  resumes             Resume[]
+  meetings            Meeting[]          // Add meetings relation
+}
+
+model GeneratedJobPost {
+  id            String   @id @default(cuid())
+  content       String
+  version       Int      @default(1)
+  isSelected    Boolean  @default(false)
+  aiModel       String?
+  generatedAt   DateTime @default(now())
+  jobPostId     String
+  generatedById Int
+  generatedBy   User     @relation(fields: [generatedById], references: [id])
+  jobPost       JobPost  @relation(fields: [jobPostId], references: [id], onDelete: Cascade)
+
+  @@unique([jobPostId, version])
+}
+
+model Resume {
+  id                 String    @id @default(cuid())
+  resumeUrl          String    // Original resume URL/path from AI response "resume_path"
+  candidateName      String    // From AI response "candidate.name"
+  candidateEmail     String?   // From AI response "candidate.email"
+  candidatePhone     String?   // From AI response "candidate.phone"
+  matchScore         Float?    // From AI response "candidate.match_score" (0-100)
+  recommendation     String?   // From AI response "analysis.recommendation"
+  
+  // Extended candidate information from AI response
+  skills             String[]  // From AI response "candidate.skills" array
+  experienceYears    Int?      // From AI response "candidate.experience_years"
+  education          String?   // From AI response "candidate.education"
+  summary            String?   // From AI response "candidate.summary"
+  location           String?   // From AI response "candidate.location"
+  linkedinUrl        String?   // From AI response "candidate.linkedin_url"
+  githubUrl          String?   // From AI response "candidate.github_url"
+  currentJobTitle    String?   // From AI response "candidate.current_job_title"
+  
+  // Analysis metadata from AI response
+  processingMethod   String?   // From AI response "candidate.processing_method"
+  analysisTimestamp  DateTime? // From AI response "candidate.analysis_timestamp"
+  fileName           String?   // From AI response "analysis.file_name"
+  fileSizeMb         Float?    // From AI response "analysis.file_size_mb"
+  processingTime     Float?    // From AI response "analysis.processing_time"
+  matchedSkills      String[]  // From AI response "analysis.matched_skills" array
+  
+  // System fields
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  jobPostId          String
+  uploadedById       Int?      // User who uploaded
+  
+  // Relations
+  jobPost            JobPost   @relation(fields: [jobPostId], references: [id], onDelete: Cascade)
+  uploadedBy         User?     @relation(fields: [uploadedById], references: [id])
+  meetings           Meeting[]
+  
+  @@index([jobPostId, matchScore])
+  @@index([candidateEmail])
+}
+
+model Meeting {
+  id             String         @id @default(cuid())
+  meetingTime    DateTime
+  meetingLink    String?
+  meetingSummary String?
+  meetingRating  String?
+  meetingType    MeetingType?
+  agenda         String?        // Generated agenda from AI
+  status         MeetingStatus  @default(SCHEDULED)
+  notes          String?        // Manual notes field for PUT method
+  interviewType  InterviewType? // New field for interview difficulty
+  jobId          String         // Required field linking to job
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  resumeId       String         @unique // 1:1 relationship - one meeting per resume
+  createdById    Int
+  
+  // Relations
+  createdBy      User           @relation(fields: [createdById], references: [id])
+  resume         Resume         @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  job            JobPost        @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@map("meetings")
+}
+
+model ApiLog {
+  id           String   @id @default(cuid())
+  functionName String
+  companyName  String?
+  invokedTime  DateTime @default(now())
+  createdAt    DateTime @default(now())
+}
+
+enum UserType {
+  ADMIN
+  MANAGER
+  COMPANY_USER
+}
+
+enum MeetingStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum MeetingType {
+  TECHNICAL
+  BEHAVIORAL
+  SITUATIONAL
+}
+
+enum InterviewType {
+  TECHNICAL
+  BEHAVIORAL
+  EASY
+  COMPLEX
+  MEDIUM
+}
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+  FREELANCE
+}
+
+enum ExperienceLevel {
+  ENTRY
+  JUNIOR
+  MID
+  SENIOR
+  LEAD
+  EXECUTIVE
+}
+
+model MeetingNote {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  meetingId String
+  createdById Int
+  
+  // Relations
+  meeting   Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  createdBy User    @relation(fields: [createdById], references: [id])
+  
+  @@map("meeting_notes")
+}
