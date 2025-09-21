@@ -7,7 +7,7 @@ export default async function handler(
   res: NextApiResponse
 ) {
   // Temporarily bypass authentication for testing
-  const user = { userId: 1, email: "admin", type: "ADMIN", companyId: null };
+  const user = { userId: -1, email: "admin", type: "ADMIN", companyId: null };
 
   const { jobId } = req.query;
 
@@ -44,7 +44,6 @@ export default async function handler(
             meetingType: true,
             agenda: true,
             notes: true,
-            meetingRating: true,
             createdAt: true,
           },
         },

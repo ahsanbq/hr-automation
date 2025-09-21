@@ -39,8 +39,6 @@ model User {
   company           Company?           @relation(fields: [companyId], references: [id])
   meetings          Meeting[]
   uploadedResumes   Resume[]
-
-  meetingNotes      MeetingNote[]
 }
 
 model JobPost {
@@ -201,19 +199,4 @@ enum ExperienceLevel {
   SENIOR
   LEAD
   EXECUTIVE
-}
-
-model MeetingNote {
-  id        String   @id @default(cuid())
-  content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  meetingId String
-  createdById Int
-  
-  // Relations
-  meeting   Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-  createdBy User    @relation(fields: [createdById], references: [id])
-  
-  @@map("meeting_notes")
 }

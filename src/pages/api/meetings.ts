@@ -7,23 +7,23 @@ export default async function handler(
   res: NextApiResponse
 ) {
   // Temporarily bypass authentication for testing
-  const user = { userId: 1, email: "admin", type: "ADMIN", companyId: null };
+  const user = { userId: -1, email: "admin", type: "ADMIN", companyId: null };
 
   if (req.method === "GET") {
     const meetings = await prisma.meeting.findMany({
       include: {
         resume: {
           include: {
-            jobPost: true
-          }
+            jobPost: true,
+          },
         },
         createdBy: {
           select: {
             id: true,
             name: true,
-            email: true
-          }
-        }
+            email: true,
+          },
+        },
       },
       orderBy: { meetingTime: "asc" },
     });
@@ -31,30 +31,30 @@ export default async function handler(
   }
 
   if (req.method === "POST") {
-    const { 
-      meetingTime, 
-      meetingLink, 
-      meetingSummary, 
-      meetingRating, 
+    const {
+      meetingTime,
+      meetingLink,
+      meetingSummary,
+      meetingRating,
       meetingType,
       agenda,
       status,
       notes,
       interviewType,
       resumeId,
-      jobId
+      jobId,
     } = req.body || {};
 
     // Validate required fields
     if (!resumeId || !jobId || !meetingTime) {
-      return res.status(400).json({ 
-        error: "Missing required fields: resumeId, jobId, meetingTime" 
+      return res.status(400).json({
+        error: "Missing required fields: resumeId, jobId, meetingTime",
       });
     }
 
     // Validate that resume belongs to the specified job
     const resume = await prisma.resume.findUnique({
-      where: { id: resumeId }
+      where: { id: resumeId },
     });
 
     if (!resume) {
@@ -62,24 +62,24 @@ export default async function handler(
     }
 
     if (resume.jobPostId !== jobId) {
-      return res.status(400).json({ 
-        error: "Resume does not belong to the specified job" 
+      return res.status(400).json({
+        error: "Resume does not belong to the specified job",
       });
     }
 
     // Check if meeting already exists for this resume
     const existingMeeting = await prisma.meeting.findFirst({
-      where: { resumeId: resumeId }
+      where: { resumeId: resumeId },
     });
 
     if (existingMeeting) {
-      return res.status(409).json({ 
-        error: "Meeting already exists for this resume" 
+      return res.status(409).json({
+        error: "Meeting already exists for this resume",
       });
     }
 
     const created = await prisma.meeting.create({
-      data: { 
+      data: {
         meetingTime: new Date(meetingTime),
         meetingLink,
         meetingSummary,
@@ -96,17 +96,17 @@ export default async function handler(
       include: {
         resume: {
           include: {
-            jobPost: true
-          }
-        }
-      }
+            jobPost: true,
+          },
+        },
+      },
     });
     return res.status(201).json(created);
   }
 
   if (req.method === "PUT") {
     const { id, ...updateData } = req.body || {};
-    
+
     if (!id) {
       return res.status(400).json({ error: "Meeting ID is required" });
     }
@@ -116,23 +116,23 @@ export default async function handler(
       updateData.meetingTime = new Date(updateData.meetingTime);
     }
 
-    const updated = await prisma.meeting.update({ 
-      where: { id }, 
+    const updated = await prisma.meeting.update({
+      where: { id },
       data: updateData,
       include: {
         resume: {
           include: {
-            jobPost: true
-          }
-        }
-      }
+            jobPost: true,
+          },
+        },
+      },
     });
     return res.json(updated);
   }
 
   if (req.method === "DELETE") {
     const { id } = req.body || {};
-    
+
     if (!id) {
       return res.status(400).json({ error: "Meeting ID is required" });
     }

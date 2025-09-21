@@ -49,15 +49,8 @@ export default async function handler(
   }
 
   if (req.method === "PUT") {
-    const {
-      notes,
-      agenda,
-      meetingTime,
-      meetingLink,
-      status,
-      interviewType,
-      meetingRating,
-    } = req.body;
+    const { notes, agenda, meetingTime, meetingLink, status, interviewType } =
+      req.body;
 
     // Prepare update data - only include fields that are provided
     const updateData: any = {};
@@ -68,8 +61,6 @@ export default async function handler(
     if (meetingLink !== undefined) updateData.meetingLink = meetingLink;
     if (status !== undefined) updateData.status = status;
     if (interviewType !== undefined) updateData.interviewType = interviewType;
-    if (meetingRating !== undefined)
-      updateData.meetingRating = String(meetingRating);
 
     const updated = await prisma.meeting.update({
       where: { id: meetingId },
