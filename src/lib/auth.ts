@@ -84,7 +84,7 @@ export async function registerUser(
   if (existing) throw new Error("Email already in use");
   const hashed = await bcrypt.hash(password, 10);
   const user = await prisma.user.create({
-    data: { email, password: hashed, name, type: "COMPANY_USER" },
+    data: { email, password: hashed, name: name || email.split("@")[0], type: "COMPANY_USER" },
   });
   const token = jwt.sign(
     {

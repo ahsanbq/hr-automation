@@ -10,29 +10,29 @@ export default async function handler(
   if (!user) return res.status(401).json({ error: "Unauthorized" });
 
   if (req.method === "GET") {
-    const offers = await prisma.offer.findMany({
-      orderBy: { createdAt: "desc" },
-    });
-    return res.json(offers);
+    // const offers = await prisma.offer.findMany({
+      // orderBy: { createdAt: "desc" },
+    // });
+    return res.json([]);
   }
 
   if (req.method === "POST") {
     const { candidate, email, status, content, jobId } = req.body || {};
-    const created = await prisma.offer.create({
-      data: { candidate, email, status, content, jobId },
-    });
-    return res.status(201).json(created);
+    // const created = await prisma.offer.create({
+      // data: { candidate, email, status, content, jobId },
+    // });
+    return res.status(201).json({ message: "Offer creation disabled - model not found" });
   }
 
   if (req.method === "PUT") {
     const { id, ...data } = req.body || {};
-    const updated = await prisma.offer.update({ where: { id }, data });
-    return res.json(updated);
+    // const updated = await prisma.offer.update({ where: { id }, data });
+    return res.json({ message: "Offer update disabled - model not found" });
   }
 
   if (req.method === "DELETE") {
     const { id } = req.body || {};
-    await prisma.offer.delete({ where: { id } });
+    // await prisma.offer.delete({ where: { id } });
     return res.status(204).end();
   }
 

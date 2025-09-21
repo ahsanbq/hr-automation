@@ -190,7 +190,7 @@ export default function MeetingManagementPage() {
         meetingType: values.meetingType,
         agenda: editableAgenda,
         resumeId: resume?.id,
-        jobId: resume?.jobPost.id
+        jobId: resume?.jobPostId
       };
 
       let response;

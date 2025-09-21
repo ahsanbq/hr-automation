@@ -279,7 +279,7 @@ export default function InterviewJobPage() {
       key: 'meetingStatus',
       width: 120,
       align: 'center' as const,
-      render: (_, record: Resume) => {
+      render: (_: any, record: Resume) => {
         if (record.meeting) {
           return (
             <Tag 
@@ -297,7 +297,7 @@ export default function InterviewJobPage() {
       title: 'Actions',
       key: 'actions',
       width: 150,
-      render: (_, record: Resume) => (
+      render: (_: any, record: Resume) => (
         <Space size="small">
           {record.hasMeeting ? (
             <Button

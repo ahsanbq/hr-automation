@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import type { ColumnsType } from "antd/es/table";
 import {
   Table,
   Space,
@@ -161,7 +162,7 @@ export default function ManageJobsTable({ mode = "manage" as ManageMode }) {
   };
 
   const getColumns = () => {
-    const baseColumns = [
+    const baseColumns: ColumnsType<JobRow> = [
       {
         title: "Job Title",
         dataIndex: "jobTitle",
@@ -294,7 +295,7 @@ export default function ManageJobsTable({ mode = "manage" as ManageMode }) {
       key: "actions",
       width: 200,
       align: "center" as const,
-      render: (text: any, record: JobRow, index: number) => {
+      render: (_: unknown, record: JobRow) =>  {
         const act = primaryAction(record);
         if (act) {
           return (

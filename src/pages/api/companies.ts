@@ -17,9 +17,9 @@ export default async function handler(
   }
 
   if (req.method === "POST") {
-    const { name, website, location } = req.body || {};
+    const { name, website, address, country } = req.body || {};
     const created = await prisma.company.create({
-      data: { name, website, location },
+      data: { name, website, address, country },
     });
     return res.status(201).json(created);
   }

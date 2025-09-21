@@ -16,7 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const jobPost = await prisma.jobPost.findFirst({
     where: {
       id: jobId,
-      companyId: user.companyId,
+      companyId: user.companyId!,
     },
     include: {
       company: true,
