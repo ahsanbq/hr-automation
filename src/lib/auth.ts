@@ -2,6 +2,7 @@ import type { NextApiRequest } from "next";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
+import type { Prisma } from "@prisma/client";
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change";
 
@@ -38,28 +39,30 @@ export async function registerCompanyWithAdmin(params: {
 
   const hashed = await bcrypt.hash(adminPassword, 10);
 
-  const result = await prisma.$transaction(async (tx) => {
-    const company = await tx.company.create({
-      data: {
-        name: companyName,
-        address: companyAddress,
-        country: companyCountry,
-        website: companyWebsite ?? null,
-      },
-    });
+  const result = await prisma.$transaction(
+    async (tx: Prisma.TransactionClient) => {
+      const company = await tx.company.create({
+        data: {
+          name: companyName,
+          address: companyAddress,
+          country: companyCountry,
+          website: companyWebsite ?? null,
+        },
+      });
 
-    const user = await tx.user.create({
-      data: {
-        email: adminEmail,
-        password: hashed,
-        name: adminName,
-        type: "ADMIN",
-        companyId: company.id,
-      },
-    });
+      const user = await tx.user.create({
+        data: {
+          email: adminEmail,
+          password: hashed,
+          name: adminName,
+          type: "ADMIN",
+          companyId: company.id,
+        },
+      });
 
-    return { company, user };
-  });
+      return { company, user };
+    }
+  );
 
   const token = jwt.sign(
     {
@@ -84,7 +87,12 @@ export async function registerUser(
   if (existing) throw new Error("Email already in use");
   const hashed = await bcrypt.hash(password, 10);
   const user = await prisma.user.create({
-    data: { email, password: hashed, name: name || email.split("@")[0], type: "COMPANY_USER" },
+    data: {
+      email,
+      password: hashed,
+      name: name || email.split("@")[0],
+      type: "COMPANY_USER",
+    },
   });
   const token = jwt.sign(
     {
