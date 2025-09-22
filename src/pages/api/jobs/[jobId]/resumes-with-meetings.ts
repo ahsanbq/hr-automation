@@ -44,6 +44,7 @@ export default async function handler(
             meetingType: true,
             agenda: true,
             notes: true,
+            meetingRating: true, // Added meetingRating field
             createdAt: true,
           },
         },

@@ -344,12 +344,18 @@ export default function InterviewJobPage() {
       width: 120,
       align: "center" as const,
       render: (_: unknown, record: Resume) => {
-        const rating = (record as any)?.meeting?.meetingRating;
-        return (
-          <span style={{ fontSize: "12px" }}>
-            {rating ? `${rating}/10` : "-"}
-          </span>
-        );
+        const rating = record.meeting?.meetingRating;
+        if (rating && rating > 0) {
+          return (
+            <Tag
+              color={rating >= 8 ? "green" : rating >= 6 ? "orange" : "red"}
+              style={{ fontSize: "11px", margin: 0 }}
+            >
+              {rating}/10
+            </Tag>
+          );
+        }
+        return <span style={{ color: "#999", fontSize: "12px" }}>-</span>;
       },
     },
     {
