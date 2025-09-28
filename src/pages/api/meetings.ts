@@ -6,8 +6,8 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  // Temporarily bypass authentication for testing
-  const user = { userId: -1, email: "admin", type: "ADMIN", companyId: null };
+  const user = getUserFromRequest(req);
+  if (!user) return res.status(401).json({ error: "Unauthorized" });
 
   if (req.method === "GET") {
     const meetings = await prisma.meeting.findMany({
@@ -67,6 +67,18 @@ export default async function handler(
       });
     }
 
+    // Validate that the user exists
+    const userExists = await prisma.user.findUnique({
+      where: { id: user.userId },
+      select: { id: true },
+    });
+
+    if (!userExists) {
+      return res.status(400).json({
+        error: "User not found. Please login again.",
+      });
+    }
+
     // Check if meeting already exists for this resume
     const existingMeeting = await prisma.meeting.findFirst({
       where: { resumeId: resumeId },
@@ -78,30 +90,38 @@ export default async function handler(
       });
     }
 
-    const created = await prisma.meeting.create({
-      data: {
-        meetingTime: new Date(meetingTime),
-        meetingLink,
-        meetingSummary,
-        meetingRating,
-        meetingType,
-        agenda,
-        status: status || "SCHEDULED",
-        notes,
-        jobId,
-        resumeId,
-        createdById: user.userId,
-        interviewType,
-      },
-      include: {
-        resume: {
-          include: {
-            jobPost: true,
+    try {
+      const created = await prisma.meeting.create({
+        data: {
+          meetingTime: new Date(meetingTime),
+          meetingLink,
+          meetingSummary,
+          meetingRating,
+          meetingType,
+          agenda,
+          status: status || "SCHEDULED",
+          notes,
+          jobId,
+          resumeId,
+          createdById: user.userId,
+          interviewType,
+        },
+        include: {
+          resume: {
+            include: {
+              jobPost: true,
+            },
           },
         },
-      },
-    });
-    return res.status(201).json(created);
+      });
+      return res.status(201).json(created);
+    } catch (createError: any) {
+      console.error("Error creating meeting:", createError);
+      return res.status(500).json({
+        error: "Failed to create meeting",
+        details: createError.message,
+      });
+    }
   }
 
   if (req.method === "PUT") {

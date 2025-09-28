@@ -6,8 +6,8 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  // Temporarily bypass authentication for testing
-  const user = { userId: -1, email: "admin", type: "ADMIN", companyId: null };
+  const user = getUserFromRequest(req);
+  if (!user) return res.status(401).json({ error: "Unauthorized" });
 
   const { jobId } = req.query;
 
