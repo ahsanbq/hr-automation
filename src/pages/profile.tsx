@@ -248,7 +248,8 @@ export default function ProfilePage() {
                   </Form.Item>
                   <Row gutter={12}>
                     <Col xs={24} md={12}>
-                      <Form.Item label="Upload/Remove Logo">
+                      {/* Upload disabled temporarily */}
+                      {/* <Form.Item label="Upload/Remove Logo">
                         <Upload {...uploadProps}>
                           <Button icon={<UploadOutlined />}>Upload Logo</Button>
                         </Upload>
@@ -266,7 +267,7 @@ export default function ProfilePage() {
                             Remove Logo
                           </Button>
                         )}
-                      </Form.Item>
+                      </Form.Item> */}
                       {/* Hidden form field to store path only */}
                       <Form.Item name="logo" style={{ display: "none" }}>
                         <Input />
