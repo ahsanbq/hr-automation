@@ -237,13 +237,26 @@ export default function InterviewJobPage() {
       key: "candidateName",
       width: 150,
       render: (name: string, record: Resume) => (
-        <div>
+        <div
+          style={{
+            whiteSpace: "normal",
+            wordBreak: "break-word",
+            overflowWrap: "anywhere",
+          }}
+        >
           <div style={{ fontWeight: 500, color: "#1890ff", fontSize: "13px" }}>
             {name}
           </div>
           <a
             href={`mailto:${record.candidateEmail}`}
-            style={{ color: "#1890ff", fontSize: "12px" }}
+            style={{
+              color: "#1890ff",
+              fontSize: "12px",
+              whiteSpace: "normal",
+              wordBreak: "break-word",
+              overflowWrap: "anywhere",
+              display: "inline-block",
+            }}
           >
             {record.candidateEmail}
           </a>
@@ -259,7 +272,14 @@ export default function InterviewJobPage() {
         phone ? (
           <a
             href={`tel:${phone}`}
-            style={{ color: "#1890ff", fontSize: "12px" }}
+            style={{
+              color: "#1890ff",
+              fontSize: "12px",
+              whiteSpace: "normal",
+              wordBreak: "break-word",
+              overflowWrap: "anywhere",
+              display: "inline-block",
+            }}
           >
             {phone}
           </a>
@@ -480,6 +500,10 @@ export default function InterviewJobPage() {
               style={{ borderRadius: "6px" }}
               size="small"
               scroll={{ x: 1000 }}
+              onRow={() => ({
+                style: { wordBreak: "break-word", whiteSpace: "normal" },
+              })}
+              rowClassName={() => "wrap-row"}
               bordered
             />
           </Card>
@@ -549,15 +573,21 @@ export default function InterviewJobPage() {
                             ? job.skillsRequired.split(",").map((s) => s.trim())
                             : [];
                       }
-                      return skills.map((skill: string, index: number) => (
-                        <Tag
-                          key={index}
-                          color="blue"
-                          style={{ marginBottom: "2px", fontSize: "11px" }}
+                      return (
+                        <div
+                          style={{ display: "flex", flexWrap: "wrap", gap: 4 }}
                         >
-                          {typeof skill === "string" ? skill.trim() : skill}
-                        </Tag>
-                      ));
+                          {skills.map((skill: string, index: number) => (
+                            <Tag
+                              key={index}
+                              color="blue"
+                              style={{ marginBottom: "2px", fontSize: "11px" }}
+                            >
+                              {typeof skill === "string" ? skill.trim() : skill}
+                            </Tag>
+                          ))}
+                        </div>
+                      );
                     })()}
                   </div>
                 </div>
