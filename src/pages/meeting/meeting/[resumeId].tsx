@@ -74,6 +74,7 @@ export default function MeetingManagementPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [generatingAgenda, setGeneratingAgenda] = useState(false);
+  const [generatingKey, setGeneratingKey] = useState<string | null>(null);
   const [resume, setResume] = useState<Resume | null>(null);
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [job, setJob] = useState<Job | null>(null);
@@ -83,6 +84,8 @@ export default function MeetingManagementPage() {
   const [form] = Form.useForm();
   const [notesForm] = Form.useForm();
   const [rating, setRating] = useState<number>(0);
+  const [agendaSaving, setAgendaSaving] = useState(false);
+  const [ratingSaving, setRatingSaving] = useState(false);
 
   useEffect(() => {
     if (resumeId) {
@@ -90,8 +93,8 @@ export default function MeetingManagementPage() {
     }
   }, [resumeId]);
 
-  const fetchResumeData = async () => {
-    setLoading(true);
+  const fetchResumeData = async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     try {
       const token = localStorage.getItem("token");
 
@@ -142,14 +145,13 @@ export default function MeetingManagementPage() {
     } catch (error) {
       message.error("Failed to fetch data");
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
   };
 
   const generateAgenda = async (interviewType: string) => {
     if (!resume) return;
-
-    setGeneratingAgenda(true);
+    setGeneratingKey(interviewType);
     try {
       const token = localStorage.getItem("token");
       const response = await fetch("/api/generate-interview-agenda", {
@@ -177,7 +179,7 @@ export default function MeetingManagementPage() {
     } catch (error) {
       message.error("Failed to generate agenda");
     } finally {
-      setGeneratingAgenda(false);
+      setGeneratingKey(null);
     }
   };
 
@@ -224,7 +226,7 @@ export default function MeetingManagementPage() {
         const savedMeeting = await response.json();
         setMeeting(savedMeeting);
         message.success("Meeting saved successfully!");
-        fetchResumeData(); // Refresh data
+        await fetchResumeData({ silent: true }); // Refresh data
       } else {
         const errorData = await response.json();
         message.error(errorData.error || "Failed to save meeting");
@@ -256,7 +258,7 @@ export default function MeetingManagementPage() {
 
       if (response.ok) {
         message.success("Notes saved successfully!");
-        fetchResumeData(); // Refresh data
+        await fetchResumeData({ silent: true }); // Refresh data
       } else {
         message.error("Failed to save notes");
       }
@@ -268,6 +270,7 @@ export default function MeetingManagementPage() {
   const saveRating = async () => {
     if (!meeting) return;
     try {
+      setRatingSaving(true);
       const token = localStorage.getItem("token");
       const response = await fetch(`/api/meetings/${meeting.id}`, {
         method: "PUT",
@@ -281,18 +284,49 @@ export default function MeetingManagementPage() {
       });
       if (response.ok) {
         message.success("Rating saved");
-        fetchResumeData();
+        await fetchResumeData({ silent: true });
       } else {
         message.error("Failed to save rating");
       }
     } catch (e) {
       message.error("Failed to save rating");
+    } finally {
+      setRatingSaving(false);
     }
   };
 
-  const saveAgenda = () => {
-    setAgendaModalVisible(false);
-    message.success("Agenda updated! Click 'Save Meeting' to persist changes.");
+  const saveAgenda = async () => {
+    if (!meeting) {
+      setAgendaModalVisible(false);
+      message.warning(
+        "Please save meeting details first to persist the agenda."
+      );
+      return;
+    }
+    try {
+      setAgendaSaving(true);
+      const token = localStorage.getItem("token");
+      const response = await fetch(`/api/meetings/${meeting.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ agenda: editableAgenda }),
+      });
+      if (response.ok) {
+        message.success("Agenda saved successfully!");
+        setAgendaModalVisible(false);
+        await fetchResumeData({ silent: true });
+      } else {
+        const errorData = await response.json();
+        message.error(errorData.error || "Failed to save agenda");
+      }
+    } catch (error) {
+      message.error("Failed to save agenda");
+    } finally {
+      setAgendaSaving(false);
+    }
   };
 
   if (loading) {
@@ -428,7 +462,7 @@ export default function MeetingManagementPage() {
                   type="primary"
                   icon={<RobotOutlined />}
                   onClick={() => generateAgenda("Technical")}
-                  loading={generatingAgenda}
+                  loading={!!generatingKey}
                   size="small"
                 >
                   Generate
@@ -445,59 +479,61 @@ export default function MeetingManagementPage() {
               </Space>
             }
           >
-            {!editableAgenda ? (
-              <div style={{ textAlign: "center", padding: "40px" }}>
-                <RobotOutlined
-                  style={{ fontSize: 48, color: "#ccc", marginBottom: 16 }}
-                />
-                <p>No agenda generated yet</p>
-                <Space direction="vertical">
-                  <p>Select interview type to generate agenda:</p>
-                  <Space wrap>
-                    <Button
-                      onClick={() => generateAgenda("Technical")}
-                      loading={generatingAgenda}
-                    >
-                      Technical
-                    </Button>
-                    <Button
-                      onClick={() => generateAgenda("Behavioral")}
-                      loading={generatingAgenda}
-                    >
-                      Behavioral
-                    </Button>
-                    <Button
-                      onClick={() => generateAgenda("Easy")}
-                      loading={generatingAgenda}
-                    >
-                      Easy
-                    </Button>
-                    <Button
-                      onClick={() => generateAgenda("Medium")}
-                      loading={generatingAgenda}
-                    >
-                      Medium
-                    </Button>
-                    <Button
-                      onClick={() => generateAgenda("Complex")}
-                      loading={generatingAgenda}
-                    >
-                      Complex
-                    </Button>
+            <Spin spinning={agendaSaving || !!generatingKey}>
+              {!editableAgenda ? (
+                <div style={{ textAlign: "center", padding: "40px" }}>
+                  <RobotOutlined
+                    style={{ fontSize: 48, color: "#ccc", marginBottom: 16 }}
+                  />
+                  <p>No agenda generated yet</p>
+                  <Space direction="vertical">
+                    <p>Select interview type to generate agenda:</p>
+                    <Space wrap>
+                      <Button
+                        onClick={() => generateAgenda("Technical")}
+                        loading={generatingKey === "Technical"}
+                      >
+                        Technical
+                      </Button>
+                      <Button
+                        onClick={() => generateAgenda("Behavioral")}
+                        loading={generatingKey === "Behavioral"}
+                      >
+                        Behavioral
+                      </Button>
+                      <Button
+                        onClick={() => generateAgenda("Easy")}
+                        loading={generatingKey === "Easy"}
+                      >
+                        Easy
+                      </Button>
+                      <Button
+                        onClick={() => generateAgenda("Medium")}
+                        loading={generatingKey === "Medium"}
+                      >
+                        Medium
+                      </Button>
+                      <Button
+                        onClick={() => generateAgenda("Complex")}
+                        loading={generatingKey === "Complex"}
+                      >
+                        Complex
+                      </Button>
+                    </Space>
                   </Space>
-                </Space>
-              </div>
-            ) : (
-              <div
-                style={{
-                  whiteSpace: "pre-wrap",
-                  fontSize: 14,
-                  lineHeight: 1.6,
-                }}
-              >
-                {editableAgenda}
-              </div>
-            )}
+                </div>
+              ) : (
+                <div
+                  style={{
+                    whiteSpace: "pre-wrap",
+                    fontSize: 14,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {editableAgenda}
+                </div>
+              )}
+            </Spin>
           </Card>
         </Col>
 
@@ -505,7 +541,7 @@ export default function MeetingManagementPage() {
         <Col span={6}>
           <MultipleNotesComponent
             meeting={meeting}
-            onSaveNotes={fetchResumeData}
+            onSaveNotes={() => fetchResumeData({ silent: true })}
           />
 
           {/* Meeting Rating - placed just below note taker */}
@@ -524,6 +560,7 @@ export default function MeetingManagementPage() {
                 onClick={saveRating}
                 disabled={!meeting}
                 icon={<SaveOutlined />}
+                loading={ratingSaving}
               >
                 Save Rating
               </Button>
@@ -538,6 +575,7 @@ export default function MeetingManagementPage() {
         open={agendaModalVisible}
         onCancel={() => setAgendaModalVisible(false)}
         onOk={saveAgenda}
+        confirmLoading={agendaSaving}
         width={800}
         okText="Save Agenda"
       >
