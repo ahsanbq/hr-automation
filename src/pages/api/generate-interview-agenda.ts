@@ -94,7 +94,7 @@ export default async function handler(
     };
 
     // Call external AI API with interview_type as query parameter
-    const apiUrl = `https://hr-recruitment-ai-api.onrender.com/generate-interview-agenda?interview_type=${encodeURIComponent(
+    const apiUrl = `https://ai.synchro-hire.com/generate-interview-agenda?interview_type=${encodeURIComponent(
       interview_type
     )}`;
 

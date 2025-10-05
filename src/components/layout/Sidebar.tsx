@@ -10,9 +10,10 @@ import {
   FileDoneOutlined,
   InboxOutlined,
   QuestionCircleOutlined,
-  DeleteOutlined,
   TeamOutlined,
   UserOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
 } from "@ant-design/icons";
 
 const { Sider } = Layout;
@@ -24,7 +25,13 @@ type CurrentUser = {
   type?: string;
 } | null;
 
-export default function Sidebar({ collapsed }: { collapsed?: boolean }) {
+export default function Sidebar({
+  collapsed = false,
+  onToggle,
+}: {
+  collapsed?: boolean;
+  onToggle?: () => void;
+}) {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<CurrentUser>(null);
 
@@ -148,45 +155,71 @@ export default function Sidebar({ collapsed }: { collapsed?: boolean }) {
     <Sider
       collapsible
       collapsed={collapsed}
-      breakpoint="lg"
+      onCollapse={onToggle}
       width={240}
-      collapsedWidth={88}
+      collapsedWidth={64}
+      breakpoint="lg"
       style={{
         minHeight: "100vh",
         position: "sticky",
         top: 0,
         left: 0,
-        background: "linear-gradient(180deg, #001529 0%, #001a2b 100%)",
-        boxShadow: "2px 0 12px rgba(0,0,0,0.15)",
+        background: "#1a1a2e",
+        borderRight: "1px solid rgba(255, 255, 255, 0.08)",
+        boxShadow: "4px 0 24px rgba(0,0,0,0.12)",
         display: "flex",
         flexDirection: "column",
+        transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+        backdropFilter: "blur(10px)",
       }}
     >
       {/* Header */}
       <div
         style={{
-          height: 72,
+          height: 80,
           display: "flex",
           alignItems: "center",
-          justifyContent: collapsed ? "center" : "flex-start",
-          padding: collapsed ? 0 : "0 16px",
+          justifyContent: "center",
+          padding: collapsed ? "0 12px" : "0 20px",
+          position: "relative",
+          transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+          borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
         }}
       >
-        <div style={{ color: "#fff" }}>
-          <Typography.Text
-            className="sora-bold"
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            flex: 1,
+            textAlign: "center",
+          }}
+        >
+          <div
             style={{
-              color: "#fff",
-              fontSize: collapsed ? 16 : 18,
+              color: "#ffffff",
+              fontSize: collapsed ? 18 : 20,
+              fontWeight: "600",
               letterSpacing: 0.5,
+              transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+              lineHeight: 1.2,
             }}
           >
-            Synchro Hire
-          </Typography.Text>
+            {collapsed ? "SH" : "Synchro Hire"}
+          </div>
           {!collapsed && (
             <div
-              className="manrope-regular"
-              style={{ color: "#9db4c0", fontSize: 12, lineHeight: 1.2 }}
+              style={{
+                color: "#e8e8e8",
+                fontSize: 11,
+                fontWeight: "400",
+                letterSpacing: 0.3,
+                marginTop: 2,
+                transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                lineHeight: 1.2,
+                opacity: 0.8,
+              }}
             >
               Streamline hiring
             </div>
@@ -194,10 +227,14 @@ export default function Sidebar({ collapsed }: { collapsed?: boolean }) {
         </div>
       </div>
 
-      <Divider style={{ margin: "8px 0", borderColor: "#123" }} />
-
       {/* Menu - Takes up available space */}
-      <div style={{ flex: 1, overflow: "auto" }}>
+      <div
+        style={{
+          flex: 1,
+          overflow: "auto",
+          paddingBottom: currentUser ? "120px" : "12px",
+        }}
+      >
         <Menu
           theme="dark"
           mode="inline"
@@ -205,79 +242,91 @@ export default function Sidebar({ collapsed }: { collapsed?: boolean }) {
           items={items as any}
           style={{
             background: "transparent",
-            padding: "8px 10px",
+            padding: collapsed ? "12px 8px" : "16px 12px",
             borderInlineEnd: 0,
           }}
+          inlineCollapsed={collapsed}
         />
       </div>
 
-      {/* Clean Temp Files Button */}
-      <div style={{ padding: "12px" }}>
-        <Button
-          block
-          icon={<DeleteOutlined />}
-          danger
-          shape="round"
-          className="manrope-medium"
-        >
-          {!collapsed && "Clean Temp Files"}
-        </Button>
-      </div>
-
-      {/* User Info Section - At the very bottom */}
-      {!collapsed && currentUser && (
+      {/* User Info Section - Positioned with proper spacing from trigger */}
+      {currentUser && (
         <div
           style={{
-            padding: "16px 20px",
-            background: "rgba(255, 255, 255, 0.05)",
-            borderTop: "1px solid rgba(255, 255, 255, 0.1)",
-            borderRadius: "12px",
-            margin: "0 12px 12px 12px",
+            position: "absolute",
+            bottom: "50px",
+            left: 0,
+            right: 0,
+            padding: collapsed ? "16px 8px" : "20px 16px",
+            background: "rgba(255, 255, 255, 0.03)",
+            borderTop: "1px solid rgba(255, 255, 255, 0.06)",
+            margin: collapsed ? "0 8px 8px 8px" : "0 12px 8px 12px",
+            borderRadius: "16px",
+            transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+            backdropFilter: "blur(10px)",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: collapsed ? "0" : "12px",
+              justifyContent: collapsed ? "center" : "flex-start",
+            }}
+          >
             <div
               style={{
-                width: "36px",
-                height: "36px",
+                width: collapsed ? "36px" : "40px",
+                height: collapsed ? "36px" : "40px",
                 background: isAdmin
-                  ? "linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)"
-                  : "linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%)",
+                  ? "linear-gradient(135deg, #ff4757 0%, #ff3742 100%)"
+                  : "linear-gradient(135deg, #2ed573 0%, #1dd1a1 100%)",
                 borderRadius: "50%",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 color: "#fff",
                 fontWeight: "bold",
-                fontSize: "14px",
+                fontSize: collapsed ? "14px" : "16px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                border: "2px solid rgba(255, 255, 255, 0.1)",
               }}
+              title={
+                collapsed
+                  ? `${currentUser.name || currentUser.email} (${
+                      isAdmin ? "Admin" : "User"
+                    })`
+                  : undefined
+              }
             >
               {(currentUser.name || currentUser.email || "U")
                 .slice(0, 1)
                 .toUpperCase()}
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div
-                style={{
-                  color: "#fff",
-                  fontSize: "14px",
-                  fontWeight: "600",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
-              >
-                {currentUser.name || currentUser.email}
+            {!collapsed && (
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div
+                  style={{
+                    color: "#fff",
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {currentUser.name || currentUser.email}
+                </div>
+                <div
+                  style={{
+                    color: "rgba(255, 255, 255, 0.6)",
+                    fontSize: "12px",
+                  }}
+                >
+                  {isAdmin ? "Administrator" : "User"}
+                </div>
               </div>
-              <div
-                style={{
-                  color: "rgba(255, 255, 255, 0.6)",
-                  fontSize: "12px",
-                }}
-              >
-                {isAdmin ? "Administrator" : "User"}
-              </div>
-            </div>
+            )}
           </div>
         </div>
       )}

@@ -1,7 +1,7 @@
 import axios from "axios";
 
 export const fastapi = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_FASTAPI_URL || "http://localhost:8000",
+  baseURL: process.env.NEXT_PUBLIC_FASTAPI_URL || "https://ai.synchro-hire.com",
   timeout: 15000,
 });
 

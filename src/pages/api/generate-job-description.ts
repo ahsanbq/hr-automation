@@ -1,7 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import axios from "axios";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -21,8 +24,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Validate required fields
     if (!title || !company || !location || !job_type) {
-      return res.status(400).json({ 
-        error: "Missing required fields: title, company, location, job_type" 
+      return res.status(400).json({
+        error: "Missing required fields: title, company, location, job_type",
       });
     }
 
@@ -41,7 +44,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Call external AI API
     const response = await axios.post(
-      "https://hr-recruitment-ai-api.onrender.com/create-job-post",
+      "https://ai.synchro-hire.com/create-job-post",
       requestBody,
       {
         headers: {
@@ -57,36 +60,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         job_requirement: response.data.job_requirement,
       });
     } else {
-      return res.status(500).json({ 
-        error: "Invalid response format from AI service" 
+      return res.status(500).json({
+        error: "Invalid response format from AI service",
       });
     }
   } catch (error: any) {
     console.error("AI API Error:", error);
-    
+
     if (error.code === "ECONNABORTED") {
-      return res.status(408).json({ 
-        error: "Request timeout. Please try again." 
+      return res.status(408).json({
+        error: "Request timeout. Please try again.",
       });
     }
-    
+
     if (error.response) {
       // External API returned an error
       return res.status(error.response.status).json({
-        error: error.response.data?.detail || error.response.data?.message || "External API error",
+        error:
+          error.response.data?.detail ||
+          error.response.data?.message ||
+          "External API error",
       });
     }
-    
+
     if (error.request) {
       // Network error
-      return res.status(503).json({ 
-        error: "Unable to connect to AI service. Please try again later." 
+      return res.status(503).json({
+        error: "Unable to connect to AI service. Please try again later.",
       });
     }
-    
+
     // Other error
-    return res.status(500).json({ 
-      error: "Internal server error" 
+    return res.status(500).json({
+      error: "Internal server error",
     });
   }
 }

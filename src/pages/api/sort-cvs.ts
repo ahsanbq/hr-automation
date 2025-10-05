@@ -31,7 +31,7 @@ function makeFallback(paths: string[]) {
 
 async function callExternalSortAPI(requestBody: any) {
   return axios.post(
-    "https://hr-recruitment-ai-api.onrender.com/analyze-resumes-v2",
+    "https://ai.synchro-hire.com/analyze-resumes-v2",
     requestBody,
     {
       headers: { "Content-Type": "application/json" },

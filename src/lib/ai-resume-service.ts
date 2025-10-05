@@ -2,7 +2,8 @@
 
 export interface ResumeAnalysisRequest {
   resume_paths: string[]; // Array of resume URLs - FIXED FORMAT
-  job_req: {              // Job requirements object - FIXED FORMAT
+  job_req: {
+    // Job requirements object - FIXED FORMAT
     title: string;
     company: string;
     location: string;
@@ -59,45 +60,59 @@ export interface ResumeAnalysisResponse {
 }
 
 export class AIResumeService {
-  private static readonly AI_API_BASE = 'https://hr-recruitment-ai-api.onrender.com';
-  
-  static async analyzeResumes(request: ResumeAnalysisRequest): Promise<ResumeAnalysisResponse> {
+  private static readonly AI_API_BASE = "https://ai.synchro-hire.com";
+
+  static async analyzeResumes(
+    request: ResumeAnalysisRequest
+  ): Promise<ResumeAnalysisResponse> {
     const response = await fetch(`${this.AI_API_BASE}/analyze-resumes-v2`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(request),
     });
-    
+
     if (!response.ok) {
       throw new Error(`AI API failed: ${response.statusText}`);
     }
-    
+
     return response.json();
   }
-  
+
   // Convert JobPost to the EXACT format expected by external AI API
-  static mapJobPostToJobReq(jobPost: any): ResumeAnalysisRequest['job_req'] {
+  static mapJobPostToJobReq(jobPost: any): ResumeAnalysisRequest["job_req"] {
     // Parse skills from comma-separated string to array
-    const skillsArray = jobPost.skillsRequired ? 
-      jobPost.skillsRequired.split(',').map((s: string) => s.trim()).filter(Boolean) : 
-      [];
-    
+    const skillsArray = jobPost.skillsRequired
+      ? jobPost.skillsRequired
+          .split(",")
+          .map((s: string) => s.trim())
+          .filter(Boolean)
+      : [];
+
     // Parse responsibilities from newline-separated string to array
-    const responsibilitiesArray = jobPost.keyResponsibilities ? 
-      jobPost.keyResponsibilities.split('\n').map((s: string) => s.trim()).filter(Boolean) : 
-      [];
-    
+    const responsibilitiesArray = jobPost.keyResponsibilities
+      ? jobPost.keyResponsibilities
+          .split("\n")
+          .map((s: string) => s.trim())
+          .filter(Boolean)
+      : [];
+
     // Parse qualifications from newline-separated string to array
-    const qualificationsArray = jobPost.qualifications ? 
-      jobPost.qualifications.split('\n').map((s: string) => s.trim()).filter(Boolean) : 
-      [];
-    
+    const qualificationsArray = jobPost.qualifications
+      ? jobPost.qualifications
+          .split("\n")
+          .map((s: string) => s.trim())
+          .filter(Boolean)
+      : [];
+
     // Parse benefits from newline-separated string to array
-    const benefitsArray = jobPost.benefits ? 
-      jobPost.benefits.split('\n').map((s: string) => s.trim()).filter(Boolean) : 
-      [];
+    const benefitsArray = jobPost.benefits
+      ? jobPost.benefits
+          .split("\n")
+          .map((s: string) => s.trim())
+          .filter(Boolean)
+      : [];
 
     return {
       title: jobPost.jobTitle,
@@ -108,7 +123,7 @@ export class AIResumeService {
       skills_required: skillsArray,
       responsibilities: responsibilitiesArray,
       qualifications: qualificationsArray,
-      description: jobPost.jobDescription || '',
+      description: jobPost.jobDescription || "",
       salary_range: jobPost.salaryRange || undefined,
       benefits: benefitsArray.length > 0 ? benefitsArray : undefined,
     };

@@ -19,6 +19,7 @@ export default function AppLayout({
 }: AppLayoutProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -46,7 +47,10 @@ export default function AppLayout({
 
   return (
     <Layout style={{ minHeight: "100vh", background: "#f5f7fb" }}>
-      <Sidebar />
+      <Sidebar
+        collapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+      />
       <Layout>
         <Topbar title={title} subtitle={subtitle} />
         <Content style={{ margin: 16 }}>
@@ -67,7 +71,7 @@ export default function AppLayout({
           </div>
         </Content>
         <Footer style={{ textAlign: "center", background: "transparent" }}>
-          HR Automation © {new Date().getFullYear()}
+          Synchro Hire © {new Date().getFullYear()}
         </Footer>
       </Layout>
     </Layout>
