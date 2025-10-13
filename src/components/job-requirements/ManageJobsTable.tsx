@@ -27,6 +27,7 @@ import {
   ClockCircleOutlined,
   CheckCircleOutlined,
   StarOutlined,
+  EditOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 
@@ -46,11 +47,17 @@ export type JobRow = {
   status?: string;
   createdAt?: string;
   createdBy?: { id: number; name: string; email: string };
-  _count?: { resumes: number };
+  _count?: { Resume: number };
   avgMatchScore?: number;
 };
 
-export type ManageMode = "manage" | "cv" | "meeting" | "scheduler" | "offers";
+export type ManageMode =
+  | "manage"
+  | "cv"
+  | "meeting"
+  | "scheduler"
+  | "offers"
+  | "interview";
 
 export default function ManageJobsTable({ mode = "manage" as ManageMode }) {
   const router = useRouter();
@@ -158,6 +165,12 @@ export default function ManageJobsTable({ mode = "manage" as ManageMode }) {
         icon: <FileDoneOutlined />,
         href: `/offers/${record.id}`,
       };
+    if (mode === "interview")
+      return {
+        text: "Manage Interview",
+        icon: <EditOutlined />,
+        href: `/interview/${record.id}`,
+      };
     return null;
   };
 
@@ -263,7 +276,7 @@ export default function ManageJobsTable({ mode = "manage" as ManageMode }) {
           width: 100,
           align: "center" as const,
           render: (count: any) => (
-            <span style={{ fontSize: "12px" }}>{count?.resumes || 0}</span>
+            <span style={{ fontSize: "12px" }}>{count?.Resume || 0}</span>
           ),
         },
         {
@@ -295,7 +308,7 @@ export default function ManageJobsTable({ mode = "manage" as ManageMode }) {
       key: "actions",
       width: 200,
       align: "center" as const,
-      render: (_: unknown, record: JobRow) =>  {
+      render: (_: unknown, record: JobRow) => {
         const act = primaryAction(record);
         if (act) {
           return (
@@ -473,7 +486,7 @@ export default function ManageJobsTable({ mode = "manage" as ManageMode }) {
                       <Col span={12}>
                         <Statistic
                           title="Total Resumes"
-                          value={viewing._count?.resumes || 0}
+                          value={viewing._count?.Resume || 0}
                           prefix={<UserOutlined />}
                           valueStyle={{ color: "#1890ff" }}
                         />

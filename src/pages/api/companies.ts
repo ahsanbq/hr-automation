@@ -10,7 +10,7 @@ export default async function handler(
   if (!user) return res.status(401).json({ error: "Unauthorized" });
 
   if (req.method === "GET") {
-    const companies = await prisma.company.findMany({
+    const companies = await prisma.companies.findMany({
       orderBy: { createdAt: "desc" },
     });
     return res.json(companies);
@@ -18,21 +18,31 @@ export default async function handler(
 
   if (req.method === "POST") {
     const { name, website, address, country } = req.body || {};
-    const created = await prisma.company.create({
-      data: { name, website, address, country },
+    const created = await prisma.companies.create({
+      data: {
+        companyUuid: `company-${Date.now()}`,
+        name,
+        website,
+        address,
+        country,
+        updatedAt: new Date(),
+      },
     });
     return res.status(201).json(created);
   }
 
   if (req.method === "PUT") {
     const { id, ...data } = req.body || {};
-    const updated = await prisma.company.update({ where: { id }, data });
+    const updated = await prisma.companies.update({
+      where: { id },
+      data: { ...data, updatedAt: new Date() },
+    });
     return res.json(updated);
   }
 
   if (req.method === "DELETE") {
     const { id } = req.body || {};
-    await prisma.company.delete({ where: { id } });
+    await prisma.companies.delete({ where: { id } });
     return res.status(204).end();
   }
 

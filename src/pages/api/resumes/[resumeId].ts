@@ -37,19 +37,17 @@ async function handleGetResume(
       id: resumeId,
     },
     include: {
-      jobPost: {
+      JobPost: {
         select: {
           id: true,
           jobTitle: true,
           companyName: true,
         },
       },
-      uploadedBy: {
+      User: {
         select: { id: true, name: true, email: true },
       },
-      meetings: {
-        orderBy: { meetingTime: "asc" },
-      },
+      meetings: true,
     },
   });
 

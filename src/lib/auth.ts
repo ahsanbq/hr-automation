@@ -41,12 +41,14 @@ export async function registerCompanyWithAdmin(params: {
 
   const result = await prisma.$transaction(
     async (tx: Prisma.TransactionClient) => {
-      const company = await tx.company.create({
+      const company = await tx.companies.create({
         data: {
+          companyUuid: `company-${Date.now()}`,
           name: companyName,
           address: companyAddress,
           country: companyCountry,
           website: companyWebsite ?? null,
+          updatedAt: new Date(),
         },
       });
 
@@ -57,6 +59,7 @@ export async function registerCompanyWithAdmin(params: {
           name: adminName,
           type: "ADMIN",
           companyId: company.id,
+          updatedAt: new Date(),
         },
       });
 
@@ -92,6 +95,7 @@ export async function registerUser(
       password: hashed,
       name: name || email.split("@")[0],
       type: "COMPANY_USER",
+      updatedAt: new Date(),
     },
   });
   const token = jwt.sign(

@@ -17,10 +17,25 @@ export default async function handler(
   }
 
   if (req.method === "POST") {
-    const { candidateName, candidateEmail, candidatePhone, resumeUrl, matchScore, jobPostId } =
-      req.body || {};
+    const {
+      candidateName,
+      candidateEmail,
+      candidatePhone,
+      resumeUrl,
+      matchScore,
+      jobPostId,
+    } = req.body || {};
     const created = await prisma.resume.create({
-      data: { candidateName, candidateEmail, candidatePhone, resumeUrl, matchScore, jobPostId },
+      data: {
+        id: crypto.randomUUID(),
+        candidateName,
+        candidateEmail,
+        candidatePhone,
+        resumeUrl,
+        matchScore,
+        jobPostId,
+        updatedAt: new Date(),
+      },
     });
     return res.status(201).json(created);
   }

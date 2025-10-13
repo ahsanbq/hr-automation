@@ -1,0 +1,29 @@
+import React from "react";
+import { useRouter } from "next/router";
+import AppLayout from "@/components/layout/AppLayout";
+import JobResumeManager from "@/components/assessment/JobResumeManager";
+import { Spin } from "antd";
+
+export default function AvatarJobPage() {
+  const router = useRouter();
+  const { jobId } = router.query;
+
+  if (!jobId || typeof jobId !== "string") {
+    return (
+      <AppLayout title="AI Interviews" subtitle="Loading...">
+        <div style={{ textAlign: "center", padding: "50px" }}>
+          <Spin size="large" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  return (
+    <AppLayout
+      title="AI Interviews"
+      subtitle="Manage AI interview assessments for candidates"
+    >
+      <JobResumeManager jobId={jobId} mode="avatar" />
+    </AppLayout>
+  );
+}

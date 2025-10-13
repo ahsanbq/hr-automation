@@ -4,31 +4,52 @@ import {
   Card,
   Row,
   Col,
-  Table,
-  Tag,
   Button,
   Modal,
-  Form,
-  Input,
-  DatePicker,
-  Select,
   message,
   Space,
-  Statistic,
-  Spin,
   Alert,
+  Spin,
+  Table,
+  Tag,
+  Tooltip,
+  Popconfirm,
+  Statistic,
 } from "antd";
 import { useState, useEffect } from "react";
+import {
+  CalendarOutlined,
+  UserOutlined,
+  FileTextOutlined,
+  LoginOutlined,
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  EyeOutlined,
+  PlayCircleOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  TrophyOutlined,
+} from "@ant-design/icons";
+import InterviewForm from "@/components/interview/InterviewForm";
+import MCQManager from "@/components/interview/MCQManager";
+import InterviewTaker from "@/components/interview/InterviewTaker";
+import { Interview, InterviewStatus, ShortlistStatus } from "@/types/interview";
 import dayjs from "dayjs";
-import { CalendarOutlined, UserOutlined, FileTextOutlined, LoginOutlined } from "@ant-design/icons";
 
 interface Resume {
   id: string;
   candidateName: string;
   candidateEmail: string;
+  candidatePhone?: string;
   matchScore: number;
   recommendation: string;
   experienceYears: number;
+  skills?: string[];
+  education?: string;
+  summary?: string;
+  hasMeeting?: boolean;
+  meetingStatus?: string;
   meeting?: {
     id: string;
     meetingTime: string;
@@ -36,9 +57,16 @@ interface Resume {
     meetingType: string;
     agenda?: string;
     notes?: string;
+    meetingRating?: string;
   };
-  meetingStatus?: string;
-  hasMeeting?: boolean;
+  interview?: {
+    id: string;
+    title: string;
+    status: string;
+    percentage?: number;
+    shortlistStatus?: string;
+    completedAt?: string;
+  };
 }
 
 interface JobData {
@@ -51,58 +79,52 @@ interface JobData {
   };
   resumes: Resume[];
   totalResumes: number;
-  resumesWithMeetings: number;
 }
 
 export default function InterviewJobPage() {
   const router = useRouter();
   const { jobId } = router.query as { jobId?: string };
-  const [job, setJob] = useState<JobData['job'] | null>(null);
+  const [job, setJob] = useState<JobData["job"] | null>(null);
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [loading, setLoading] = useState(true);
-  const [scheduling, setScheduling] = useState(false);
-  const [generatingAgenda, setGeneratingAgenda] = useState(false);
-  const [generatedAgenda, setGeneratedAgenda] = useState<string>("");
-  const [scheduleModalVisible, setScheduleModalVisible] = useState(false);
-  const [selectedResume, setSelectedResume] = useState<Resume | null>(null);
   const [authError, setAuthError] = useState<string>("");
+  const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [selectedResume, setSelectedResume] = useState<Resume | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (jobId) {
       fetchJobAndResumes();
     }
-  }, [jobId]);
+  }, [jobId, refreshKey]);
 
   const fetchJobAndResumes = async () => {
     try {
       setLoading(true);
       setAuthError("");
-      
-      // Check if user is authenticated
+
       const token = localStorage.getItem("token");
       if (!token) {
         setAuthError("Please log in to access this page");
         setLoading(false);
         return;
       }
-      
+
       const response = await fetch(`/api/jobs/${jobId}/resumes-with-meetings`, {
         headers: {
-          "Authorization": `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
-      
+
       if (!response.ok) {
         if (response.status === 401) {
           setAuthError("Session expired. Please log in again.");
           localStorage.removeItem("token");
           return;
         }
-        const errorData = await response.text();
-        console.error("API Error Response:", errorData);
-        throw new Error(`Failed to fetch data: ${response.status} - ${errorData}`);
+        throw new Error(`Failed to fetch data: ${response.status}`);
       }
-      
+
       const data = await response.json();
       setJob(data.job);
       setResumes(data.resumes);
@@ -114,208 +136,260 @@ export default function InterviewJobPage() {
     }
   };
 
-  const getMeetingStatusColor = (status: string) => {
+  const handleCreateInterview = (resume: Resume) => {
+    setSelectedResume(resume);
+    setCreateModalVisible(true);
+  };
+
+  const handleCreateSuccess = (interview: Interview) => {
+    setCreateModalVisible(false);
+    setSelectedResume(null);
+    setRefreshKey((prev) => prev + 1);
+    message.success("Interview created successfully!");
+  };
+
+  const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
-      case 'scheduled': return 'blue';
-      case 'in_progress': return 'orange';
-      case 'completed': return 'green';
-      case 'cancelled': return 'red';
-      default: return 'default';
+      case "pending":
+        return "default";
+      case "in_progress":
+        return "processing";
+      case "completed":
+        return "success";
+      case "cancelled":
+        return "error";
+      default:
+        return "default";
     }
   };
 
   const getRecommendationColor = (recommendation: string) => {
     switch (recommendation?.toLowerCase()) {
-      case 'highly recommended': return 'green';
-      case 'consider': return 'orange';
-      case 'not suitable': return 'red';
-      default: return 'default';
-    }
-  };
-
-  const handleScheduleInterview = (resume: Resume) => {
-    setSelectedResume(resume);
-    setScheduleModalVisible(true);
-    setGeneratedAgenda(""); // Reset agenda when opening modal
-  };
-
-  const handleGenerateAgenda = async () => {
-    if (!selectedResume) return;
-    
-    try {
-      setGeneratingAgenda(true);
-      const response = await fetch("/api/generate-interview-agenda", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        },
-        body: JSON.stringify({
-          resumeId: selectedResume.id,
-          interview_type: "Technical" // Default to Technical, can be made dynamic
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error("Failed to generate agenda");
-      }
-      
-      const data = await response.json();
-      setGeneratedAgenda(data.agenda);
-      message.success("Agenda generated successfully!");
-    } catch (error) {
-      console.error("Error generating agenda:", error);
-      message.error("Failed to generate agenda");
-    } finally {
-      setGeneratingAgenda(false);
-    }
-  };
-
-  const handleScheduleSubmit = async (values: any) => {
-    if (!selectedResume) return;
-
-    try {
-      setScheduling(true);
-      const meetingTime = dayjs(values.meetingTime);
-      
-      const response = await fetch('/api/meetings', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          meetingTime: meetingTime.toISOString(),
-          meetingLink: values.meetingLink,
-          meetingType: values.meetingType || 'TECHNICAL',
-          interviewType: values.interviewType || 'TECHNICAL',
-          agenda: generatedAgenda, // Include the generated agenda
-          status: 'SCHEDULED',
-          resumeId: selectedResume.id,
-          jobId: jobId
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to schedule meeting');
-      }
-
-      message.success('Interview scheduled successfully!');
-      setScheduleModalVisible(false);
-      setSelectedResume(null);
-      setGeneratedAgenda("");
-      fetchJobAndResumes(); // Refresh the data
-    } catch (error) {
-      console.error('Error scheduling interview:', error);
-      message.error('Failed to schedule interview');
-    } finally {
-      setScheduling(false);
+      case "highly recommended":
+        return "green";
+      case "consider":
+        return "orange";
+      case "not suitable":
+        return "red";
+      default:
+        return "default";
     }
   };
 
   const columns = [
     {
-      title: 'Candidate',
-      dataIndex: 'candidateName',
-      key: 'candidateName',
+      title: "Candidate Name",
+      dataIndex: "candidateName",
+      key: "candidateName",
       width: 150,
-      render: (name: string, record: Resume) => (
-        <div>
-          <div style={{ fontWeight: 'bold', fontSize: '13px' }}>{name}</div>
-          <div style={{ fontSize: '11px', color: '#666' }}>{record.candidateEmail}</div>
+      sorter: (a: Resume, b: Resume) =>
+        a.candidateName.localeCompare(b.candidateName),
+      render: (name: string) => (
+        <div style={{ fontWeight: 500, color: "#1890ff", fontSize: "13px" }}>
+          {name}
         </div>
       ),
     },
     {
-      title: 'Match Score',
-      dataIndex: 'matchScore',
-      key: 'matchScore',
+      title: "Email",
+      dataIndex: "candidateEmail",
+      key: "candidateEmail",
+      width: 180,
+      render: (email: string) =>
+        email ? (
+          <a
+            href={`mailto:${email}`}
+            style={{ color: "#1890ff", fontSize: "12px" }}
+          >
+            {email}
+          </a>
+        ) : (
+          <span style={{ color: "#999", fontSize: "12px" }}>N/A</span>
+        ),
+    },
+    {
+      title: "Phone",
+      dataIndex: "candidatePhone",
+      key: "candidatePhone",
+      width: 120,
+      render: (phone: string) =>
+        phone ? (
+          <a
+            href={`tel:${phone}`}
+            style={{ color: "#1890ff", fontSize: "12px" }}
+          >
+            {phone}
+          </a>
+        ) : (
+          <span style={{ color: "#999", fontSize: "12px" }}>N/A</span>
+        ),
+    },
+    {
+      title: "Match Score",
+      dataIndex: "matchScore",
+      key: "matchScore",
       width: 100,
-      align: 'center' as const,
+      align: "center" as const,
+      sorter: (a: Resume, b: Resume) =>
+        (a.matchScore || 0) - (b.matchScore || 0),
       render: (score: number) => (
-        <Tag 
-          color={score >= 80 ? 'green' : score >= 60 ? 'orange' : 'red'}
-          style={{ 
-            fontSize: '11px', 
-            fontWeight: 'bold',
-            minWidth: '50px',
-            textAlign: 'center',
-            margin: 0
+        <Tag
+          color={score >= 80 ? "green" : score >= 60 ? "orange" : "red"}
+          style={{
+            fontSize: "11px",
+            fontWeight: "bold",
+            minWidth: "50px",
+            textAlign: "center",
+            margin: 0,
           }}
         >
-          {score ? `${score}%` : 'N/A'}
+          {score ? `${score}%` : "N/A"}
         </Tag>
       ),
     },
     {
-      title: 'Recommendation',
-      dataIndex: 'recommendation',
-      key: 'recommendation',
+      title: "Recommendation",
+      dataIndex: "recommendation",
+      key: "recommendation",
       width: 120,
-      align: 'center' as const,
+      align: "center" as const,
       render: (recommendation: string) => (
-        <Tag 
+        <Tag
           color={getRecommendationColor(recommendation)}
-          style={{ fontSize: '11px', margin: 0 }}
+          style={{ fontSize: "11px", margin: 0 }}
         >
-          {recommendation || 'N/A'}
+          {recommendation || "N/A"}
         </Tag>
       ),
     },
     {
-      title: 'Experience',
-      dataIndex: 'experienceYears',
-      key: 'experienceYears',
+      title: "Experience",
+      dataIndex: "experienceYears",
+      key: "experienceYears",
       width: 100,
-      align: 'center' as const,
+      align: "center" as const,
       render: (years: number) => (
-        <span style={{ color: years ? '#000' : '#999', fontSize: '12px' }}>
-          {years ? `${years}y` : 'N/A'}
+        <span style={{ color: years ? "#000" : "#999", fontSize: "12px" }}>
+          {years ? `${years}y` : "N/A"}
         </span>
       ),
+      sorter: (a: Resume, b: Resume) =>
+        (a.experienceYears || 0) - (b.experienceYears || 0),
     },
     {
-      title: 'Meeting Status',
-      key: 'meetingStatus',
+      title: "Meeting Status",
+      key: "meetingStatus",
       width: 120,
-      align: 'center' as const,
+      align: "center" as const,
       render: (_: any, record: Resume) => {
         if (record.meeting) {
           return (
-            <Tag 
-              color={getMeetingStatusColor(record.meeting.status)}
-              style={{ fontSize: '11px', margin: 0 }}
+            <Tag
+              color={getStatusColor(record.meeting.status)}
+              style={{ fontSize: "11px", margin: 0 }}
             >
               {record.meeting.status}
             </Tag>
           );
         }
-        return <Tag color="default" style={{ fontSize: '11px', margin: 0 }}>No Meeting</Tag>;
+        return (
+          <Tag color="default" style={{ fontSize: "11px", margin: 0 }}>
+            No Meeting
+          </Tag>
+        );
       },
     },
     {
-      title: 'Actions',
-      key: 'actions',
-      width: 150,
+      title: "Interview Status",
+      key: "interviewStatus",
+      width: 120,
+      align: "center" as const,
+      render: (_: any, record: Resume) => {
+        if (record.interview) {
+          return (
+            <Tag
+              color={getStatusColor(record.interview.status)}
+              style={{ fontSize: "11px", margin: 0 }}
+            >
+              {record.interview.status}
+            </Tag>
+          );
+        }
+        return (
+          <Tag color="default" style={{ fontSize: "11px", margin: 0 }}>
+            No Interview
+          </Tag>
+        );
+      },
+    },
+    {
+      title: "Interview Score",
+      key: "interviewScore",
+      width: 100,
+      align: "center" as const,
+      render: (_: any, record: Resume) => {
+        if (record.interview?.percentage) {
+          return (
+            <Tag
+              color={
+                record.interview.percentage >= 80
+                  ? "green"
+                  : record.interview.percentage >= 60
+                  ? "orange"
+                  : "red"
+              }
+              style={{ fontSize: "11px", margin: 0 }}
+            >
+              {record.interview.percentage.toFixed(1)}%
+            </Tag>
+          );
+        }
+        return <span style={{ color: "#999", fontSize: "12px" }}>-</span>;
+      },
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      width: 200,
+      align: "center" as const,
       render: (_: any, record: Resume) => (
-        <Space size="small">
-          {record.hasMeeting ? (
-            <Button
-              type="primary"
-              size="small"
-              onClick={() => router.push(`/meeting/meeting/${record.id}`)}
-            >
-              Manage Meeting
-            </Button>
+        <Space size="small" wrap>
+          {record.interview ? (
+            <Tooltip title="View Interview">
+              <Button
+                type="primary"
+                size="small"
+                icon={<EyeOutlined />}
+                onClick={() => router.push(`/interview/interview/${record.id}`)}
+                style={{ fontSize: "11px", height: "24px" }}
+              >
+                View
+              </Button>
+            </Tooltip>
           ) : (
-            <Button
-              type="primary"
-              size="small"
-              onClick={() => handleScheduleInterview(record)}
-            >
-              Schedule Interview
-            </Button>
+            <Tooltip title="Create Interview">
+              <Button
+                type="primary"
+                size="small"
+                icon={<PlusOutlined />}
+                onClick={() => handleCreateInterview(record)}
+                style={{ fontSize: "11px", height: "24px" }}
+              >
+                Create
+              </Button>
+            </Tooltip>
           )}
+          <Tooltip title="Schedule Meeting">
+            <Button
+              type="default"
+              size="small"
+              icon={<CalendarOutlined />}
+              onClick={() => router.push(`/meeting/meeting/${record.id}`)}
+              style={{ fontSize: "11px", height: "24px" }}
+            >
+              Meeting
+            </Button>
+          </Tooltip>
         </Space>
       ),
     },
@@ -333,11 +407,11 @@ export default function InterviewJobPage() {
           description={
             <div>
               <p>{authError}</p>
-              <Button 
-                type="primary" 
+              <Button
+                type="primary"
                 icon={<LoginOutlined />}
-                onClick={() => router.push('/auth')}
-                style={{ marginTop: '16px' }}
+                onClick={() => router.push("/auth")}
+                style={{ marginTop: "16px" }}
               >
                 Go to Login
               </Button>
@@ -345,7 +419,7 @@ export default function InterviewJobPage() {
           }
           type="warning"
           showIcon
-          style={{ margin: '20px 0' }}
+          style={{ margin: "20px 0" }}
         />
       </AppLayout>
     );
@@ -357,7 +431,7 @@ export default function InterviewJobPage() {
         title="Interview Management"
         subtitle="Loading interview data..."
       >
-        <div style={{ textAlign: 'center', padding: '50px' }}>
+        <div style={{ textAlign: "center", padding: "50px" }}>
           <Spin size="large" />
         </div>
       </AppLayout>
@@ -367,222 +441,216 @@ export default function InterviewJobPage() {
   return (
     <AppLayout
       title={`Interview Management - ${job?.jobTitle || "..."}`}
-      subtitle={`${job?.companyName} - Manage interviews for this position`}
+      subtitle={`${job?.companyName} - Manage MCQ interviews for this position`}
     >
-      <Row gutter={[16, 16]} style={{ marginBottom: '16px' }}>
-        <Col span={8}>
-          <Card>
-            <Statistic
-              title="Total Resumes"
-              value={resumes.length}
-              prefix={<FileTextOutlined />}
-            />
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card>
-            <Statistic
-              title="Meetings Scheduled"
-              value={resumes.filter(r => r.hasMeeting).length}
-              prefix={<CalendarOutlined />}
-            />
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card>
-            <Statistic
-              title="Completed Interviews"
-              value={resumes.filter(r => r.meeting?.status === 'COMPLETED').length}
-              prefix={<UserOutlined />}
-            />
-          </Card>
-        </Col>
-      </Row>
-
-      <Row gutter={[16, 16]}>
-        <Col span={18}>
-          <Card title="Resume List" style={{ borderRadius: '8px' }}>
-            <Table
-              dataSource={resumes}
-              columns={columns}
-              rowKey="id"
-              pagination={{
-                pageSize: 10,
-                showSizeChanger: true,
-                showTotal: (total, range) => 
-                  `${range[0]}-${range[1]} of ${total} resumes`,
-                showQuickJumper: true,
-              }}
-              style={{ borderRadius: '6px' }}
-              size="small"
-              scroll={{ x: 1000 }}
-              bordered
-            />
-          </Card>
-        </Col>
-
-        {/* Sidebar - Job Details */}
-        <Col span={6}>
-          <Card 
-            title="Job Details" 
-            style={{ borderRadius: '8px' }}
-            headStyle={{ backgroundColor: '#fafafa' }}
-          >
-            {job && (
-              <div>
-                <div style={{ marginBottom: '16px' }}>
-                  <h3 style={{ color: '#1890ff', marginBottom: '8px', fontSize: '16px' }}>
-                    {job.jobTitle}
-                  </h3>
-                  <div style={{ lineHeight: '1.6', fontSize: '12px' }}>
-                    <p><strong>Company:</strong> {job.companyName}</p>
-                    <p><strong>Location:</strong> {job.location}</p>
-                  </div>
+      <div style={{ padding: "24px" }}>
+        <Row gutter={24}>
+          {/* Main Content - Candidates List */}
+          <Col span={18}>
+            <Card
+              title={
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <span style={{ fontSize: "18px", fontWeight: "bold" }}>
+                    Candidates for {job?.jobTitle}
+                  </span>
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={() => setCreateModalVisible(true)}
+                    size="large"
+                  >
+                    Create New Interview
+                  </Button>
                 </div>
-
-                <div style={{ marginBottom: '16px' }}>
-                  <h4 style={{ color: '#1890ff', marginBottom: '6px', fontSize: '14px' }}>Required Skills</h4>
-                  <div>
-                    {job.skillsRequired.split(',').map((skill, index) => (
-                      <Tag key={index} color="blue" style={{ marginBottom: '2px', fontSize: '11px' }}>
-                        {skill.trim()}
-                      </Tag>
-                    ))}
-                  </div>
-                </div>
+              }
+              style={{ borderRadius: "8px" }}
+            >
+              {/* Statistics Row */}
+              <div style={{ marginBottom: "20px" }}>
+                <Row gutter={16}>
+                  <Col span={6}>
+                    <Card
+                      size="small"
+                      style={{ textAlign: "center", borderRadius: "6px" }}
+                    >
+                      <Statistic
+                        title="Total Candidates"
+                        value={resumes.length}
+                        valueStyle={{ color: "#1890ff", fontSize: "24px" }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col span={6}>
+                    <Card
+                      size="small"
+                      style={{ textAlign: "center", borderRadius: "6px" }}
+                    >
+                      <Statistic
+                        title="Avg Match Score"
+                        value={
+                          resumes.length > 0
+                            ? resumes.reduce(
+                                (sum, r) => sum + (r.matchScore || 0),
+                                0
+                              ) / resumes.length
+                            : 0
+                        }
+                        suffix="%"
+                        precision={1}
+                        valueStyle={{
+                          color:
+                            resumes.length > 0 &&
+                            resumes.reduce(
+                              (sum, r) => sum + (r.matchScore || 0),
+                              0
+                            ) /
+                              resumes.length >=
+                              70
+                              ? "#52c41a"
+                              : "#faad14",
+                          fontSize: "24px",
+                        }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col span={6}>
+                    <Card
+                      size="small"
+                      style={{ textAlign: "center", borderRadius: "6px" }}
+                    >
+                      <Statistic
+                        title="Meetings Scheduled"
+                        value={resumes.filter((r) => r.meeting).length}
+                        valueStyle={{ color: "#52c41a", fontSize: "24px" }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col span={6}>
+                    <Card
+                      size="small"
+                      style={{ textAlign: "center", borderRadius: "6px" }}
+                    >
+                      <Statistic
+                        title="Meetings Completed"
+                        value={
+                          resumes.filter(
+                            (r) => r.meeting?.status === "COMPLETED"
+                          ).length
+                        }
+                        valueStyle={{ color: "#722ed1", fontSize: "24px" }}
+                      />
+                    </Card>
+                  </Col>
+                </Row>
               </div>
-            )}
-          </Card>
-        </Col>
-      </Row>
 
-      {/* Schedule Interview Modal */}
+              <Table
+                dataSource={resumes}
+                columns={columns}
+                rowKey="id"
+                pagination={{
+                  pageSize: 10,
+                  showSizeChanger: true,
+                  showTotal: (total, range) =>
+                    `${range[0]}-${range[1]} of ${total} candidates`,
+                  showQuickJumper: true,
+                }}
+                style={{ borderRadius: "6px" }}
+                size="small"
+                scroll={{ x: 1000 }}
+                bordered
+              />
+            </Card>
+          </Col>
+
+          {/* Sidebar - Job Details */}
+          <Col span={6}>
+            <Card
+              title="Job Details"
+              style={{ borderRadius: "8px" }}
+              headStyle={{ backgroundColor: "#fafafa" }}
+            >
+              {job && (
+                <div>
+                  <div style={{ marginBottom: "16px" }}>
+                    <h3
+                      style={{
+                        color: "#1890ff",
+                        marginBottom: "8px",
+                        fontSize: "16px",
+                      }}
+                    >
+                      {job.jobTitle}
+                    </h3>
+                    <div style={{ lineHeight: "1.6", fontSize: "12px" }}>
+                      <p>
+                        <strong>Company:</strong> {job.companyName}
+                      </p>
+                      <p>
+                        <strong>Location:</strong> {job.location}
+                      </p>
+                      <p>
+                        <strong>Skills Required:</strong> {job.skillsRequired}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: "16px" }}>
+                    <h4 style={{ marginBottom: "8px", fontSize: "14px" }}>
+                      Interview Management
+                    </h4>
+                    <Space direction="vertical" style={{ width: "100%" }}>
+                      <Button
+                        type="primary"
+                        block
+                        icon={<PlusOutlined />}
+                        onClick={() => setCreateModalVisible(true)}
+                      >
+                        Create Interview
+                      </Button>
+                      <Button
+                        type="default"
+                        block
+                        icon={<CalendarOutlined />}
+                        onClick={() => router.push(`/meeting/${jobId}`)}
+                      >
+                        Manage Meetings
+                      </Button>
+                    </Space>
+                  </div>
+                </div>
+              )}
+            </Card>
+          </Col>
+        </Row>
+      </div>
+
+      {/* Create Interview Modal */}
       <Modal
-        title="Schedule Interview"
-        open={scheduleModalVisible}
+        title="Create New Interview"
+        open={createModalVisible}
         onCancel={() => {
-          setScheduleModalVisible(false);
+          setCreateModalVisible(false);
           setSelectedResume(null);
-          setGeneratedAgenda("");
         }}
         footer={null}
         width={800}
       >
-        {selectedResume && (
-          <div>
-            <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
-              <p><strong>Candidate:</strong> {selectedResume.candidateName}</p>
-              <p><strong>Email:</strong> {selectedResume.candidateEmail}</p>
-              <p><strong>Match Score:</strong> {selectedResume.matchScore}%</p>
-            </div>
-            
-            <Form
-              layout="vertical"
-              onFinish={handleScheduleSubmit}
-              initialValues={{
-                meetingTime: dayjs().add(1, 'day').hour(10).minute(0),
-                meetingType: 'TECHNICAL',
-                interviewType: 'TECHNICAL'
-              }}
-            >
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item
-                    name="meetingTime"
-                    label="Meeting Date & Time"
-                    rules={[{ required: true, message: 'Please select meeting time' }]}
-                  >
-                    <DatePicker 
-                      showTime 
-                      format="YYYY-MM-DD HH:mm"
-                      style={{ width: '100%' }}
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
-                    name="meetingLink"
-                    label="Meeting Link"
-                    rules={[{ required: true, message: 'Please enter meeting link' }]}
-                  >
-                    <Input placeholder="https://meet.google.com/..." />
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item
-                    name="meetingType"
-                    label="Meeting Type"
-                    rules={[{ required: true }]}
-                  >
-                    <Select>
-                      <Select.Option value="TECHNICAL">Technical</Select.Option>
-                      <Select.Option value="BEHAVIORAL">Behavioral</Select.Option>
-                      <Select.Option value="SITUATIONAL">Situational</Select.Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
-                    name="interviewType"
-                    label="Interview Type"
-                    rules={[{ required: true }]}
-                  >
-                    <Select>
-                      <Select.Option value="TECHNICAL">Technical</Select.Option>
-                      <Select.Option value="BEHAVIORAL">Behavioral</Select.Option>
-                      <Select.Option value="EASY">Easy</Select.Option>
-                      <Select.Option value="MEDIUM">Medium</Select.Option>
-                      <Select.Option value="COMPLEX">Complex</Select.Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Form.Item>
-                <Space>
-                  <Button
-                    type="primary"
-                    htmlType="submit"
-                    loading={scheduling}
-                    size="large"
-                  >
-                    Schedule Interview
-                  </Button>
-                  <Button
-                    type="default"
-                    onClick={handleGenerateAgenda}
-                    loading={generatingAgenda}
-                    size="large"
-                  >
-                    Generate AI Agenda
-                  </Button>
-                </Space>
-              </Form.Item>
-            </Form>
-
-            {generatedAgenda && (
-              <div style={{ marginTop: "16px" }}>
-                <h4>Generated Interview Agenda:</h4>
-                <div style={{ 
-                  maxHeight: "300px", 
-                  overflowY: "auto", 
-                  padding: "12px", 
-                  backgroundColor: "#f9f9f9", 
-                  border: "1px solid #d9d9d9", 
-                  borderRadius: "6px", 
-                  whiteSpace: "pre-wrap", 
-                  fontSize: "12px", 
-                  lineHeight: "1.5"
-                }}>
-                  {generatedAgenda}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        <InterviewForm
+          jobId={jobId}
+          resumeId={selectedResume?.id}
+          onSuccess={handleCreateSuccess}
+          onCancel={() => {
+            setCreateModalVisible(false);
+            setSelectedResume(null);
+          }}
+        />
       </Modal>
     </AppLayout>
   );

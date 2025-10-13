@@ -13,19 +13,28 @@ export default async function handler(
 
   if (req.method === "GET") {
     const { include } = req.query;
-    
+
     // Get jobs for the user's company
     const jobs = await prisma.jobPost.findMany({
       where: user.companyId ? { companyId: user.companyId } : {},
       include: {
-        company: true,
-        createdBy: { select: { id: true, name: true, email: true } },
+        companies: true,
+        User: { select: { id: true, name: true, email: true } },
         _count: {
-          select: { resumes: true },
+          select: {
+            Resume: true,
+            assessmentStages: true,
+          },
+        },
+        assessmentStages: {
+          select: {
+            type: true,
+            status: true,
+          },
         },
         // Include resume statistics if requested
-        ...(include === 'resumeStats' && {
-          resumes: {
+        ...(include === "resumeStats" && {
+          Resume: {
             select: {
               matchScore: true,
               recommendation: true,
@@ -37,13 +46,17 @@ export default async function handler(
     });
 
     // Calculate average match score for each job if resume stats are included
-    if (include === 'resumeStats') {
-      const jobsWithStats = jobs.map(job => {
-        const resumes = job.resumes || [];
-        const avgMatchScore = resumes.length > 0 
-          ? resumes.reduce((sum, resume) => sum + (resume.matchScore || 0), 0) / resumes.length 
-          : 0;
-        
+    if (include === "resumeStats") {
+      const jobsWithStats = jobs.map((job) => {
+        const resumes = job.Resume || [];
+        const avgMatchScore =
+          resumes.length > 0
+            ? resumes.reduce(
+                (sum, resume) => sum + (resume.matchScore || 0),
+                0
+              ) / resumes.length
+            : 0;
+
         return {
           ...job,
           avgMatchScore: Math.round(avgMatchScore * 10) / 10, // Round to 1 decimal place
@@ -74,6 +87,7 @@ export default async function handler(
     try {
       const created = await prisma.jobPost.create({
         data: {
+          id: crypto.randomUUID(),
           jobTitle: jobRequirement.title || "Untitled Job",
           companyName: jobRequirement.company || "",
           location: jobRequirement.location || "",
@@ -89,10 +103,11 @@ export default async function handler(
           benefits: JSON.stringify(jobRequirement.benefits || []),
           companyId: user.companyId,
           createdById: user.userId,
+          updatedAt: new Date(),
         },
         include: {
-          company: true,
-          createdBy: { select: { id: true, name: true, email: true } },
+          companies: true,
+          User: { select: { id: true, name: true, email: true } },
         },
       });
       return res.status(201).json(created);
@@ -108,8 +123,8 @@ export default async function handler(
       where: { id },
       data,
       include: {
-        company: true,
-        createdBy: { select: { id: true, name: true, email: true } },
+        companies: true,
+        User: { select: { id: true, name: true, email: true } },
       },
     });
     return res.json(updated);

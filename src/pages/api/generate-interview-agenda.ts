@@ -64,8 +64,8 @@ export default async function handler(
     const resume = await prisma.resume.findUnique({
       where: { id: resumeId },
       include: {
-        jobPost: true,
-        uploadedBy: true,
+        JobPost: true,
+        User: true,
       },
     });
 

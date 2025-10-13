@@ -65,6 +65,11 @@ export class AIResumeService {
   static async analyzeResumes(
     request: ResumeAnalysisRequest
   ): Promise<ResumeAnalysisResponse> {
+    console.log("🤖 Sending request to AI API:", {
+      url: `${this.AI_API_BASE}/analyze-resumes-v2`,
+      requestBody: JSON.stringify(request, null, 2),
+    });
+
     const response = await fetch(`${this.AI_API_BASE}/analyze-resumes-v2`, {
       method: "POST",
       headers: {
@@ -74,10 +79,28 @@ export class AIResumeService {
     });
 
     if (!response.ok) {
-      throw new Error(`AI API failed: ${response.statusText}`);
+      // Try to get detailed error information
+      let errorDetails = response.statusText;
+      try {
+        const errorBody = await response.text();
+        errorDetails = `${response.statusText}: ${errorBody}`;
+      } catch (e) {
+        // If we can't read the error body, just use status text
+      }
+
+      console.error("❌ AI API Error Details:", {
+        status: response.status,
+        statusText: response.statusText,
+        url: response.url,
+        requestBody: JSON.stringify(request, null, 2),
+      });
+
+      throw new Error(`AI API failed: ${errorDetails}`);
     }
 
-    return response.json();
+    const result = await response.json();
+    console.log("✅ AI API Success:", result);
+    return result;
   }
 
   // Convert JobPost to the EXACT format expected by external AI API

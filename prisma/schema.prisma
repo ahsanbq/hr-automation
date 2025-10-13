@@ -1,3 +1,8 @@
+// HR Automation Application Schema Update
+// Purpose: This schema defines a unified interview + meeting workflow for HR automation.
+// It allows HR users to manage AI Interviews, MCQ Exams, and Manual Meetings in any order,
+// while keeping a structured and traceable workflow through CandidateInteraction.
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,42 +12,31 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Company {
-  id              Int       @id @default(autoincrement())
-  companyUuid     String    @unique @default(uuid())
-  name            String
-  address         String
-  country         String
-  logo            String?
-  mapLocation     String?
-  linkedinProfile String?
-  website         String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  jobPosts        JobPost[]
-  users           User[]
-
-  @@map("companies")
+model ApiLog {
+  id           String   @id
+  functionName String
+  companyName  String?
+  invokedTime  DateTime @default(now())
+  createdAt    DateTime @default(now())
 }
 
-model User {
-  id                Int                @id @default(autoincrement())
-  email             String             @unique
-  name              String
-  password          String
-  type              UserType
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  companyId         Int?
-  generatedJobPosts GeneratedJobPost[]
-  jobPosts          JobPost[]
-  company           Company?           @relation(fields: [companyId], references: [id])
-  meetings          Meeting[]
-  uploadedResumes   Resume[]
+model GeneratedJobPost {
+  id            String   @id
+  content       String
+  version       Int      @default(1)
+  isSelected    Boolean  @default(false)
+  aiModel       String?
+  generatedAt   DateTime @default(now())
+  jobPostId     String
+  generatedById Int
+  User          User     @relation(fields: [generatedById], references: [id])
+  JobPost       JobPost  @relation(fields: [jobPostId], references: [id], onDelete: Cascade)
+
+  @@unique([jobPostId, version])
 }
 
 model JobPost {
-  id                  String             @id @default(cuid())
+  id                  String             @id
   jobTitle            String
   companyName         String
   location            String
@@ -56,124 +50,123 @@ model JobPost {
   benefits            String?
   isActive            Boolean            @default(true)
   createdAt           DateTime           @default(now())
-  updatedAt           DateTime           @updatedAt
+  updatedAt           DateTime
   companyId           Int
   createdById         Int
-  generatedPosts      GeneratedJobPost[]
-  company             Company            @relation(fields: [companyId], references: [id])
-  createdBy           User               @relation(fields: [createdById], references: [id])
-  resumes             Resume[]
-  meetings            Meeting[]          // Add meetings relation
-}
-
-model GeneratedJobPost {
-  id            String   @id @default(cuid())
-  content       String
-  version       Int      @default(1)
-  isSelected    Boolean  @default(false)
-  aiModel       String?
-  generatedAt   DateTime @default(now())
-  jobPostId     String
-  generatedById Int
-  generatedBy   User     @relation(fields: [generatedById], references: [id])
-  jobPost       JobPost  @relation(fields: [jobPostId], references: [id], onDelete: Cascade)
-
-  @@unique([jobPostId, version])
+  GeneratedJobPost    GeneratedJobPost[]
+  companies           companies          @relation(fields: [companyId], references: [id])
+  User                User               @relation(fields: [createdById], references: [id])
+  Resume              Resume[]
+  meetings            meetings[]
+  interviews          Interview[]
+  CandidateInteraction CandidateInteraction[]
+  assessmentStages    AssessmentStage[]
 }
 
 model Resume {
-  id                 String    @id @default(cuid())
-  resumeUrl          String    // Original resume URL/path from AI response "resume_path"
-  candidateName      String    // From AI response "candidate.name"
-  candidateEmail     String?   // From AI response "candidate.email"
-  candidatePhone     String?   // From AI response "candidate.phone"
-  matchScore         Float?    // From AI response "candidate.match_score" (0-100)
-  recommendation     String?   // From AI response "analysis.recommendation"
-  
-  // Extended candidate information from AI response
-  skills             String[]  // From AI response "candidate.skills" array
-  experienceYears    Int?      // From AI response "candidate.experience_years"
-  education          String?   // From AI response "candidate.education"
-  summary            String?   // From AI response "candidate.summary"
-  location           String?   // From AI response "candidate.location"
-  linkedinUrl        String?   // From AI response "candidate.linkedin_url"
-  githubUrl          String?   // From AI response "candidate.github_url"
-  currentJobTitle    String?   // From AI response "candidate.current_job_title"
-  
-  // Analysis metadata from AI response
-  processingMethod   String?   // From AI response "candidate.processing_method"
-  analysisTimestamp  DateTime? // From AI response "candidate.analysis_timestamp"
-  fileName           String?   // From AI response "analysis.file_name"
-  fileSizeMb         Float?    // From AI response "analysis.file_size_mb"
-  processingTime     Float?    // From AI response "analysis.processing_time"
-  matchedSkills      String[]  // From AI response "analysis.matched_skills" array
-  
-  // System fields
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-  jobPostId          String
-  uploadedById       Int?      // User who uploaded
-  
-  // Relations
-  jobPost            JobPost   @relation(fields: [jobPostId], references: [id], onDelete: Cascade)
-  uploadedBy         User?     @relation(fields: [uploadedById], references: [id])
-  meetings           Meeting[]
-  
-  @@index([jobPostId, matchScore])
+  id                String    @id
+  resumeUrl         String
+  matchScore        Float?
+  createdAt         DateTime  @default(now())
+  jobPostId         String
+  analysisTimestamp DateTime?
+  candidateEmail    String?
+  candidateName     String
+  candidatePhone    String?
+  currentJobTitle   String?
+  education         String?
+  experienceYears   Int?
+  fileName          String?
+  fileSizeMb        Float?
+  githubUrl         String?
+  linkedinUrl       String?
+  location          String?
+  matchedSkills     String[]
+  processingMethod  String?
+  processingTime    Float?
+  recommendation    String?
+  skills            String[]
+  summary           String?
+  updatedAt         DateTime
+  uploadedById      Int?
+  JobPost           JobPost   @relation(fields: [jobPostId], references: [id], onDelete: Cascade)
+  User              User?     @relation(fields: [uploadedById], references: [id])
+  meetings          meetings?
+  interviews        Interview[]
+  CandidateInteraction CandidateInteraction[]
+  assessmentStages  AssessmentStage[]
+
   @@index([candidateEmail])
+  @@index([jobPostId, matchScore])
 }
 
-model Meeting {
-  id             String         @id @default(cuid())
+model User {
+  id               Int                @id @default(autoincrement())
+  email            String             @unique
+  name             String
+  password         String
+  type             UserType
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime
+  companyId        Int?
+  GeneratedJobPost GeneratedJobPost[]
+  JobPost          JobPost[]
+  Resume           Resume[]
+  companies        companies?         @relation(fields: [companyId], references: [id])
+  meetings         meetings[]
+  interviews       Interview[]
+  interviewAttempts InterviewAttempt[]
+  CandidateInteraction CandidateInteraction[]
+  assessmentStages AssessmentStage[]
+  mcqTemplates      MCQTemplate[]
+}
+
+model companies {
+  id              Int       @id @default(autoincrement())
+  companyUuid     String    @unique
+  name            String
+  address         String
+  country         String
+  logo            String?
+  mapLocation     String?
+  linkedinProfile String?
+  website         String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime
+  JobPost         JobPost[]
+  User            User[]
+  mcqTemplates    MCQTemplate[]
+}
+
+model meetings {
+  id             String         @id
   meetingTime    DateTime
   meetingLink    String?
   meetingSummary String?
   meetingRating  String?
   meetingType    MeetingType?
-  agenda         String?        // Generated agenda from AI
+  agenda         String?
   status         MeetingStatus  @default(SCHEDULED)
-  notes          String?        // Manual notes field for PUT method
-  interviewType  InterviewType? // New field for interview difficulty
-  jobId          String         // Required field linking to job
+  notes          String?
   createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  resumeId       String         @unique // 1:1 relationship - one meeting per resume
+  updatedAt      DateTime
+  resumeId       String         @unique
   createdById    Int
-  
-  // Relations
-  createdBy      User           @relation(fields: [createdById], references: [id])
-  resume         Resume         @relation(fields: [resumeId], references: [id], onDelete: Cascade)
-  job            JobPost        @relation(fields: [jobId], references: [id], onDelete: Cascade)
-
-  @@map("meetings")
+  interviewType  InterviewType?
+  jobId          String
+  User           User           @relation(fields: [createdById], references: [id])
+  JobPost        JobPost        @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  Resume         Resume         @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  CandidateInteraction CandidateInteraction?
 }
 
-model ApiLog {
-  id           String   @id @default(cuid())
-  functionName String
-  companyName  String?
-  invokedTime  DateTime @default(now())
-  createdAt    DateTime @default(now())
-}
-
-enum UserType {
-  ADMIN
-  MANAGER
-  COMPANY_USER
-}
-
-enum MeetingStatus {
-  SCHEDULED
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
-  NO_SHOW
-}
-
-enum MeetingType {
-  TECHNICAL
-  BEHAVIORAL
-  SITUATIONAL
+enum ExperienceLevel {
+  ENTRY
+  JUNIOR
+  MID
+  SENIOR
+  LEAD
+  EXECUTIVE
 }
 
 enum InterviewType {
@@ -192,11 +185,434 @@ enum JobType {
   FREELANCE
 }
 
-enum ExperienceLevel {
-  ENTRY
-  JUNIOR
-  MID
-  SENIOR
-  LEAD
-  EXECUTIVE
+enum MeetingStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum MeetingType {
+  TECHNICAL
+  BEHAVIORAL
+  SITUATIONAL
+}
+
+enum UserType {
+  ADMIN
+  MANAGER
+  COMPANY_USER
+}
+
+enum InterviewStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum InterviewAttemptStatus {
+  IN_PROGRESS
+  COMPLETED
+  SUBMITTED
+  EXPIRED
+  TERMINATED
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  ESSAY
+  FILL_BLANK
+}
+
+enum LogSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum LogType {
+  INTERVIEW_STARTED
+  INTERVIEW_COMPLETED
+  QUESTION_ANSWERED
+  TAB_SWITCH
+  FOCUS_LOST
+  WEBCAM_OFF
+  SCREEN_OFF
+  VIOLATIONmcq
+  RECORDING_STARTED
+  RECORDING_STOPPED
+}
+
+model Interview {
+  id                 String         @id @default(cuid())
+  title              String
+  description        String?
+  duration           Int
+  status             InterviewStatus @default(DRAFT)
+  attempted          Boolean        @default(false)
+  sessionStart       DateTime?
+  sessionEnd         DateTime?
+  candidateEmail     String?
+  sessionPassword    String?        // Keep for backward compatibility and email display
+  sessionPasswordHash String?       // New bcrypt hashed password for validation
+  jobPostId          String
+  resumeId           String
+  userId             Int
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  questions         Question[]
+  interviewAttempts InterviewAttempt[]
+  jobPost           JobPost      @relation(fields: [jobPostId], references: [id], onDelete: Cascade)
+  resume            Resume       @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  user              User         @relation(fields: [userId], references: [id])
+  CandidateInteraction CandidateInteraction?
+
+  @@map("interviews")
+}
+
+model Question {
+  id          String       @id @default(cuid())
+  interviewId String
+  type        QuestionType
+  question    String
+  options     Json?
+  correct     Json
+  points      Int          @default(1)
+  order       Int
+
+  interview Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  answers   Answer[]
+
+  @@map("questions")
+}
+
+model InterviewAttempt {
+  id            String                @id @default(cuid())
+  interviewerId Int
+  interviewId   String
+  status        InterviewAttemptStatus @default(IN_PROGRESS)
+  startedAt     DateTime              @default(now())
+  submittedAt   DateTime?
+  completedAt   DateTime?
+  timeSpent     Int?
+  score         Float?
+  maxScore      Float?
+  ipAddress     String?
+  userAgent     String?
+  violations    Int                   @default(0)
+
+  interview     Interview             @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  interviewer   User                  @relation(fields: [interviewerId], references: [id])
+  answers       Answer[]
+  activityLogs  ActivityLog[]
+  recordings    Recording[]
+
+  @@unique([interviewerId, interviewId])
+  @@map("interview_attempts")
+}
+
+model Answer {
+  id           String @id @default(cuid())
+  attemptId    String
+  questionId   String
+  answer       Json
+  isCorrect    Boolean?
+  pointsEarned Float?
+  answeredAt   DateTime @default(now())
+
+  attempt  InterviewAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question Question         @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+  @@map("answers")
+}
+
+model ActivityLog {
+  id          String      @id @default(cuid())
+  attemptId   String?
+  type        LogType
+  severity    LogSeverity @default(MEDIUM)
+  description String
+  metadata    Json?
+  timestamp   DateTime    @default(now())
+
+  attempt InterviewAttempt? @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@map("activity_logs")
+}
+
+model Recording {
+  id         String   @id @default(cuid())
+  attemptId  String
+  filename   String
+  fileSize   Int?
+  duration   Int?
+  uploadedAt DateTime @default(now())
+  s3Key      String?
+  s3Bucket   String?
+
+  attempt InterviewAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@map("recordings")
+}
+
+model SystemConfig {
+  id    String @id @default(cuid())
+  key   String @unique
+  value Json
+  
+  @@map("system_config")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String
+  resource  String?
+  details   Json?
+  timestamp DateTime @default(now())
+  ipAddress String?
+
+  @@map("audit_logs")
+}
+
+// ----------------------------
+// 🚀 UNIFIED CANDIDATE ASSESSMENT SYSTEM
+// ----------------------------
+
+// Base model for all assessment stages
+model AssessmentStage {
+  id             String       @id @default(cuid())
+  type           StageType
+  jobPostId      String
+  resumeId       String
+  interviewerId  Int?
+  status         StageStatus  @default(PENDING)
+  scheduledAt    DateTime?
+  completedAt    DateTime?
+  resultScore    Float?
+  notes          String?
+  metadata       Json?
+  sequenceOrder  Int?         // For ordering stages in workflow
+  duration       Int?         // Duration in minutes
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  // Relations
+  jobPost        JobPost      @relation(fields: [jobPostId], references: [id], onDelete: Cascade)
+  resume         Resume       @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  interviewer    User?        @relation(fields: [interviewerId], references: [id])
+
+  // Stage-specific relations
+  mcqAssessment  MCQAssessment?
+  avatarAssessment AvatarAssessment?
+  manualMeeting  ManualMeeting?
+
+  @@index([jobPostId, resumeId])
+  @@index([type, status])
+  @@map("assessment_stages")
+}
+
+// MCQ-specific assessment data
+model MCQAssessment {
+  id                String           @id @default(cuid())
+  assessmentStageId String           @unique
+  title             String
+  description       String?
+  totalQuestions    Int              @default(0)
+  timeLimit         Int?             // Time limit in minutes
+  passingScore      Float?           // Minimum score to pass
+  difficulty        MCQDifficulty    @default(MEDIUM)
+  categories        String[]         @default([])
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  assessmentStage   AssessmentStage  @relation(fields: [assessmentStageId], references: [id], onDelete: Cascade)
+  questions         MCQQuestion[]
+  candidateAnswers  MCQAnswer[]
+
+  @@map("mcq_assessments")
+}
+
+// AI Avatar Interview specific data
+model AvatarAssessment {
+  id                String              @id @default(cuid())
+  assessmentStageId String              @unique
+  title             String
+  description       String?
+  avatarType        String?             // Avatar configuration
+  interviewScript   String?             // AI interview script/prompts
+  recordingEnabled  Boolean             @default(true)
+  timeLimit         Int?                // Time limit in minutes
+  evaluationCriteria Json?              // AI evaluation criteria
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  assessmentStage   AssessmentStage     @relation(fields: [assessmentStageId], references: [id], onDelete: Cascade)
+  recordings        AvatarRecording[]
+
+  @@map("avatar_assessments")
+}
+
+// Manual Meeting specific data
+model ManualMeeting {
+  id                String            @id @default(cuid())
+  assessmentStageId String            @unique
+  meetingLink       String?
+  agenda            String?
+  meetingType       MeetingType?
+  meetingSummary    String?
+  meetingRating     String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  assessmentStage   AssessmentStage   @relation(fields: [assessmentStageId], references: [id], onDelete: Cascade)
+
+  @@map("manual_meetings")
+}
+
+// Individual MCQ Questions - Each question is stored as a separate row
+model MCQTemplate {
+  id              String       @id @default(cuid())
+  question        String
+  options         Json         // Array of options [A, B, C, D]
+  correctAnswer   String       // The correct answer text
+  topic           String       // Topic/category of the question
+  difficulty      MCQDifficulty @default(MEDIUM)
+  explanation     String?      // Optional explanation for the answer
+  isActive        Boolean      @default(true)
+  companyId       Int          // Company that owns this question
+  createdById     Int          // User who created this question
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  // Relations
+  company         companies    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdBy       User         @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([createdById])
+  @@index([topic])
+  @@index([difficulty])
+  @@map("mcq_templates")
+}
+
+// MCQ Questions for assessments (job-specific)
+model MCQQuestion {
+  id              String       @id @default(cuid())
+  mcqAssessmentId String
+  question        String
+  options         Json         // Array of options
+  correctAnswer   Int          // Index of correct answer (0-based)
+  points          Int          @default(1)
+  category        String?
+  difficulty      MCQDifficulty @default(MEDIUM)
+  explanation     String?
+  order           Int          @default(0)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  mcqAssessment   MCQAssessment @relation(fields: [mcqAssessmentId], references: [id], onDelete: Cascade)
+  answers         MCQAnswer[]
+
+  @@map("mcq_questions")
+}
+
+// Candidate answers for MCQ questions
+model MCQAnswer {
+  id              String       @id @default(cuid())
+  mcqAssessmentId String
+  questionId      String
+  selectedAnswer  Int?         // Index of selected answer (0-based)
+  isCorrect       Boolean?
+  pointsEarned    Float?
+  timeSpent       Int?         // Time spent in seconds
+  answeredAt      DateTime     @default(now())
+
+  mcqAssessment   MCQAssessment @relation(fields: [mcqAssessmentId], references: [id], onDelete: Cascade)
+  question        MCQQuestion   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([mcqAssessmentId, questionId])
+  @@map("mcq_answers")
+}
+
+// Avatar interview recordings
+model AvatarRecording {
+  id                String            @id @default(cuid())
+  avatarAssessmentId String
+  filename          String
+  fileSize          Int?
+  duration          Int?              // Duration in seconds
+  s3Key             String?
+  s3Bucket          String?
+  transcription     String?           // AI transcription of the interview
+  analysis          Json?             // AI analysis results
+  uploadedAt        DateTime          @default(now())
+
+  avatarAssessment  AvatarAssessment  @relation(fields: [avatarAssessmentId], references: [id], onDelete: Cascade)
+
+  @@map("avatar_recordings")
+}
+
+// Legacy CandidateInteraction model (for backward compatibility during migration)
+model CandidateInteraction {
+  id              String            @id @default(cuid())
+  type            InteractionType
+  status          InteractionStatus @default(PENDING)
+  startedAt       DateTime?
+  completedAt     DateTime?
+  sequenceOrder   Int?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  resumeId        String
+  jobPostId       String
+  createdById     Int
+  meetingId       String? @unique
+  interviewId     String? @unique
+
+  Resume          Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  JobPost         JobPost  @relation(fields: [jobPostId], references: [id], onDelete: Cascade)
+  User            User     @relation(fields: [createdById], references: [id])
+  meeting         meetings? @relation(fields: [meetingId], references: [id])
+  interview       Interview? @relation(fields: [interviewId], references: [id])
+}
+
+// Enums for the unified assessment system
+enum StageType {
+  MCQ
+  AVATAR
+  MANUAL
+}
+
+enum StageStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum MCQDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+// Legacy enums (kept for backward compatibility)
+enum InteractionType {
+  MEETING
+  AI_INTERVIEW
+  MCQ_EXAM
+}
+
+enum InteractionStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
 }

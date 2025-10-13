@@ -1,15 +1,21 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '@/lib/db';
-import { getUserFromRequest } from '@/lib/auth';
-import { AIResumeService, ResumeAnalysisRequest } from '@/lib/ai-resume-service';
+import type { NextApiRequest, NextApiResponse } from "next";
+import { prisma } from "@/lib/db";
+import { getUserFromRequest } from "@/lib/auth";
+import {
+  AIResumeService,
+  ResumeAnalysisRequest,
+} from "@/lib/ai-resume-service";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   const user = getUserFromRequest(req);
-  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  if (!user) return res.status(401).json({ error: "Unauthorized" });
 
   const { jobId } = req.query;
-  if (!jobId || typeof jobId !== 'string') {
-    return res.status(400).json({ error: 'Job ID required' });
+  if (!jobId || typeof jobId !== "string") {
+    return res.status(400).json({ error: "Job ID required" });
   }
 
   // Verify job exists and user has access
@@ -19,38 +25,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       companyId: user.companyId!,
     },
     include: {
-      company: true,
+      companies: true,
     },
   });
 
   if (!jobPost) {
-    return res.status(404).json({ error: 'Job not found' });
+    return res.status(404).json({ error: "Job not found" });
   }
 
   switch (req.method) {
-    case 'GET':
+    case "GET":
       return handleGetResumes(req, res, jobId);
-    case 'POST':
+    case "POST":
       return handleAnalyzeResumes(req, res, jobPost, user.userId);
     default:
-      return res.status(405).json({ error: 'Method not allowed' });
+      return res.status(405).json({ error: "Method not allowed" });
   }
 }
 
-async function handleGetResumes(req: NextApiRequest, res: NextApiResponse, jobId: string) {
-  const { sortBy = 'matchScore', order = 'desc' } = req.query;
-  
+async function handleGetResumes(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  jobId: string
+) {
+  const { sortBy = "matchScore", order = "desc" } = req.query;
+
   const resumes = await prisma.resume.findMany({
     where: { jobPostId: jobId },
     orderBy: {
-      [sortBy as string]: order as 'asc' | 'desc',
+      [sortBy as string]: order as "asc" | "desc",
     },
     include: {
-      uploadedBy: {
+      User: {
         select: { id: true, name: true, email: true },
       },
       _count: {
-        select: { meetings: true },
+        select: {
+          interviews: true,
+          CandidateInteraction: true,
+          assessmentStages: true,
+        },
       },
     },
   });
@@ -65,15 +79,28 @@ async function handleAnalyzeResumes(
   userId: number
 ) {
   const { resume_paths } = req.body;
-  
-  if (!resume_paths || !Array.isArray(resume_paths) || resume_paths.length === 0) {
-    return res.status(400).json({ error: 'resume_paths array is required' });
+
+  if (
+    !resume_paths ||
+    !Array.isArray(resume_paths) ||
+    resume_paths.length === 0
+  ) {
+    return res.status(400).json({ error: "resume_paths array is required" });
   }
 
   try {
+    console.log("📋 Resume Analysis Request:", {
+      jobId: jobPost.id,
+      jobTitle: jobPost.jobTitle,
+      resume_paths,
+      resume_count: resume_paths.length,
+    });
+
     // Convert JobPost to EXACT format expected by external AI API
     const jobReq = AIResumeService.mapJobPostToJobReq(jobPost);
-    
+
+    console.log("🔧 Mapped Job Requirements:", jobReq);
+
     // Call external AI API with EXACT format
     const analysisResponse = await AIResumeService.analyzeResumes({
       resume_paths,
@@ -82,50 +109,79 @@ async function handleAnalyzeResumes(
 
     // Process the EXACT response format from AI API
     const savedResumes = [];
+    const failedResumes = [];
+
     for (const analysis of analysisResponse.analyses) {
       if (analysis.success) {
-        const resume = await prisma.resume.create({
-          data: {
-            // Map EXACT field names from AI response
-            resumeUrl: analysis.resume_path,
-            candidateName: analysis.candidate.name,
-            candidateEmail: analysis.candidate.email,
-            candidatePhone: analysis.candidate.phone,
-            matchScore: analysis.candidate.match_score,
-            recommendation: analysis.analysis.recommendation,
-            skills: analysis.candidate.skills,
-            experienceYears: analysis.candidate.experience_years,
-            education: analysis.candidate.education,
-            summary: analysis.candidate.summary,
-            location: analysis.candidate.location,
-            linkedinUrl: analysis.candidate.linkedin_url,
-            githubUrl: analysis.candidate.github_url,
-            currentJobTitle: analysis.candidate.current_job_title,
-            processingMethod: analysis.candidate.processing_method,
-            analysisTimestamp: new Date(analysis.candidate.analysis_timestamp),
-            fileName: analysis.analysis.file_name,
-            fileSizeMb: analysis.analysis.file_size_mb,
-            processingTime: analysis.analysis.processing_time,
-            matchedSkills: analysis.analysis.matched_skills,
-            jobPostId: jobPost.id,
-            uploadedById: userId,
-          },
+        try {
+          const resume = await prisma.resume.create({
+            data: {
+              id: crypto.randomUUID(),
+              // Map EXACT field names from AI response
+              resumeUrl: analysis.resume_path,
+              candidateName: analysis.candidate.name,
+              candidateEmail: analysis.candidate.email,
+              candidatePhone: analysis.candidate.phone,
+              matchScore: analysis.candidate.match_score,
+              recommendation: analysis.analysis.recommendation,
+              skills: analysis.candidate.skills,
+              experienceYears: analysis.candidate.experience_years,
+              education: analysis.candidate.education,
+              summary: analysis.candidate.summary,
+              location: analysis.candidate.location,
+              linkedinUrl: analysis.candidate.linkedin_url,
+              githubUrl: analysis.candidate.github_url,
+              currentJobTitle: analysis.candidate.current_job_title,
+              processingMethod: analysis.candidate.processing_method,
+              analysisTimestamp: new Date(
+                analysis.candidate.analysis_timestamp
+              ),
+              fileName: analysis.analysis.file_name,
+              fileSizeMb: analysis.analysis.file_size_mb,
+              processingTime: analysis.analysis.processing_time,
+              matchedSkills: analysis.analysis.matched_skills,
+              jobPostId: jobPost.id,
+              uploadedById: userId,
+              updatedAt: new Date(),
+            },
+          });
+          savedResumes.push(resume);
+        } catch (dbError) {
+          console.error("Database error saving resume:", dbError);
+          failedResumes.push({
+            resume_path: analysis.resume_path,
+            error:
+              "Database error: " +
+              (dbError instanceof Error ? dbError.message : "Unknown error"),
+          });
+        }
+      } else {
+        failedResumes.push({
+          resume_path: analysis.resume_path,
+          error: "Analysis failed",
         });
-        savedResumes.push(resume);
       }
     }
 
     return res.status(200).json({
       success: true,
-      message: `${savedResumes.length} resumes analyzed and saved`,
+      message: `${savedResumes.length} resumes analyzed and saved${
+        failedResumes.length > 0 ? `, ${failedResumes.length} failed` : ""
+      }`,
       resumes: savedResumes,
+      failedResumes,
+      summary: {
+        total: resume_paths.length,
+        successful: savedResumes.length,
+        failed: failedResumes.length,
+      },
       // Include original AI response for debugging
       aiResponse: analysisResponse,
     });
   } catch (error: any) {
-    console.error('Resume analysis error:', error);
-    return res.status(500).json({ 
-      error: 'Failed to analyze resumes',
+    console.error("Resume analysis error:", error);
+    return res.status(500).json({
+      error: "Failed to analyze resumes",
       details: error.message,
     });
   }

@@ -15,12 +15,14 @@ async function main() {
     return;
   }
 
-  const company = await prisma.company.create({
+  const company = await prisma.companies.create({
     data: {
+      companyUuid: "admin-company-uuid",
       name: "Super Admin Company",
       address: "HQ",
       country: "N/A",
       website: "https://example.com",
+      updatedAt: new Date(),
     },
   });
 
@@ -32,6 +34,7 @@ async function main() {
       name: "Super Admin",
       type: "ADMIN",
       companyId: company.id,
+      updatedAt: new Date(),
     },
   });
 

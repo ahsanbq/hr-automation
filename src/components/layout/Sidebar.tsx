@@ -14,6 +14,8 @@ import {
   UserOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  EditOutlined,
+  RobotOutlined,
 } from "@ant-design/icons";
 
 const { Sider } = Layout;
@@ -85,11 +87,29 @@ export default function Sidebar({
         ),
       },
       {
-        key: "/meeting",
-        icon: <QuestionCircleOutlined />,
+        key: "/assessment/mcq",
+        icon: <EditOutlined />,
         label: (
-          <Link href="/meeting" className="manrope-medium">
-            Meeting
+          <Link href="/assessment/mcq" className="manrope-medium">
+            MCQ Tests
+          </Link>
+        ),
+      },
+      {
+        key: "/assessment/avatar",
+        icon: <RobotOutlined />,
+        label: (
+          <Link href="/assessment/avatar" className="manrope-medium">
+            AI Interviews
+          </Link>
+        ),
+      },
+      {
+        key: "/assessment/manual",
+        icon: <TeamOutlined />,
+        label: (
+          <Link href="/assessment/manual" className="manrope-medium">
+            Manual Meetings
           </Link>
         ),
       },
@@ -147,9 +167,17 @@ export default function Sidebar({
     [isAdmin]
   );
 
-  const selectedKey =
-    items.find((i: any) => router.pathname.startsWith(i.key))?.key ||
-    "/analytics";
+  // Handle menu selection
+  const selectedKey = (() => {
+    // Find the matching menu item based on current path
+    return (
+      items.find((i: any) => router.pathname.startsWith(i.key))?.key ||
+      "/analytics"
+    );
+  })();
+
+  // No default open keys needed since we removed nested menus
+  const defaultOpenKeys: string[] = [];
 
   return (
     <Sider
@@ -160,8 +188,8 @@ export default function Sidebar({
       collapsedWidth={64}
       breakpoint="lg"
       style={{
-        minHeight: "100vh",
-        position: "sticky",
+        height: "100vh",
+        position: "fixed",
         top: 0,
         left: 0,
         background: "#1a1a2e",
@@ -171,6 +199,7 @@ export default function Sidebar({
         flexDirection: "column",
         transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
         backdropFilter: "blur(10px)",
+        zIndex: 1000,
       }}
     >
       {/* Header */}
@@ -239,6 +268,7 @@ export default function Sidebar({
           theme="dark"
           mode="inline"
           selectedKeys={[selectedKey]}
+          defaultOpenKeys={defaultOpenKeys}
           items={items as any}
           style={{
             background: "transparent",

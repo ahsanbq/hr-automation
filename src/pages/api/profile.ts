@@ -18,7 +18,7 @@ export default async function handler(
         name: true,
         type: true,
         companyId: true,
-        company: {
+        companies: {
           select: {
             id: true,
             name: true,
@@ -61,7 +61,7 @@ export default async function handler(
         linkedinProfile,
         website,
       } = company;
-      updatedCompany = await prisma.company.update({
+      updatedCompany = await prisma.companies.update({
         where: { id: updatedUser.companyId },
         data: {
           ...(companyName !== undefined ? { name: companyName } : {}),

@@ -46,20 +46,37 @@ export default function AppLayout({
   }, [router]);
 
   return (
-    <Layout style={{ minHeight: "100vh", background: "#f5f7fb" }}>
+    <Layout
+      style={{ height: "100vh", background: "#f5f7fb", overflow: "hidden" }}
+    >
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
-      <Layout>
+      <Layout
+        style={{
+          height: "100vh",
+          overflow: "hidden",
+          marginLeft: sidebarCollapsed ? 64 : 240,
+          transition: "margin-left 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+        }}
+      >
         <Topbar title={title} subtitle={subtitle} />
-        <Content style={{ margin: 16 }}>
-          <div style={{ position: "relative" }}>
+        <Content
+          style={{
+            margin: 16,
+            height: "calc(100vh - 120px)",
+            overflow: "auto",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <div style={{ position: "relative", flex: 1 }}>
             <Spin spinning={loading} size="large">
               <div
                 style={{
                   padding: 16,
-                  minHeight: 360,
+                  minHeight: "100%",
                   background: "#fff",
                   borderRadius: 12,
                   boxShadow: "0 4px 16px rgba(0,0,0,0.04)",
@@ -70,7 +87,13 @@ export default function AppLayout({
             </Spin>
           </div>
         </Content>
-        <Footer style={{ textAlign: "center", background: "transparent" }}>
+        <Footer
+          style={{
+            textAlign: "center",
+            background: "transparent",
+            flexShrink: 0,
+          }}
+        >
           Synchro Hire © {new Date().getFullYear()}
         </Footer>
       </Layout>
