@@ -1,4 +1,4 @@
-import { Card, List, Avatar, Typography, Space, Tag, Spin, Empty } from "antd";
+import { Card, List, Avatar, Typography, Space, Tag, Empty } from "antd";
 import {
   FileTextOutlined,
   UserOutlined,
@@ -7,11 +7,24 @@ import {
   QuestionCircleOutlined,
   ClockCircleOutlined,
 } from "@ant-design/icons";
-import { useEffect, useState } from "react";
 
 const { Text, Title } = Typography;
 
-interface RecentActivityData {
+interface AnalyticsData {
+  summary: {
+    totalJobs: number;
+    totalResumes: number;
+    totalInterviews: number;
+    totalMeetings: number;
+    totalMCQTemplates: number;
+    avgMatchScore: number;
+    avgInterviewScore: number;
+    conversionRates: {
+      applicationToInterview: number;
+      interviewToMeeting: number;
+      interviewCompletion: number;
+    };
+  };
   recent: {
     jobs: Array<{
       id: string;
@@ -50,6 +63,20 @@ interface RecentActivityData {
       Resume: { candidateName: string };
     }>;
   };
+  analytics: {
+    topSkills: Array<{ skill: string; count: number }>;
+    experienceLevels: Array<{ level: string; count: number }>;
+    jobTypes: Array<{ type: string; count: number }>;
+    meetingTypes: Array<{ type: string; count: number }>;
+    interviewStatus: Array<{ status: string; count: number }>;
+    resumeRecommendations: Array<any>;
+    weeklyActivity: Array<{ date: string; type: string; count: number }>;
+    monthlyTrends: Array<{ month: string; jobs_created: number }>;
+  };
+}
+
+interface RecentActivityProps {
+  data: AnalyticsData;
 }
 
 const getActivityIcon = (type: string) => {
@@ -99,54 +126,7 @@ const formatTimeAgo = (dateString: string) => {
   return date.toLocaleDateString();
 };
 
-export default function RecentActivity() {
-  const [data, setData] = useState<RecentActivityData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchAnalyticsData();
-  }, []);
-
-  const fetchAnalyticsData = async () => {
-    try {
-      const response = await fetch("/api/analytics/dashboard");
-      const result = await response.json();
-      if (result.success) {
-        setData(result.data);
-      }
-    } catch (error) {
-      console.error("Error fetching analytics:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <Card
-        title="Recent Activity"
-        size="small"
-        style={{ borderRadius: 8, boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)" }}
-      >
-        <div style={{ textAlign: "center", padding: "40px 0" }}>
-          <Spin size="large" />
-        </div>
-      </Card>
-    );
-  }
-
-  if (!data) {
-    return (
-      <Card
-        title="Recent Activity"
-        size="small"
-        style={{ borderRadius: 8, boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)" }}
-      >
-        <Empty description="Failed to load recent activity" />
-      </Card>
-    );
-  }
-
+export default function RecentActivity({ data }: RecentActivityProps) {
   // Combine and sort all recent activities
   const activities = [
     ...data.recent.jobs.map((job) => ({
@@ -194,9 +174,18 @@ export default function RecentActivity() {
   return (
     <Card
       title="Recent Activity"
-      size="small"
-      style={{ borderRadius: 8, boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)" }}
-      extra={<Text type="secondary">{activities.length} activities</Text>}
+      style={{
+        borderRadius: 12,
+        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+        height: "100%",
+        minHeight: "600px",
+      }}
+      bodyStyle={{ padding: "20px", height: "calc(100% - 57px)" }}
+      extra={
+        <Text type="secondary" style={{ fontSize: 12 }}>
+          {activities.length} activities
+        </Text>
+      }
     >
       {activities.length === 0 ? (
         <Empty description="No recent activity" />

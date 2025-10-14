@@ -53,6 +53,10 @@ model JobPost {
   updatedAt           DateTime
   companyId           Int
   createdById         Int
+
+  @@index([companyId])
+  @@index([createdAt])
+  @@index([companyId, createdAt])
   GeneratedJobPost    GeneratedJobPost[]
   companies           companies          @relation(fields: [companyId], references: [id])
   User                User               @relation(fields: [createdById], references: [id])
@@ -98,6 +102,8 @@ model Resume {
 
   @@index([candidateEmail])
   @@index([jobPostId, matchScore])
+  @@index([createdAt])
+  @@index([matchScore])
 }
 
 model User {
@@ -270,6 +276,10 @@ model Interview {
   resume            Resume       @relation(fields: [resumeId], references: [id], onDelete: Cascade)
   user              User         @relation(fields: [userId], references: [id])
   CandidateInteraction CandidateInteraction?
+
+  @@index([jobPostId])
+  @@index([createdAt])
+  @@index([status])
 
   @@map("interviews")
 }
