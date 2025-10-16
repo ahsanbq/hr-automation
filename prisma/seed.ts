@@ -15,16 +15,27 @@ async function main() {
     return;
   }
 
-  const company = await prisma.companies.create({
-    data: {
-      companyUuid: "admin-company-uuid",
-      name: "Super Admin Company",
-      address: "HQ",
-      country: "N/A",
-      website: "https://example.com",
-      updatedAt: new Date(),
-    },
+  // Check if company already exists to avoid conflicts
+  const existingCompany = await prisma.companies.findFirst({
+    where: { companyUuid: "admin-company-uuid" },
   });
+
+  let company;
+  if (existingCompany) {
+    console.log("Seed: admin company already exists");
+    company = existingCompany;
+  } else {
+    company = await prisma.companies.create({
+      data: {
+        companyUuid: "admin-company-uuid",
+        name: "Super Admin Company",
+        address: "HQ",
+        country: "N/A",
+        website: "https://example.com",
+        updatedAt: new Date(),
+      },
+    });
+  }
 
   const hashed = await bcrypt.hash(adminPassword, 10);
   const user = await prisma.user.create({

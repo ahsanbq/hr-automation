@@ -8,7 +8,8 @@
     "start": "next start",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
-    "seed": "ts-node --transpile-only prisma/seed.ts"
+    "seed": "ts-node --transpile-only prisma/seed.ts",
+    "fix-sequences": "node scripts/fix-sequences.js"
   },
   "dependencies": {
     "@ant-design/icons": "^6.0.1",

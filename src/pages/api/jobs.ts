@@ -14,9 +14,9 @@ export default async function handler(
   if (req.method === "GET") {
     const { include } = req.query;
 
-    // Get jobs for the user's company
+    // Get jobs created by the user
     const jobs = await prisma.jobPost.findMany({
-      where: user.companyId ? { companyId: user.companyId } : {},
+      where: { createdById: user.userId },
       include: {
         companies: true,
         User: { select: { id: true, name: true, email: true } },

@@ -36,7 +36,7 @@ async function handleGetJob(
     const job = await prisma.jobPost.findFirst({
       where: {
         id: jobId,
-        companyId: user.companyId,
+        createdById: user.userId,
       },
       include: {
         companies: true,
@@ -69,7 +69,7 @@ async function handleUpdateJob(
     const job = await prisma.jobPost.updateMany({
       where: {
         id: jobId,
-        companyId: user.companyId,
+        createdById: user.userId,
       },
       data: updateData,
     });
@@ -95,7 +95,7 @@ async function handleDeleteJob(
     const job = await prisma.jobPost.deleteMany({
       where: {
         id: jobId,
-        companyId: user.companyId,
+        createdById: user.userId,
       },
     });
 

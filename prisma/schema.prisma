@@ -65,6 +65,7 @@ model JobPost {
   interviews          Interview[]
   CandidateInteraction CandidateInteraction[]
   assessmentStages    AssessmentStage[]
+  offerLetters        OfferLetter[]
 }
 
 model Resume {
@@ -99,6 +100,7 @@ model Resume {
   interviews        Interview[]
   CandidateInteraction CandidateInteraction[]
   assessmentStages  AssessmentStage[]
+  offerLetters      OfferLetter[]
 
   @@index([candidateEmail])
   @@index([jobPostId, matchScore])
@@ -125,6 +127,7 @@ model User {
   CandidateInteraction CandidateInteraction[]
   assessmentStages AssessmentStage[]
   mcqTemplates      MCQTemplate[]
+  offerLetters     OfferLetter[]
 }
 
 model companies {
@@ -613,6 +616,36 @@ enum MCQDifficulty {
   HARD
 }
 
+// Offer Letter Management System
+model OfferLetter {
+  id                String            @id @default(cuid())
+  jobPostId         String
+  resumeId          String
+  createdById       Int
+  offerDate         DateTime          @default(now())
+  joiningDate       DateTime?
+  offeredPosition   String
+  salary            String
+  status            OfferStatus       @default(PENDING)
+  notes             String?
+  pdfUrl            String?
+  sentAt            DateTime?
+  respondedAt       DateTime?
+  responseNotes     String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  // Relations
+  jobPost           JobPost           @relation(fields: [jobPostId], references: [id], onDelete: Cascade)
+  resume            Resume            @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  createdBy         User              @relation(fields: [createdById], references: [id])
+
+  @@index([jobPostId, resumeId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("offer_letters")
+}
+
 // Legacy enums (kept for backward compatibility)
 enum InteractionType {
   MEETING
@@ -625,4 +658,13 @@ enum InteractionStatus {
   IN_PROGRESS
   COMPLETED
   CANCELLED
+}
+
+enum OfferStatus {
+  PENDING
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  WITHDRAWN
 }

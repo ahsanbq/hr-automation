@@ -22,7 +22,7 @@ export default async function handler(
   const jobPost = await prisma.jobPost.findFirst({
     where: {
       id: jobId,
-      companyId: user.companyId!,
+      createdById: user.userId,
     },
     include: {
       companies: true,
