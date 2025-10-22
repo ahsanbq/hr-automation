@@ -78,22 +78,30 @@ async function handleAnalyzeResumes(
   jobPost: any,
   userId: number
 ) {
-  const { resume_paths } = req.body;
+  const { resume_paths, uploaded_files } = req.body;
 
-  if (
-    !resume_paths ||
-    !Array.isArray(resume_paths) ||
-    resume_paths.length === 0
-  ) {
-    return res.status(400).json({ error: "resume_paths array is required" });
+  // Support both URL-based and file upload analysis
+  let pathsToAnalyze: string[] = [];
+  
+  if (resume_paths && Array.isArray(resume_paths) && resume_paths.length > 0) {
+    pathsToAnalyze = resume_paths;
+  } else if (uploaded_files && Array.isArray(uploaded_files) && uploaded_files.length > 0) {
+    // Extract S3 URLs from uploaded files
+    pathsToAnalyze = uploaded_files.map((file: any) => file.s3Url);
+  }
+
+  if (pathsToAnalyze.length === 0) {
+    return res.status(400).json({ 
+      error: "Either resume_paths array or uploaded_files array is required" 
+    });
   }
 
   try {
     console.log("📋 Resume Analysis Request:", {
       jobId: jobPost.id,
       jobTitle: jobPost.jobTitle,
-      resume_paths,
-      resume_count: resume_paths.length,
+      resume_paths: pathsToAnalyze,
+      resume_count: pathsToAnalyze.length,
     });
 
     // Convert JobPost to EXACT format expected by external AI API
@@ -103,7 +111,7 @@ async function handleAnalyzeResumes(
 
     // Call external AI API with EXACT format
     const analysisResponse = await AIResumeService.analyzeResumes({
-      resume_paths,
+      resume_paths: pathsToAnalyze,
       job_req: jobReq,
     });
 
@@ -171,7 +179,7 @@ async function handleAnalyzeResumes(
       resumes: savedResumes,
       failedResumes,
       summary: {
-        total: resume_paths.length,
+        total: pathsToAnalyze.length,
         successful: savedResumes.length,
         failed: failedResumes.length,
       },

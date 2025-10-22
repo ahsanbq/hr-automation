@@ -92,6 +92,9 @@ export default function AppLayout({
             textAlign: "center",
             background: "transparent",
             flexShrink: 0,
+            padding: "8px 0", // 🔹 reduce vertical padding
+            lineHeight: "20px", // 🔹 tighten text spacing
+            fontSize: "14px", // optional: smaller text
           }}
         >
           Synchro Hire © {new Date().getFullYear()}

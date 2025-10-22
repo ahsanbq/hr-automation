@@ -10,10 +10,9 @@ import {
   Card,
   Typography,
   Divider,
-  Tag,
   message,
-  List,
   Table,
+  Tabs,
 } from "antd";
 import { useState } from "react";
 import {
@@ -28,6 +27,8 @@ import {
   EditOutlined,
   PlusOutlined,
   DeleteOutlined,
+  RobotOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
 
 const { TextArea } = Input;
@@ -50,10 +51,10 @@ export default function CreateJobForm() {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [jobRequirement, setJobRequirement] = useState<JobRequirement | null>(
-    null
-  );
+  const [jobRequirement, setJobRequirement] = useState<JobRequirement | null>(null);
   const [form] = Form.useForm();
+  const [manualForm] = Form.useForm();
+  const [activeTab, setActiveTab] = useState<string>("ai");
 
   const onPreview = async () => {
     try {
@@ -88,18 +89,13 @@ export default function CreateJobForm() {
         if (data.success && data.job_requirement) {
           setJobRequirement(data.job_requirement);
           setOpen(true);
-          message.success(
-            "Job description generated! Edit and save when ready."
-          );
+          message.success("Job description generated! Edit and save when ready.");
         } else {
           throw new Error("Invalid response format");
         }
       } catch (error: any) {
         console.error("API Error:", error);
-        message.error(
-          error.message ||
-            "Failed to generate job description. Please try again."
-        );
+        message.error(error.message || "Failed to generate job description. Please try again.");
       }
     } catch (validationError) {
       message.error("Please fill in all required fields");
@@ -135,6 +131,7 @@ export default function CreateJobForm() {
       window.location.reload();
       setOpen(false);
       form.resetFields();
+      manualForm.resetFields();
       setJobRequirement(null);
     } catch (error: any) {
       console.error("Save error:", error);
@@ -144,15 +141,39 @@ export default function CreateJobForm() {
     }
   };
 
+  const onManualCreate = async () => {
+    try {
+      const values = await manualForm.validateFields();
+      
+      const manualJobRequirement: JobRequirement = {
+        title: values.title,
+        company: values.company,
+        location: values.location,
+        job_type: values.job_type,
+        experience_level: values.experience_level,
+        skills_required: values.skills_required || [],
+        responsibilities: values.responsibilities || [],
+        qualifications: values.qualifications || [],
+        salary_range: values.salary_range,
+        benefits: values.benefits || [],
+        description: values.description,
+      };
+
+      setJobRequirement(manualJobRequirement);
+      setOpen(true);
+      message.success("Manual job created! Review and save when ready.");
+    } catch (validationError) {
+      message.error("Please fill in all required fields");
+    }
+  };
+
   const updateJobRequirement = (field: keyof JobRequirement, value: any) => {
     if (jobRequirement) {
       setJobRequirement({ ...jobRequirement, [field]: value });
     }
   };
 
-  const addListItem = (
-    field: "responsibilities" | "qualifications" | "benefits"
-  ) => {
+  const addListItem = (field: "responsibilities" | "qualifications" | "benefits") => {
     if (jobRequirement) {
       const newList = [...jobRequirement[field], ""];
       updateJobRequirement(field, newList);
@@ -198,9 +219,7 @@ export default function CreateJobForm() {
 
   const removeSkill = (index: number) => {
     if (jobRequirement) {
-      const newSkills = jobRequirement.skills_required.filter(
-        (_, i) => i !== index
-      );
+      const newSkills = jobRequirement.skills_required.filter((_, i) => i !== index);
       updateJobRequirement("skills_required", newSkills);
     }
   };
@@ -267,9 +286,7 @@ export default function CreateJobForm() {
           value: (
             <Input
               value={jobRequirement.experience_level}
-              onChange={(e) =>
-                updateJobRequirement("experience_level", e.target.value)
-              }
+              onChange={(e) => updateJobRequirement("experience_level", e.target.value)}
               placeholder="Enter experience level"
               size="small"
             />
@@ -281,9 +298,7 @@ export default function CreateJobForm() {
           value: (
             <Input
               value={jobRequirement.salary_range}
-              onChange={(e) =>
-                updateJobRequirement("salary_range", e.target.value)
-              }
+              onChange={(e) => updateJobRequirement("salary_range", e.target.value)}
               placeholder="Enter salary range"
               size="small"
             />
@@ -295,21 +310,13 @@ export default function CreateJobForm() {
           value: (
             <div>
               {jobRequirement.skills_required.map((skill, index) => (
-                <div
-                  key={index}
-                  style={{
-                    marginBottom: 8,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
-                >
+                <div key={index} style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
                   <Input
                     value={skill}
                     onChange={(e) => updateSkill(index, e.target.value)}
                     placeholder="Enter skill"
-                    style={{ flex: 1 }}
                     size="small"
+                    style={{ flex: 1 }}
                   />
                   <Button
                     type="text"
@@ -334,50 +341,30 @@ export default function CreateJobForm() {
         },
         {
           key: "description",
-          field: "Job Description",
+          field: "Description",
           value: (
             <TextArea
               value={jobRequirement.description}
-              onChange={(e) =>
-                updateJobRequirement("description", e.target.value)
-              }
+              onChange={(e) => updateJobRequirement("description", e.target.value)}
+              placeholder="Enter job description"
               rows={4}
-              placeholder="Job description..."
-              style={{ fontSize: 13 }}
+              size="small"
             />
           ),
         },
         {
           key: "responsibilities",
-          field: "Key Responsibilities",
+          field: "Responsibilities",
           value: (
             <div>
               {jobRequirement.responsibilities.map((responsibility, index) => (
-                <div
-                  key={index}
-                  style={{
-                    marginBottom: 8,
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 8,
-                  }}
-                >
-                  <div
-                    style={{
-                      marginTop: 6,
-                      color: "#1677ff",
-                      fontSize: 12,
-                      fontWeight: 600,
-                      minWidth: 20,
-                    }}
-                  >
+                <div key={index} style={{ marginBottom: 8, display: "flex", alignItems: "flex-start", gap: 8 }}>
+                  <div style={{ marginTop: 6, color: "#1677ff", fontSize: 12, fontWeight: 600, minWidth: 20 }}>
                     {index + 1}.
                   </div>
                   <TextArea
                     value={responsibility}
-                    onChange={(e) =>
-                      updateListItem("responsibilities", index, e.target.value)
-                    }
+                    onChange={(e) => updateListItem("responsibilities", index, e.target.value)}
                     placeholder="Enter responsibility"
                     rows={2}
                     style={{ flex: 1, fontSize: 13 }}
@@ -411,31 +398,13 @@ export default function CreateJobForm() {
           value: (
             <div>
               {jobRequirement.qualifications.map((qualification, index) => (
-                <div
-                  key={index}
-                  style={{
-                    marginBottom: 8,
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 8,
-                  }}
-                >
-                  <div
-                    style={{
-                      marginTop: 6,
-                      color: "#1677ff",
-                      fontSize: 12,
-                      fontWeight: 600,
-                      minWidth: 20,
-                    }}
-                  >
+                <div key={index} style={{ marginBottom: 8, display: "flex", alignItems: "flex-start", gap: 8 }}>
+                  <div style={{ marginTop: 6, color: "#1677ff", fontSize: 12, fontWeight: 600, minWidth: 20 }}>
                     {index + 1}.
                   </div>
                   <TextArea
                     value={qualification}
-                    onChange={(e) =>
-                      updateListItem("qualifications", index, e.target.value)
-                    }
+                    onChange={(e) => updateListItem("qualifications", index, e.target.value)}
                     placeholder="Enter qualification"
                     rows={2}
                     style={{ flex: 1, fontSize: 13 }}
@@ -469,31 +438,13 @@ export default function CreateJobForm() {
           value: (
             <div>
               {jobRequirement.benefits.map((benefit, index) => (
-                <div
-                  key={index}
-                  style={{
-                    marginBottom: 8,
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 8,
-                  }}
-                >
-                  <div
-                    style={{
-                      marginTop: 6,
-                      color: "#1677ff",
-                      fontSize: 12,
-                      fontWeight: 600,
-                      minWidth: 20,
-                    }}
-                  >
+                <div key={index} style={{ marginBottom: 8, display: "flex", alignItems: "flex-start", gap: 8 }}>
+                  <div style={{ marginTop: 6, color: "#1677ff", fontSize: 12, fontWeight: 600, minWidth: 20 }}>
                     {index + 1}.
                   </div>
                   <TextArea
                     value={benefit}
-                    onChange={(e) =>
-                      updateListItem("benefits", index, e.target.value)
-                    }
+                    onChange={(e) => updateListItem("benefits", index, e.target.value)}
                     placeholder="Enter benefit"
                     rows={2}
                     style={{ flex: 1, fontSize: 13 }}
@@ -530,147 +481,213 @@ export default function CreateJobForm() {
       dataIndex: "field",
       key: "field",
       width: 200,
-      render: (text: string) => (
-        <Typography.Text strong>{text}</Typography.Text>
-      ),
+      render: (text: string) => <Typography.Text strong>{text}</Typography.Text>,
     },
     { title: "Value", dataIndex: "value", key: "value" },
   ];
 
   return (
     <Card style={{ borderRadius: 10 }} bodyStyle={{ padding: 16 }}>
-      <Form form={form} layout="vertical" initialValues={{}}>
-        <Row gutter={[16, 0]}>
-          <Col xs={24} md={12}>
-            <SectionTitle>Role Details</SectionTitle>
-            <Divider style={{ margin: "8px 0 12px" }} />
-            <Form.Item label="Title" name="title" rules={[{ required: true }]}>
-              <Input
-                prefix={<FileTextOutlined />}
-                placeholder="e.g., Junior Software Developer"
-              />
-            </Form.Item>
-            <Form.Item
-              label="Company"
-              name="company"
-              rules={[{ required: true }]}
-            >
-              <Input
-                prefix={<BankOutlined />}
-                placeholder="e.g., TechNova Solutions"
-              />
-            </Form.Item>
-            <Form.Item
-              label="Location"
-              name="location"
-              rules={[{ required: true }]}
-            >
-              <Input
-                prefix={<EnvironmentOutlined />}
-                placeholder="City, Country"
-              />
-            </Form.Item>
-            <Form.Item
-              label="Job Type"
-              name="job_type"
-              rules={[{ required: true }]}
-            >
-              <Select
-                placeholder="Select job type"
-                options={[
-                  "Full-time",
-                  "Part-time",
-                  "Contract",
-                  "Internship",
-                ].map((v) => ({ value: v, label: v }))}
-              />
-            </Form.Item>
-            <Form.Item label="Department" name="department">
-              <Input
-                prefix={<ApartmentOutlined />}
-                placeholder="e.g., Engineering"
-              />
-            </Form.Item>
-            <Form.Item label="Experience Level" name="experience_level">
-              <Select
-                placeholder="Select experience level"
-                options={[
-                  "Entry-level (0–1 year)",
-                  "Mid-level (2–5 years)",
-                  "Senior-level (5+ years)",
-                  "Executive-level (10+ years)",
-                ].map((v) => ({ value: v, label: v }))}
-              />
-            </Form.Item>
-          </Col>
-          <Col xs={24} md={12}>
-            <SectionTitle>Skills & Compensation</SectionTitle>
-            <Divider style={{ margin: "8px 0 12px" }} />
-            <Form.Item
-              label="Key Skills"
-              name="key_skills"
-              rules={[
-                { required: true, message: "Please add at least one skill" },
-              ]}
-            >
-              <Select
-                mode="tags"
-                placeholder="Add skills (press Enter)"
-                tokenSeparators={[","]}
-                suffixIcon={<TagsOutlined />}
-              />
-            </Form.Item>
-            <Form.Item label="Budget Range" name="budget_range">
-              <Input
-                prefix={<DollarOutlined />}
-                placeholder="e.g., BDT 25,000 – 35,000 per month"
-              />
-            </Form.Item>
-            <Form.Item
-              label="Additional Requirements"
-              name="additional_requirements"
-            >
-              <Input.TextArea
-                rows={4}
-                placeholder="Any additional requirements"
-                allowClear
-              />
-            </Form.Item>
-          </Col>
-        </Row>
-        <Divider style={{ margin: "16px 0 12px" }} />
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-          <Button
-            icon={generating ? <LoadingOutlined /> : <FormOutlined />}
-            type="primary"
-            onClick={onPreview}
-            loading={generating}
-            size="large"
-          >
-            {generating ? "Generating..." : "Generate Job Description with AI"}
-          </Button>
-        </div>
-      </Form>
+      <Tabs
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        type="card"
+        size="large"
+        items={[
+          {
+            key: "ai",
+            label: (
+              <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <RobotOutlined />
+                Create with AI
+              </span>
+            ),
+            children: (
+              <Form form={form} layout="vertical" initialValues={{}}>
+                <Row gutter={[16, 0]}>
+                  <Col xs={24} md={12}>
+                    <SectionTitle>Role Details</SectionTitle>
+                    <Divider style={{ margin: "8px 0 12px" }} />
+                    <Form.Item label="Title" name="title" rules={[{ required: true }]}>
+                      <Input prefix={<FileTextOutlined />} placeholder="e.g., Junior Software Developer" />
+                    </Form.Item>
+                    <Form.Item label="Company" name="company" rules={[{ required: true }]}>
+                      <Input prefix={<BankOutlined />} placeholder="e.g., TechNova Solutions" />
+                    </Form.Item>
+                    <Form.Item label="Location" name="location" rules={[{ required: true }]}>
+                      <Input prefix={<EnvironmentOutlined />} placeholder="e.g., Dhaka, Bangladesh" />
+                    </Form.Item>
+                    <Form.Item label="Department" name="department" rules={[{ required: true }]}>
+                      <Input prefix={<ApartmentOutlined />} placeholder="e.g., Engineering, Marketing" />
+                    </Form.Item>
+                    <Form.Item label="Job Type" name="job_type" rules={[{ required: true }]}>
+                      <Select
+                        placeholder="Select job type"
+                        options={["Full-time", "Part-time", "Contract", "Internship", "Remote", "Hybrid"].map((v) => ({ value: v, label: v }))}
+                      />
+                    </Form.Item>
+                    <Form.Item label="Experience Level" name="experience_level">
+                      <Select
+                        placeholder="Select experience level"
+                        options={[
+                          "Entry-level (0–1 year)",
+                          "Mid-level (2–4 years)",
+                          "Senior-level (5+ years)",
+                          "Executive-level (10+ years)",
+                        ].map((v) => ({ value: v, label: v }))}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <SectionTitle>Skills & Compensation</SectionTitle>
+                    <Divider style={{ margin: "8px 0 12px" }} />
+                    <Form.Item
+                      label="Key Skills"
+                      name="key_skills"
+                      rules={[{ required: true, message: "Please add at least one skill" }]}
+                    >
+                      <Select
+                        mode="tags"
+                        placeholder="Add skills (press Enter)"
+                        tokenSeparators={[","]}
+                        suffixIcon={<TagsOutlined />}
+                      />
+                    </Form.Item>
+                    <Form.Item label="Budget Range" name="budget_range">
+                      <Input prefix={<DollarOutlined />} placeholder="e.g., BDT 25,000 – 35,000 per month" />
+                    </Form.Item>
+                    <Form.Item label="Additional Requirements" name="additional_requirements">
+                      <Input.TextArea rows={4} placeholder="Any additional requirements" allowClear />
+                    </Form.Item>
+                  </Col>
+                </Row>
+                <Divider style={{ margin: "16px 0 12px" }} />
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                  <Button
+                    icon={generating ? <LoadingOutlined /> : <FormOutlined />}
+                    type="primary"
+                    onClick={onPreview}
+                    loading={generating}
+                    size="large"
+                  >
+                    {generating ? "Generating..." : "Generate Job Description with AI"}
+                  </Button>
+                </div>
+              </Form>
+            ),
+          },
+          {
+            key: "manual",
+            label: (
+              <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <UserOutlined />
+                Create Manually
+              </span>
+            ),
+            children: (
+              <Form form={manualForm} layout="vertical" initialValues={{}}>
+                <Row gutter={[16, 0]}>
+                  <Col xs={24} md={12}>
+                    <SectionTitle>Basic Information</SectionTitle>
+                    <Divider style={{ margin: "8px 0 12px" }} />
+                    <Form.Item label="Job Title" name="title" rules={[{ required: true }]}>
+                      <Input prefix={<FileTextOutlined />} placeholder="e.g., Senior Software Engineer" />
+                    </Form.Item>
+                    <Form.Item label="Company" name="company" rules={[{ required: true }]}>
+                      <Input prefix={<BankOutlined />} placeholder="e.g., TechNova Solutions" />
+                    </Form.Item>
+                    <Form.Item label="Location" name="location" rules={[{ required: true }]}>
+                      <Input prefix={<EnvironmentOutlined />} placeholder="e.g., Dhaka, Bangladesh" />
+                    </Form.Item>
+                    <Form.Item label="Job Type" name="job_type" rules={[{ required: true }]}>
+                      <Select
+                        placeholder="Select job type"
+                        options={["Full-time", "Part-time", "Contract", "Internship", "Remote", "Hybrid"].map((v) => ({ value: v, label: v }))}
+                      />
+                    </Form.Item>
+                    <Form.Item label="Experience Level" name="experience_level" rules={[{ required: true }]}>
+                      <Select
+                        placeholder="Select experience level"
+                        options={[
+                          "Entry-level (0–1 year)",
+                          "Mid-level (2–4 years)",
+                          "Senior-level (5+ years)",
+                          "Executive-level (10+ years)",
+                        ].map((v) => ({ value: v, label: v }))}
+                      />
+                    </Form.Item>
+                    <Form.Item label="Salary Range" name="salary_range">
+                      <Input prefix={<DollarOutlined />} placeholder="e.g., BDT 45,000 – 65,000 per month" />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <SectionTitle>Skills & Requirements</SectionTitle>
+                    <Divider style={{ margin: "8px 0 12px" }} />
+                    <Form.Item
+                      label="Required Skills"
+                      name="skills_required"
+                      rules={[{ required: true, message: "Please add at least one skill" }]}
+                    >
+                      <Select
+                        mode="tags"
+                        placeholder="Add required skills (press Enter)"
+                        tokenSeparators={[","]}
+                        suffixIcon={<TagsOutlined />}
+                      />
+                    </Form.Item>
+                    <Form.Item label="Responsibilities" name="responsibilities">
+                      <Select mode="tags" placeholder="Add key responsibilities (press Enter)" tokenSeparators={[","]} />
+                    </Form.Item>
+                    <Form.Item label="Qualifications" name="qualifications">
+                      <Select mode="tags" placeholder="Add required qualifications (press Enter)" tokenSeparators={[","]} />
+                    </Form.Item>
+                    <Form.Item label="Benefits" name="benefits">
+                      <Select mode="tags" placeholder="Add benefits offered (press Enter)" tokenSeparators={[","]} />
+                    </Form.Item>
+                  </Col>
+                </Row>
+                <Row gutter={[16, 0]}>
+                  <Col span={24}>
+                    <SectionTitle>Job Description</SectionTitle>
+                    <Divider style={{ margin: "8px 0 12px" }} />
+                    <Form.Item
+                      label="Full Job Description"
+                      name="description"
+                      rules={[{ required: true, message: "Please provide a job description" }]}
+                    >
+                      <Input.TextArea
+                        rows={6}
+                        placeholder="Write a comprehensive job description including role overview, what you're looking for, and what makes this opportunity great..."
+                        allowClear
+                      />
+                    </Form.Item>
+                  </Col>
+                </Row>
+                <Divider style={{ margin: "16px 0 12px" }} />
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                  <Button icon={<UserOutlined />} type="primary" onClick={onManualCreate} size="large">
+                    Create Job Manually
+                  </Button>
+                </div>
+              </Form>
+            ),
+          },
+        ]}
+      />
 
       <Modal
         title={
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <EditOutlined style={{ color: "#1677ff" }} />
-            <span>Edit Job Description</span>
+            <span>Review Job Description</span>
           </div>
         }
         open={open}
         onCancel={() => setOpen(false)}
         footer={
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              Make your changes and save when ready
+              {activeTab === "ai" ? "AI-generated content - review and edit as needed" : "Manual content - review before saving"}
             </Typography.Text>
             <Space>
               <Button onClick={() => setOpen(false)}>Cancel</Button>
