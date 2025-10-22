@@ -1,7 +1,7 @@
-import React from 'react';
-import { Upload, Button, message, Progress } from 'antd';
-import { UploadOutlined, CloudUploadOutlined } from '@ant-design/icons';
-import type { UploadProps, UploadFile } from 'antd/es/upload/interface';
+import React from "react";
+import { Upload, Button, message, Progress } from "antd";
+import { UploadOutlined, CloudUploadOutlined } from "@ant-design/icons";
+import type { UploadProps, UploadFile } from "antd/es/upload/interface";
 
 interface ResumeUploaderProps {
   fileList: UploadFile[];
@@ -26,11 +26,11 @@ const ResumeUploader: React.FC<ResumeUploaderProps> = ({
     beforeUpload: (file) => {
       // Validate file type
       const allowedTypes = [
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'text/plain',
-        'application/rtf',
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "text/plain",
+        "application/rtf",
       ];
 
       if (!allowedTypes.includes(file.type)) {
@@ -54,7 +54,7 @@ const ResumeUploader: React.FC<ResumeUploaderProps> = ({
       const newFileList = fileList.filter((item) => item.uid !== file.uid);
       onChange(newFileList);
     },
-    accept: '.pdf,.doc,.docx,.rtf,.txt',
+    accept: ".pdf,.doc,.docx,.rtf,.txt",
     disabled: disabled || uploading,
     showUploadList: {
       showPreviewIcon: false,
@@ -70,24 +70,26 @@ const ResumeUploader: React.FC<ResumeUploaderProps> = ({
     const files = Array.from(e.dataTransfer.files);
     const validFiles = files.filter((file) => {
       const allowedTypes = [
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'text/plain',
-        'application/rtf',
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "text/plain",
+        "application/rtf",
       ];
       return allowedTypes.includes(file.type) && file.size / 1024 / 1024 < 10;
     });
 
     if (validFiles.length !== files.length) {
-      message.warning('Some files were ignored due to type or size restrictions');
+      message.warning(
+        "Some files were ignored due to type or size restrictions"
+      );
     }
 
     if (validFiles.length > 0) {
       const newFiles: UploadFile[] = validFiles.map((file, index) => ({
         uid: `${Date.now()}-${index}`,
         name: file.name,
-        status: 'done' as const,
+        status: "done" as const,
         size: file.size,
         type: file.type,
         originFileObj: file as any, // Cast to RcFile equivalent
@@ -98,19 +100,19 @@ const ResumeUploader: React.FC<ResumeUploaderProps> = ({
   };
 
   const getFileIcon = (fileName: string) => {
-    const ext = fileName.split('.').pop()?.toLowerCase();
+    const ext = fileName.split(".").pop()?.toLowerCase();
     switch (ext) {
-      case 'pdf':
-        return '📄';
-      case 'doc':
-      case 'docx':
-        return '📝';
-      case 'txt':
-        return '📃';
-      case 'rtf':
-        return '📄';
+      case "pdf":
+        return "📄";
+      case "doc":
+      case "docx":
+        return "📝";
+      case "txt":
+        return "📃";
+      case "rtf":
+        return "📄";
       default:
-        return '📄';
+        return "📄";
     }
   };
 
@@ -119,18 +121,24 @@ const ResumeUploader: React.FC<ResumeUploaderProps> = ({
       <Upload.Dragger
         {...uploadProps}
         style={{
-          background: uploading ? '#f5f5f5' : '#fafafa',
-          borderColor: uploading ? '#d9d9d9' : '#d9d9d9',
+          background: uploading ? "#f5f5f5" : "#fafafa",
+          borderColor: uploading ? "#d9d9d9" : "#d9d9d9",
         }}
         onDrop={handleDrop}
       >
         <p className="ant-upload-drag-icon">
           {uploading ? <CloudUploadOutlined spin /> : <UploadOutlined />}
         </p>
-        <p className="ant-upload-text" style={{ fontSize: '16px', fontWeight: 500 }}>
-          {uploading ? 'Uploading files...' : 'Click or drag resume files here'}
+        <p
+          className="ant-upload-text"
+          style={{ fontSize: "16px", fontWeight: 500 }}
+        >
+          {uploading ? "Uploading files..." : "Click or drag resume files here"}
         </p>
-        <p className="ant-upload-hint" style={{ fontSize: '14px', color: '#666' }}>
+        <p
+          className="ant-upload-hint"
+          style={{ fontSize: "14px", color: "#666" }}
+        >
           Supports PDF, DOC, DOCX, RTF, TXT files up to 10MB each
           <br />
           Maximum {maxCount} files
@@ -139,52 +147,69 @@ const ResumeUploader: React.FC<ResumeUploaderProps> = ({
 
       {fileList.length > 0 && (
         <div style={{ marginTop: 16 }}>
-          <div style={{ 
-            background: '#f0f8ff', 
-            border: '1px solid #b3d8ff', 
-            borderRadius: 6, 
-            padding: 12,
-            marginBottom: 12 
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ color: '#1890ff', fontWeight: 500 }}>
-                📁 {fileList.length} file{fileList.length > 1 ? 's' : ''} ready for upload
+          <div
+            style={{
+              background: "#f0f8ff",
+              border: "1px solid #b3d8ff",
+              borderRadius: 6,
+              padding: 12,
+              marginBottom: 12,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <span style={{ color: "#1890ff", fontWeight: 500 }}>
+                📁 {fileList.length} file{fileList.length > 1 ? "s" : ""} ready
+                for upload
               </span>
-              <span style={{ color: '#666', fontSize: '12px' }}>
-                Total: {(fileList.reduce((sum, file) => sum + (file.size || 0), 0) / 1024 / 1024).toFixed(1)}MB
+              <span style={{ color: "#666", fontSize: "12px" }}>
+                Total:{" "}
+                {(
+                  fileList.reduce((sum, file) => sum + (file.size || 0), 0) /
+                  1024 /
+                  1024
+                ).toFixed(1)}
+                MB
               </span>
             </div>
           </div>
 
-          <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+          <div style={{ maxHeight: 200, overflowY: "auto" }}>
             {fileList.map((file) => (
               <div
                 key={file.uid}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '8px 12px',
-                  border: '1px solid #f0f0f0',
+                  display: "flex",
+                  alignItems: "center",
+                  padding: "8px 12px",
+                  border: "1px solid #f0f0f0",
                   borderRadius: 4,
                   marginBottom: 4,
-                  background: '#fafafa',
+                  background: "#fafafa",
                 }}
               >
-                <span style={{ fontSize: '18px', marginRight: 8 }}>
+                <span style={{ fontSize: "18px", marginRight: 8 }}>
                   {getFileIcon(file.name)}
                 </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ 
-                    fontSize: '14px', 
-                    fontWeight: 500, 
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                  }}>
+                  <div
+                    style={{
+                      fontSize: "14px",
+                      fontWeight: 500,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
                     {file.name}
                   </div>
                   {file.size && (
-                    <div style={{ fontSize: '12px', color: '#666' }}>
+                    <div style={{ fontSize: "12px", color: "#666" }}>
                       {(file.size / 1024 / 1024).toFixed(1)}MB
                     </div>
                   )}
@@ -195,7 +220,9 @@ const ResumeUploader: React.FC<ResumeUploaderProps> = ({
                     size="small"
                     danger
                     onClick={() => {
-                      const newFileList = fileList.filter((item) => item.uid !== file.uid);
+                      const newFileList = fileList.filter(
+                        (item) => item.uid !== file.uid
+                      );
                       onChange(newFileList);
                     }}
                   >
@@ -207,7 +234,7 @@ const ResumeUploader: React.FC<ResumeUploaderProps> = ({
           </div>
 
           {onAnalyze && fileList.length > 0 && (
-            <div style={{ marginTop: 16, textAlign: 'center' }}>
+            <div style={{ marginTop: 16, textAlign: "center" }}>
               <Button
                 type="primary"
                 size="large"
@@ -217,7 +244,11 @@ const ResumeUploader: React.FC<ResumeUploaderProps> = ({
                 disabled={disabled}
                 style={{ minWidth: 200 }}
               >
-                {uploading ? 'Uploading & Analyzing...' : `Upload & Analyze ${fileList.length} Resume${fileList.length > 1 ? 's' : ''}`}
+                {uploading
+                  ? "Uploading & Analyzing..."
+                  : `Upload & Analyze ${fileList.length} Resume${
+                      fileList.length > 1 ? "s" : ""
+                    }`}
               </Button>
             </div>
           )}
@@ -231,11 +262,11 @@ const ResumeUploader: React.FC<ResumeUploaderProps> = ({
             status="active"
             showInfo={false}
             strokeColor={{
-              '0%': '#108ee9',
-              '100%': '#87d068',
+              "0%": "#108ee9",
+              "100%": "#87d068",
             }}
           />
-          <div style={{ textAlign: 'center', marginTop: 8, color: '#1890ff' }}>
+          <div style={{ textAlign: "center", marginTop: 8, color: "#1890ff" }}>
             📤 Uploading to secure S3 storage and analyzing with AI...
           </div>
         </div>

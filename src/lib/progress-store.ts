@@ -30,7 +30,11 @@ export const getGlobalProgressStore = (): Map<string, ProgressData> => {
   return global.progressStore;
 };
 
-export function updateProgress(userId: number, jobId: string, update: Partial<ProgressData>) {
+export function updateProgress(
+  userId: number,
+  jobId: string,
+  update: Partial<ProgressData>
+) {
   const progressKey = `${userId}-${jobId}`;
   const store = getGlobalProgressStore();
   const existing = store.get(progressKey) || {
@@ -38,31 +42,31 @@ export function updateProgress(userId: number, jobId: string, update: Partial<Pr
     currentBatch: 0,
     totalBatches: 0,
     isComplete: false,
-    timestamp: Date.now()
+    timestamp: Date.now(),
   };
-  
+
   const updated = {
     ...existing,
     ...update,
-    timestamp: Date.now()
+    timestamp: Date.now(),
   };
-  
+
   store.set(progressKey, updated);
-  console.log('🔄 Updating progress for key:', progressKey, update);
-  console.log('✅ Updated progress stored:', updated);
+  console.log("🔄 Updating progress for key:", progressKey, update);
+  console.log("✅ Updated progress stored:", updated);
 }
 
 export function getProgress(userId: string, jobId: string): ProgressData {
   const progressKey = `${userId}-${jobId}`;
   const store = getGlobalProgressStore();
-  
-  console.log('🔍 Getting progress for key:', progressKey);
-  console.log('📊 Progress store has keys:', Array.from(store.keys()));
-  
+
+  console.log("🔍 Getting progress for key:", progressKey);
+  console.log("📊 Progress store has keys:", Array.from(store.keys()));
+
   const progress = store.get(progressKey);
-  
+
   if (!progress) {
-    console.log('📊 No progress found, returning default');
+    console.log("📊 No progress found, returning default");
     return {
       percentage: 0,
       currentBatch: 0,
@@ -73,10 +77,10 @@ export function getProgress(userId: string, jobId: string): ProgressData {
       processed: 0,
       successful: 0,
       failed: 0,
-      total: 0
+      total: 0,
     };
   }
-  
-  console.log('📈 Returning progress:', progress);
+
+  console.log("📈 Returning progress:", progress);
   return progress;
 }

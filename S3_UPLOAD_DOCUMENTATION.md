@@ -12,6 +12,7 @@ The system now supports both URL-based and file upload-based resume analysis:
 ## Architecture
 
 ### S3 Service (`src/lib/s3-service.ts`)
+
 - Handles all S3 operations (upload, delete, list, metadata)
 - Implements organized file structure: `synchro-hire/cv-sorting/{jobId}/{resumeId}.{extension}`
 - Supports multiple file formats: PDF, DOC, DOCX, RTF, TXT
@@ -20,27 +21,32 @@ The system now supports both URL-based and file upload-based resume analysis:
 ### API Endpoints
 
 #### `/api/jobs/[jobId]/upload-resumes.ts`
+
 - Handles file upload to S3 only
 - Returns S3 URLs for uploaded files
 - Supports bulk upload (up to 20 files)
 
 #### `/api/jobs/[jobId]/upload-and-analyze.ts`
+
 - Complete workflow: Upload → Store in S3 → Analyze with AI → Save to database
 - One-step process for seamless user experience
 
 #### Updated `/api/jobs/[jobId]/resumes.ts`
+
 - Enhanced to support both URL and uploaded file analysis
 - Accepts `resume_paths` (URLs) or `uploaded_files` (S3 URLs) in request body
 
 ### Frontend Components
 
 #### `ResumeUploader` Component (`src/components/ResumeUploader.tsx`)
+
 - Modern drag-and-drop interface
 - File validation (type, size)
 - Real-time upload progress
 - Bulk file handling with preview
 
 #### Enhanced CV Sorting Page
+
 - Tabbed interface for URL vs File upload
 - Integrated progress indicators
 - Detailed success/failure reporting
@@ -48,6 +54,7 @@ The system now supports both URL-based and file upload-based resume analysis:
 ## File Structure
 
 Files are organized in S3 with the following pattern:
+
 ```
 synchro-cv/
 └── synchro-hire/
@@ -61,6 +68,7 @@ synchro-cv/
 ## Configuration
 
 ### Environment Variables
+
 ```env
 AWS_ACCESS_KEY_ID=your_access_key_here
 AWS_SECRET_ACCESS_KEY=your_secret_key_here
@@ -69,6 +77,7 @@ S3_BUCKET_NAME=synchro-cv
 ```
 
 ### S3 Bucket Configuration
+
 - **Bucket Name**: `synchro-cv`
 - **Region**: `eu-north-1` (Europe - Stockholm)
 - **Access**: Private storage with presigned URLs for access
@@ -77,6 +86,7 @@ S3_BUCKET_NAME=synchro-cv
 ## Features
 
 ### File Upload
+
 - ✅ Drag and drop interface
 - ✅ Multiple file selection (up to 20 files)
 - ✅ File type validation (PDF, DOC, DOCX, RTF, TXT)
@@ -85,6 +95,7 @@ S3_BUCKET_NAME=synchro-cv
 - ✅ Bulk upload with individual file status
 
 ### Security
+
 - ✅ Organized file structure prevents conflicts
 - ✅ Unique resume IDs for each file
 - ✅ AWS IAM-based access control
@@ -92,12 +103,14 @@ S3_BUCKET_NAME=synchro-cv
 - ✅ User authentication required for all operations
 
 ### Error Handling
+
 - ✅ Detailed error messages for failed uploads
 - ✅ Partial success handling (some files succeed, others fail)
 - ✅ Network error recovery
 - ✅ File validation errors
 
 ### User Experience
+
 - ✅ Progressive loading states
 - ✅ Clear success/failure indicators
 - ✅ File preview before upload
@@ -109,6 +122,7 @@ S3_BUCKET_NAME=synchro-cv
 ### For Users
 
 1. **URL Analysis** (existing):
+
    - Navigate to job's CV sorting page
    - Click "Analyze New Resumes"
    - Select "Upload by URLs" tab
@@ -126,24 +140,26 @@ S3_BUCKET_NAME=synchro-cv
 ### For Developers
 
 #### Upload Only
+
 ```typescript
 const formData = new FormData();
-files.forEach(file => formData.append('resumes', file));
+files.forEach((file) => formData.append("resumes", file));
 
 const response = await fetch(`/api/jobs/${jobId}/upload-resumes`, {
-  method: 'POST',
+  method: "POST",
   headers: { Authorization: `Bearer ${token}` },
   body: formData,
 });
 ```
 
 #### Upload and Analyze
+
 ```typescript
 const formData = new FormData();
-files.forEach(file => formData.append('resumes', file));
+files.forEach((file) => formData.append("resumes", file));
 
 const response = await fetch(`/api/jobs/${jobId}/upload-and-analyze`, {
-  method: 'POST',
+  method: "POST",
   headers: { Authorization: `Bearer ${token}` },
   body: formData,
 });
@@ -154,16 +170,19 @@ const response = await fetch(`/api/jobs/${jobId}/upload-and-analyze`, {
 The system provides comprehensive error handling:
 
 ### File Validation Errors
+
 - Invalid file type
 - File too large (>10MB)
 - Too many files (>20)
 
 ### Upload Errors
+
 - Network connectivity issues
 - S3 access errors
 - Quota exceeded
 
 ### Analysis Errors
+
 - AI service unavailable
 - Invalid file content
 - Database save errors
@@ -195,11 +214,13 @@ The system provides comprehensive error handling:
 ## Dependencies
 
 ### Backend
+
 - `aws-sdk`: AWS S3 integration
 - `multer`: File upload handling
 - `@types/multer`: TypeScript support
 
 ### Frontend
+
 - `antd`: UI components
 - Enhanced upload components
 - Progress indicators
@@ -207,6 +228,7 @@ The system provides comprehensive error handling:
 ## Testing
 
 ### Manual Testing Checklist
+
 - [ ] Single file upload (PDF)
 - [ ] Multiple file upload (mixed types)
 - [ ] File size validation (>10MB)
@@ -217,6 +239,7 @@ The system provides comprehensive error handling:
 - [ ] Database persistence
 
 ### Automated Testing
+
 - Unit tests for S3Service
 - Integration tests for upload APIs
 - E2E tests for upload workflow
@@ -224,6 +247,7 @@ The system provides comprehensive error handling:
 ## Monitoring
 
 ### Metrics to Track
+
 - Upload success/failure rates
 - File size distribution
 - Analysis processing times
@@ -231,6 +255,7 @@ The system provides comprehensive error handling:
 - User adoption of file upload vs URL
 
 ### Logs
+
 - Upload attempts and results
 - S3 operations
 - Analysis pipeline status
@@ -239,6 +264,7 @@ The system provides comprehensive error handling:
 ## Support
 
 For issues related to:
+
 - **S3 Configuration**: Check AWS credentials and bucket permissions
 - **File Upload Errors**: Verify file types and sizes
 - **Analysis Failures**: Check AI service status and file content

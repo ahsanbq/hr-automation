@@ -44,17 +44,21 @@ export default async function handler(
 
   // Support both URL-based and file upload analysis
   let pathsToAnalyze: string[] = [];
-  
+
   if (resume_paths && Array.isArray(resume_paths) && resume_paths.length > 0) {
     pathsToAnalyze = resume_paths;
-  } else if (uploaded_files && Array.isArray(uploaded_files) && uploaded_files.length > 0) {
+  } else if (
+    uploaded_files &&
+    Array.isArray(uploaded_files) &&
+    uploaded_files.length > 0
+  ) {
     // Extract S3 URLs from uploaded files
     pathsToAnalyze = uploaded_files.map((file: any) => file.s3Url);
   }
 
   if (pathsToAnalyze.length === 0) {
-    return res.status(400).json({ 
-      error: "Either resume_paths array or uploaded_files array is required" 
+    return res.status(400).json({
+      error: "Either resume_paths array or uploaded_files array is required",
     });
   }
 
@@ -76,7 +80,7 @@ export default async function handler(
       totalBatches: Math.ceil(pathsToAnalyze.length / batch_size),
       isComplete: false,
       currentFile: null,
-      percentage: 0
+      percentage: 0,
     });
 
     // Convert JobPost to format expected by external AI API
@@ -88,7 +92,9 @@ export default async function handler(
       batches.push(pathsToAnalyze.slice(i, i + batch_size));
     }
 
-    console.log(`🔄 Processing ${pathsToAnalyze.length} resumes in ${batches.length} batches of ${batch_size}`);
+    console.log(
+      `🔄 Processing ${pathsToAnalyze.length} resumes in ${batches.length} batches of ${batch_size}`
+    );
 
     const savedResumes = [];
     const failedResumes = [];
@@ -97,13 +103,17 @@ export default async function handler(
     // Process each batch sequentially
     for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
       const batch = batches[batchIndex];
-      
-      console.log(`📦 Processing batch ${batchIndex + 1}/${batches.length} (${batch.length} resumes)`);
+
+      console.log(
+        `📦 Processing batch ${batchIndex + 1}/${batches.length} (${
+          batch.length
+        } resumes)`
+      );
 
       // Update progress for current batch
       updateProgress(user.userId, jobIdString, {
         currentBatch: batchIndex + 1,
-        currentFile: `Processing batch ${batchIndex + 1}/${batches.length}...`
+        currentFile: `Processing batch ${batchIndex + 1}/${batches.length}...`,
       });
 
       try {
@@ -116,13 +126,17 @@ export default async function handler(
         // Process the batch response
         for (const analysis of batchAnalysisResponse.analyses) {
           processedCount++;
-          const currentPercentage = Math.round((processedCount / pathsToAnalyze.length) * 100);
+          const currentPercentage = Math.round(
+            (processedCount / pathsToAnalyze.length) * 100
+          );
 
           // Update current file being processed
           updateProgress(user.userId, jobIdString, {
             processed: processedCount,
             percentage: currentPercentage,
-            currentFile: analysis.resume_path.split('/').pop()?.split('?')[0] || 'Unknown file'
+            currentFile:
+              analysis.resume_path.split("/").pop()?.split("?")[0] ||
+              "Unknown file",
           });
 
           if (analysis.success) {
@@ -158,25 +172,31 @@ export default async function handler(
                 },
               });
               savedResumes.push(resume);
-              
+
               // Update progress with success
               updateProgress(user.userId, jobIdString, {
                 successful: savedResumes.length,
-                percentage: currentPercentage
+                percentage: currentPercentage,
               });
-              
-              console.log(`✅ Saved resume ${processedCount}/${pathsToAnalyze.length}: ${analysis.candidate.name}`);
+
+              console.log(
+                `✅ Saved resume ${processedCount}/${pathsToAnalyze.length}: ${analysis.candidate.name}`
+              );
             } catch (dbError) {
               console.error("Database error saving resume:", dbError);
               failedResumes.push({
                 resume_path: analysis.resume_path,
-                error: "Database error: " + (dbError instanceof Error ? dbError.message : "Unknown error"),
+                error:
+                  "Database error: " +
+                  (dbError instanceof Error
+                    ? dbError.message
+                    : "Unknown error"),
               });
-              
+
               // Update progress with failure
               updateProgress(user.userId, jobIdString, {
                 failed: failedResumes.length,
-                percentage: currentPercentage
+                percentage: currentPercentage,
               });
             }
           } else {
@@ -184,44 +204,48 @@ export default async function handler(
               resume_path: analysis.resume_path,
               error: "Analysis failed",
             });
-            
+
             // Update progress with failure
             updateProgress(user.userId, jobIdString, {
               failed: failedResumes.length,
-              percentage: currentPercentage
+              percentage: currentPercentage,
             });
-            
-            console.log(`❌ Failed resume ${processedCount}/${pathsToAnalyze.length}: ${analysis.resume_path}`);
+
+            console.log(
+              `❌ Failed resume ${processedCount}/${pathsToAnalyze.length}: ${analysis.resume_path}`
+            );
           }
 
           // Small delay between each resume for smoother progress updates
-          await new Promise(resolve => setTimeout(resolve, 200));
+          await new Promise((resolve) => setTimeout(resolve, 200));
         }
 
         // Add a small delay between batches to prevent overwhelming the external API
         if (batchIndex < batches.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
+          await new Promise((resolve) => setTimeout(resolve, 1000)); // 1 second delay
         }
-
       } catch (batchError) {
         console.error(`❌ Batch ${batchIndex + 1} failed:`, batchError);
         // Mark all resumes in this batch as failed
         for (const resumePath of batch) {
           failedResumes.push({
             resume_path: resumePath,
-            error: `Batch processing failed: ${batchError instanceof Error ? batchError.message : 'Unknown error'}`,
+            error: `Batch processing failed: ${
+              batchError instanceof Error ? batchError.message : "Unknown error"
+            }`,
           });
         }
         processedCount += batch.length;
-        
+
         // Update progress with batch failure
         updateProgress(user.userId, jobIdString, {
           processed: processedCount,
           failed: failedResumes.length,
-          errors: failedResumes.slice(-5).map(f => ({
-            file: f.resume_path.split('/').pop()?.split('?')[0] || 'Unknown file',
-            error: f.error
-          }))
+          errors: failedResumes.slice(-5).map((f) => ({
+            file:
+              f.resume_path.split("/").pop()?.split("?")[0] || "Unknown file",
+            error: f.error,
+          })),
         });
       }
     }
@@ -230,14 +254,18 @@ export default async function handler(
     updateProgress(user.userId, jobIdString, {
       isComplete: true,
       currentFile: null,
-      percentage: 100
+      percentage: 100,
     });
 
-    console.log(`🎉 Batch processing complete: ${savedResumes.length}/${pathsToAnalyze.length} successful`);
+    console.log(
+      `🎉 Batch processing complete: ${savedResumes.length}/${pathsToAnalyze.length} successful`
+    );
 
     return res.status(200).json({
       success: true,
-      message: `Batch processing complete: ${savedResumes.length} resumes analyzed and saved${
+      message: `Batch processing complete: ${
+        savedResumes.length
+      } resumes analyzed and saved${
         failedResumes.length > 0 ? `, ${failedResumes.length} failed` : ""
       }`,
       resumes: savedResumes,

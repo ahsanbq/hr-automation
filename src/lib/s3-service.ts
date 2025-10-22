@@ -1,13 +1,13 @@
-import AWS from 'aws-sdk';
+import AWS from "aws-sdk";
 
 // Configure AWS S3
 const s3 = new AWS.S3({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: process.env.AWS_REGION || 'eu-north-1',
+  region: process.env.AWS_REGION || "eu-north-1",
 });
 
-const BUCKET_NAME = process.env.S3_BUCKET_NAME || 'synchro-cv';
+const BUCKET_NAME = process.env.S3_BUCKET_NAME || "synchro-cv";
 
 export interface UploadResult {
   success: boolean;
@@ -33,11 +33,11 @@ export class S3Service {
   ): Promise<UploadResult> {
     try {
       // Get file extension
-      const fileExtension = fileName.split('.').pop()?.toLowerCase() || 'pdf';
-      
+      const fileExtension = fileName.split(".").pop()?.toLowerCase() || "pdf";
+
       // Create organized path: synchro-hire/cv-sorting/jobId/resumeId.extension
       const key = `synchro-hire/cv-sorting/${jobId}/${resumeId}.${fileExtension}`;
-      
+
       const uploadParams = {
         Bucket: BUCKET_NAME,
         Key: key,
@@ -46,20 +46,20 @@ export class S3Service {
       };
 
       const result = await s3.upload(uploadParams).promise();
-      
+
       // Generate a presigned URL for accessing the file (valid for 24 hours)
       const presignedUrl = await this.getPresignedUrl(result.Key, 24 * 60 * 60);
-      
+
       return {
         success: true,
         url: presignedUrl, // Use presigned URL instead of Location
         key: result.Key,
       };
     } catch (error) {
-      console.error('S3 Upload Error:', error);
+      console.error("S3 Upload Error:", error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown upload error',
+        error: error instanceof Error ? error.message : "Unknown upload error",
       };
     }
   }
@@ -86,19 +86,23 @@ export class S3Service {
    * @param key - S3 object key
    * @returns Deletion result
    */
-  static async deleteResume(key: string): Promise<{ success: boolean; error?: string }> {
+  static async deleteResume(
+    key: string
+  ): Promise<{ success: boolean; error?: string }> {
     try {
-      await s3.deleteObject({
-        Bucket: BUCKET_NAME,
-        Key: key,
-      }).promise();
+      await s3
+        .deleteObject({
+          Bucket: BUCKET_NAME,
+          Key: key,
+        })
+        .promise();
 
       return { success: true };
     } catch (error) {
-      console.error('S3 Delete Error:', error);
+      console.error("S3 Delete Error:", error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown delete error',
+        error: error instanceof Error ? error.message : "Unknown delete error",
       };
     }
   }
@@ -109,15 +113,18 @@ export class S3Service {
    * @param expiresIn - Expiration time in seconds (default: 1 hour)
    * @returns Presigned URL
    */
-  static async getPresignedUrl(key: string, expiresIn: number = 3600): Promise<string> {
+  static async getPresignedUrl(
+    key: string,
+    expiresIn: number = 3600
+  ): Promise<string> {
     try {
-      return s3.getSignedUrl('getObject', {
+      return s3.getSignedUrl("getObject", {
         Bucket: BUCKET_NAME,
         Key: key,
         Expires: expiresIn,
       });
     } catch (error) {
-      console.error('Presigned URL Error:', error);
+      console.error("Presigned URL Error:", error);
       throw error;
     }
   }
@@ -129,14 +136,14 @@ export class S3Service {
    */
   private static getContentType(extension: string): string {
     const contentTypes: { [key: string]: string } = {
-      pdf: 'application/pdf',
-      doc: 'application/msword',
-      docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      txt: 'text/plain',
-      rtf: 'application/rtf',
+      pdf: "application/pdf",
+      doc: "application/msword",
+      docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      txt: "text/plain",
+      rtf: "application/rtf",
     };
 
-    return contentTypes[extension] || 'application/octet-stream';
+    return contentTypes[extension] || "application/octet-stream";
   }
 
   /**
@@ -154,7 +161,7 @@ export class S3Service {
       const result = await s3.listObjectsV2(params).promise();
       return result.Contents || [];
     } catch (error) {
-      console.error('S3 List Error:', error);
+      console.error("S3 List Error:", error);
       return [];
     }
   }
@@ -164,14 +171,18 @@ export class S3Service {
    * @param key - S3 object key
    * @returns File metadata
    */
-  static async getFileMetadata(key: string): Promise<AWS.S3.HeadObjectOutput | null> {
+  static async getFileMetadata(
+    key: string
+  ): Promise<AWS.S3.HeadObjectOutput | null> {
     try {
-      return await s3.headObject({
-        Bucket: BUCKET_NAME,
-        Key: key,
-      }).promise();
+      return await s3
+        .headObject({
+          Bucket: BUCKET_NAME,
+          Key: key,
+        })
+        .promise();
     } catch (error) {
-      console.error('S3 Metadata Error:', error);
+      console.error("S3 Metadata Error:", error);
       return null;
     }
   }

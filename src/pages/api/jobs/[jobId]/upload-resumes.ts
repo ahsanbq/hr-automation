@@ -1,8 +1,8 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
-import multer from 'multer';
-import { S3Service } from '@/lib/s3-service';
-import { getUserFromRequest } from '@/lib/auth';
-import { prisma } from '@/lib/db';
+import type { NextApiRequest, NextApiResponse } from "next";
+import multer from "multer";
+import { S3Service } from "@/lib/s3-service";
+import { getUserFromRequest } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 
 // Configure multer for memory storage
 const upload = multer({
@@ -13,17 +13,21 @@ const upload = multer({
   fileFilter: (req, file, cb) => {
     // Accept only resume file types
     const allowedTypes = [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'text/plain',
-      'application/rtf',
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "text/plain",
+      "application/rtf",
     ];
-    
+
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only PDF, DOC, DOCX, TXT, and RTF files are allowed.'));
+      cb(
+        new Error(
+          "Invalid file type. Only PDF, DOC, DOCX, TXT, and RTF files are allowed."
+        )
+      );
     }
   },
 });
@@ -60,20 +64,23 @@ function runMiddleware(req: NextApiRequest, res: NextApiResponse, fn: any) {
   });
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
   // Authenticate user
   const user = getUserFromRequest(req);
   if (!user) {
-    return res.status(401).json({ error: 'Unauthorized' });
+    return res.status(401).json({ error: "Unauthorized" });
   }
 
   const { jobId } = req.query;
-  if (!jobId || typeof jobId !== 'string') {
-    return res.status(400).json({ error: 'Job ID is required' });
+  if (!jobId || typeof jobId !== "string") {
+    return res.status(400).json({ error: "Job ID is required" });
   }
 
   // Verify job exists and user has access
@@ -85,18 +92,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   });
 
   if (!jobPost) {
-    return res.status(404).json({ error: 'Job not found or access denied' });
+    return res.status(404).json({ error: "Job not found or access denied" });
   }
 
   try {
     // Run multer middleware
-    await runMiddleware(req, res, upload.array('resumes', 20)); // Max 20 files
+    await runMiddleware(req, res, upload.array("resumes", 20)); // Max 20 files
 
     const multerReq = req as MulterRequest;
     const files = multerReq.files;
 
     if (!files || files.length === 0) {
-      return res.status(400).json({ error: 'No files uploaded' });
+      return res.status(400).json({ error: "No files uploaded" });
     }
 
     console.log(`📁 Processing ${files.length} file(s) for job ${jobId}`);
@@ -108,8 +115,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       try {
         // Generate unique resume ID
         const resumeId = crypto.randomUUID();
-        
-        console.log(`⬆️ Uploading ${file.originalname} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+
+        console.log(
+          `⬆️ Uploading ${file.originalname} (${(
+            file.size /
+            1024 /
+            1024
+          ).toFixed(2)}MB)`
+        );
 
         // Upload to S3
         const uploadResult = await S3Service.uploadResume(
@@ -131,14 +144,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         } else {
           failedUploads.push({
             fileName: file.originalname,
-            error: uploadResult.error || 'Upload failed',
+            error: uploadResult.error || "Upload failed",
           });
         }
       } catch (error) {
         console.error(`❌ Error uploading ${file.originalname}:`, error);
         failedUploads.push({
           fileName: file.originalname,
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: error instanceof Error ? error.message : "Unknown error",
         });
       }
     }
@@ -151,7 +164,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       results: uploadResults,
       failures: failedUploads,
       message: `${uploadResults.length} file(s) uploaded successfully${
-        failedUploads.length > 0 ? `, ${failedUploads.length} failed` : ''
+        failedUploads.length > 0 ? `, ${failedUploads.length} failed` : ""
       }`,
     };
 
@@ -161,19 +174,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).json(response);
   } catch (error) {
-    console.error('❌ Upload API Error:', error);
-    
-    if (error instanceof Error && error.message.includes('Invalid file type')) {
+    console.error("❌ Upload API Error:", error);
+
+    if (error instanceof Error && error.message.includes("Invalid file type")) {
       return res.status(400).json({ error: error.message });
     }
-    
-    if (error instanceof Error && error.message.includes('File too large')) {
-      return res.status(400).json({ error: 'File size exceeds 10MB limit' });
+
+    if (error instanceof Error && error.message.includes("File too large")) {
+      return res.status(400).json({ error: "File size exceeds 10MB limit" });
     }
 
-    return res.status(500).json({ 
-      error: 'Internal server error during file upload',
-      details: error instanceof Error ? error.message : 'Unknown error'
+    return res.status(500).json({
+      error: "Internal server error during file upload",
+      details: error instanceof Error ? error.message : "Unknown error",
     });
   }
 }
