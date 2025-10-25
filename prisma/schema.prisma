@@ -71,6 +71,7 @@ model JobPost {
 model Resume {
   id                String    @id
   resumeUrl         String
+  s3Key             String?   // S3 object key for generating fresh presigned URLs
   matchScore        Float?
   createdAt         DateTime  @default(now())
   jobPostId         String

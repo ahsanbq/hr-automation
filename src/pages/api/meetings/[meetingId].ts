@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
+import { getUserFromRequest } from "@/lib/auth";
 
 const prisma = new PrismaClient();
 
@@ -28,8 +29,25 @@ export default async function handler(
 
   if (req.method === "GET") {
     try {
-      const meeting = await prisma.meetings.findUnique({
-        where: { id: meetingId },
+      // Get current user and verify authentication
+      const user = getUserFromRequest(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      if (!user.companyId) {
+        return res
+          .status(403)
+          .json({ error: "User must be associated with a company" });
+      }
+
+      const meeting = await prisma.meetings.findFirst({
+        where: {
+          id: meetingId,
+          JobPost: {
+            companyId: user.companyId, // Ensure meeting belongs to user's company
+          },
+        },
         include: {
           Resume: {
             select: {
@@ -73,6 +91,18 @@ export default async function handler(
 
   if (req.method === "PUT") {
     try {
+      // Get current user and verify authentication
+      const user = getUserFromRequest(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      if (!user.companyId) {
+        return res
+          .status(403)
+          .json({ error: "User must be associated with a company" });
+      }
+
       // Validate request body
       const validatedData = updateMeetingSchema.parse(req.body);
       const {
@@ -87,6 +117,22 @@ export default async function handler(
       } = validatedData;
 
       console.log("Updating meeting:", meetingId, validatedData);
+
+      // First verify the meeting belongs to the user's company
+      const existingMeeting = await prisma.meetings.findFirst({
+        where: {
+          id: meetingId,
+          JobPost: {
+            companyId: user.companyId,
+          },
+        },
+      });
+
+      if (!existingMeeting) {
+        return res
+          .status(404)
+          .json({ error: "Meeting not found or access denied" });
+      }
 
       const updatedMeeting = await prisma.meetings.update({
         where: { id: meetingId },
@@ -149,6 +195,34 @@ export default async function handler(
 
   if (req.method === "DELETE") {
     try {
+      // Get current user and verify authentication
+      const user = getUserFromRequest(req);
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      if (!user.companyId) {
+        return res
+          .status(403)
+          .json({ error: "User must be associated with a company" });
+      }
+
+      // First verify the meeting belongs to the user's company
+      const existingMeeting = await prisma.meetings.findFirst({
+        where: {
+          id: meetingId,
+          JobPost: {
+            companyId: user.companyId,
+          },
+        },
+      });
+
+      if (!existingMeeting) {
+        return res
+          .status(404)
+          .json({ error: "Meeting not found or access denied" });
+      }
+
       await prisma.meetings.delete({
         where: { id: meetingId },
       });

@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/db";
+import { getUserFromRequest } from "@/lib/auth";
 
 // Simple in-memory cache with 5-minute TTL
 const cache = new Map();
@@ -14,8 +15,19 @@ export default async function handler(
   }
 
   try {
-    // Get current user's company ID from JWT token (for now using default)
-    const companyId = 1; // TODO: Extract from JWT token
+    // Get current user and company ID from JWT token
+    const user = getUserFromRequest(req);
+    if (!user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    if (!user.companyId) {
+      return res
+        .status(403)
+        .json({ error: "User must be associated with a company" });
+    }
+
+    const companyId = user.companyId;
 
     // Check cache first
     const cacheKey = `analytics_${companyId}`;
@@ -207,34 +219,38 @@ export default async function handler(
       { status: "Published", count: Number(summary.total_interviews) || 0 },
     ];
 
-    // Calculate conversion rates
-    const totalResumes = Number(summary.total_resumes) || 0;
-    const totalInterviews = Number(summary.total_interviews) || 0;
-    const totalMeetings = Number(summary.total_meetings) || 0;
+    // Calculate dynamic conversion rates based on company data
+    const resumeCount = Number(summary.total_resumes) || 0;
+    const interviewCount = Number(summary.total_interviews) || 0;
+    const meetingCount = Number(summary.total_meetings) || 0;
 
-    const conversionRates = {
-      applicationToInterview:
-        totalResumes > 0 ? (totalInterviews / totalResumes) * 100 : 0,
-      interviewToMeeting:
-        totalInterviews > 0 ? (totalMeetings / totalInterviews) * 100 : 0,
-      interviewCompletion: 0, // Simplified for maximum speed
-    };
+    const applicationToInterview =
+      resumeCount > 0 ? (interviewCount / resumeCount) * 100 : 0;
+    const interviewToMeeting =
+      interviewCount > 0 ? (meetingCount / interviewCount) * 100 : 0;
+    const interviewCompletion =
+      interviewCount > 0
+        ? (recentInterviews.filter((i: any) => i.status === "COMPLETED")
+            .length /
+            interviewCount) *
+          100
+        : 0;
 
-    // Prepare response data with static values as requested
+    // Prepare response data with dynamic company-specific values
     const responseData = {
       summary: {
-        totalJobs: 12, // Static value as requested
-        totalResumes: 128, // Static value as requested
-        totalCandidates: 245, // Static value as requested
-        totalInterviews: 9, // Static value as requested
-        totalMeetings: 0, // Not specified, keeping 0
-        totalMCQTemplates: 34, // Static value as requested
-        avgMatchScore: 56, // Static value as requested
+        totalJobs: Number(summary.total_jobs) || 0,
+        totalResumes: resumeCount,
+        totalCandidates: resumeCount, // Same as resumes for now
+        totalInterviews: interviewCount,
+        totalMeetings: meetingCount,
+        totalMCQTemplates: Number(summary.total_mcq_templates) || 0,
+        avgMatchScore: Number(summary.avg_match_score) || 0,
         avgInterviewScore: Number(summary.avg_interview_score) || 0,
         conversionRates: {
-          applicationToInterview: 22.5, // Static value as requested
-          interviewToMeeting: 40, // Static value as requested
-          interviewCompletion: 0,
+          applicationToInterview: Math.round(applicationToInterview * 10) / 10,
+          interviewToMeeting: Math.round(interviewToMeeting * 10) / 10,
+          interviewCompletion: Math.round(interviewCompletion * 10) / 10,
         },
       },
       apiLogs: {

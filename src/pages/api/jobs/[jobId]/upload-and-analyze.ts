@@ -205,6 +205,7 @@ export default async function handler(
               id: uploadInfo?.resumeId || crypto.randomUUID(),
               // Map EXACT field names from AI response
               resumeUrl: analysis.resume_path,
+              s3Key: uploadInfo?.s3Key, // Store S3 key for generating fresh presigned URLs
               candidateName: analysis.candidate.name,
               candidateEmail: analysis.candidate.email,
               candidatePhone: analysis.candidate.phone,

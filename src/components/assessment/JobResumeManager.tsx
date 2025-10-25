@@ -543,10 +543,57 @@ export default function JobResumeManager({
                 type="text"
                 icon={<EyeOutlined />}
                 size="small"
-                onClick={() => {
-                  // Open resume in new tab
-                  if (record.resumeUrl) {
-                    window.open(record.resumeUrl, "_blank");
+                onClick={async () => {
+                  try {
+                    const token = localStorage.getItem("token");
+
+                    if (!token) {
+                      alert("Please log in to access CV files.");
+                      return;
+                    }
+
+                    const response = await fetch(
+                      `/api/resumes/${record.id}/presigned-url`,
+                      {
+                        headers: { Authorization: `Bearer ${token}` },
+                      }
+                    );
+
+                    if (response.ok) {
+                      const data = await response.json();
+                      window.open(
+                        data.presignedUrl,
+                        "_blank",
+                        "noopener,noreferrer"
+                      );
+                    } else if (response.status === 401) {
+                      alert("Please log in to access CV files.");
+                    } else if (response.status === 403) {
+                      alert("You don't have permission to access this CV.");
+                    } else {
+                      // Show specific error message
+                      const errorData = await response.json();
+                      console.error(
+                        "Failed to get fresh presigned URL:",
+                        errorData
+                      );
+
+                      if (errorData.error === "S3 configuration error") {
+                        alert(
+                          "CV access is temporarily unavailable due to server configuration. Please contact support."
+                        );
+                      } else {
+                        alert(
+                          "Unable to access CV. Please try again or contact support."
+                        );
+                      }
+                    }
+                  } catch (error) {
+                    console.error("Error getting fresh URL:", error);
+                    // Show error message instead of using expired URL
+                    alert(
+                      "Unable to access CV. Please try again or contact support."
+                    );
                   }
                 }}
               />

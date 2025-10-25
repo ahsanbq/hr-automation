@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 import { sendEmail } from "../../../lib/email";
+import { getUserFromRequest } from "@/lib/auth";
 
 const prisma = new PrismaClient();
 
@@ -25,6 +26,18 @@ export default async function handler(
   }
 
   try {
+    // Get current user and verify authentication
+    const user = getUserFromRequest(req);
+    if (!user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    if (!user.companyId) {
+      return res
+        .status(403)
+        .json({ error: "User must be associated with a company" });
+    }
+
     // Validate request body
     const validatedData = sendMeetingSchema.parse(req.body);
     const {
@@ -45,9 +58,12 @@ export default async function handler(
       meetingType,
     });
 
-    // Validate that jobId and resumeId exist in database
-    const jobExists = await prisma.jobPost.findUnique({
-      where: { id: jobId },
+    // Validate that jobId exists and belongs to user's company
+    const jobExists = await prisma.jobPost.findFirst({
+      where: {
+        id: jobId,
+        companyId: user.companyId, // Ensure job belongs to user's company
+      },
       select: { id: true, jobTitle: true, companyName: true },
     });
 

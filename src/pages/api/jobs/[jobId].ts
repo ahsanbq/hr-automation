@@ -50,7 +50,14 @@ async function handleGetJob(
       return res.status(404).json({ error: "Job not found" });
     }
 
-    return res.status(200).json({ job });
+    // Transform the job to match frontend expectations
+    const transformedJob = {
+      ...job,
+      createdBy: job.User, // Map User to createdBy
+      company: job.companyName, // Map companyName to company
+    };
+
+    return res.status(200).json({ job: transformedJob });
   } catch (error: any) {
     console.error("Error fetching job:", error);
     return res.status(500).json({ error: "Failed to fetch job" });

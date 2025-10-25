@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Layout, Menu, Button, Divider, Typography } from "antd";
+import { Layout, Menu, Button, Divider, Typography, Tooltip } from "antd";
 import { useRouter } from "next/router";
 import {
   PieChartOutlined,
@@ -16,6 +16,7 @@ import {
   MenuUnfoldOutlined,
   EditOutlined,
   RobotOutlined,
+  LockOutlined,
 } from "@ant-design/icons";
 
 const { Sider } = Layout;
@@ -97,11 +98,27 @@ export default function Sidebar({
       },
       {
         key: "/assessment/avatar",
-        icon: <RobotOutlined />,
+        icon: <LockOutlined style={{ color: "#999" }} />,
         label: (
-          <Link href="/assessment/avatar" className="manrope-medium">
-            AI Interviews
-          </Link>
+          <Tooltip
+            title="🚀 Coming Soon - AI Interview features are under development"
+            placement="right"
+            overlayStyle={{ fontSize: "12px" }}
+          >
+            <div
+              className="manrope-medium"
+              style={{
+                color: "#999",
+                cursor: "not-allowed",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              <RobotOutlined style={{ color: "#999" }} />
+              AI Interviews
+            </div>
+          </Tooltip>
         ),
       },
       {

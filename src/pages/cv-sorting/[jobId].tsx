@@ -81,19 +81,21 @@ export default function JobResumePage() {
   const [fileList, setFileList] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
-  const [uploadStep, setUploadStep] = useState<'select' | 'upload' | 'analyze'>('select');
-  
+  const [uploadStep, setUploadStep] = useState<"select" | "upload" | "analyze">(
+    "select"
+  );
+
   // Upload progress tracking states
   const [showUploadProgress, setShowUploadProgress] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({
     total: 0,
     uploaded: 0,
-    currentFile: '',
+    currentFile: "",
     percentage: 0,
     isComplete: false,
-    errors: [] as string[]
+    errors: [] as string[],
   });
-  
+
   // Analysis progress tracking states
   const [showProgress, setShowProgress] = useState(false);
   const [progress, setProgress] = useState({
@@ -104,10 +106,11 @@ export default function JobResumePage() {
     currentBatch: 0,
     totalBatches: 0,
     isComplete: false,
-    currentFile: '',
-    percentage: 0
+    currentFile: "",
+    percentage: 0,
   });
-  const [progressInterval, setProgressInterval] = useState<NodeJS.Timeout | null>(null);
+  const [progressInterval, setProgressInterval] =
+    useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (jobId) {
@@ -166,19 +169,19 @@ export default function JobResumePage() {
     }
 
     setUploading(true);
-    setUploadStep('upload');
+    setUploadStep("upload");
     setShowUploadProgress(true);
-    
+
     // Initialize upload progress
     setUploadProgress({
       total: fileList.length,
       uploaded: 0,
-      currentFile: '',
+      currentFile: "",
       percentage: 0,
       isComplete: false,
-      errors: []
+      errors: [],
     });
-    
+
     try {
       const token = localStorage.getItem("token");
       const uploadedResults = [];
@@ -187,18 +190,19 @@ export default function JobResumePage() {
       // Upload files one by one to track progress
       for (let i = 0; i < fileList.length; i++) {
         const file = fileList[i];
-        const fileName = file.name || file.originFileObj?.name || `File ${i + 1}`;
-        
+        const fileName =
+          file.name || file.originFileObj?.name || `File ${i + 1}`;
+
         // Update current file being uploaded
-        setUploadProgress(prev => ({
+        setUploadProgress((prev) => ({
           ...prev,
           currentFile: fileName,
-          percentage: Math.round((i / fileList.length) * 100)
+          percentage: Math.round((i / fileList.length) * 100),
         }));
 
         try {
           const formData = new FormData();
-          formData.append('resumes', file.originFileObj || file);
+          formData.append("resumes", file.originFileObj || file);
 
           const response = await fetch(`/api/jobs/${jobId}/upload-resumes`, {
             method: "POST",
@@ -212,14 +216,14 @@ export default function JobResumePage() {
 
           if (response.ok && data.results && data.results.length > 0) {
             uploadedResults.push(...data.results);
-            
+
             // Update progress for successful upload
-            setUploadProgress(prev => ({
+            setUploadProgress((prev) => ({
               ...prev,
               uploaded: i + 1,
-              percentage: Math.round(((i + 1) / fileList.length) * 100)
+              percentage: Math.round(((i + 1) / fileList.length) * 100),
             }));
-            
+
             console.log(`✅ Uploaded ${i + 1}/${fileList.length}: ${fileName}`);
           } else {
             const errorMsg = data.error || "Unknown upload error";
@@ -227,30 +231,33 @@ export default function JobResumePage() {
             console.error(`❌ Failed to upload ${fileName}:`, errorMsg);
           }
         } catch (uploadError) {
-          const errorMsg = uploadError instanceof Error ? uploadError.message : "Network error";
+          const errorMsg =
+            uploadError instanceof Error
+              ? uploadError.message
+              : "Network error";
           errors.push(`${fileName}: ${errorMsg}`);
           console.error(`❌ Upload error for ${fileName}:`, uploadError);
         }
 
         // Small delay between uploads to prevent overwhelming the server
         if (i < fileList.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise((resolve) => setTimeout(resolve, 500));
         }
       }
 
       // Mark upload as complete
-      setUploadProgress(prev => ({
+      setUploadProgress((prev) => ({
         ...prev,
         isComplete: true,
         percentage: 100,
-        currentFile: '',
-        errors
+        currentFile: "",
+        errors,
       }));
 
       if (uploadedResults.length > 0) {
         setUploadedFiles(uploadedResults);
-        setUploadStep('analyze');
-        
+        setUploadStep("analyze");
+
         // Show completion message after a short delay
         setTimeout(() => {
           setShowUploadProgress(false);
@@ -265,7 +272,7 @@ export default function JobResumePage() {
           }
         }, 1500);
       } else {
-        setUploadStep('select');
+        setUploadStep("select");
         setTimeout(() => {
           setShowUploadProgress(false);
           message.error("All uploads failed. Please try again.");
@@ -273,7 +280,7 @@ export default function JobResumePage() {
       }
     } catch (error) {
       console.error("Error during upload process:", error);
-      setUploadStep('select');
+      setUploadStep("select");
       setTimeout(() => {
         setShowUploadProgress(false);
         message.error("Upload process failed. Please try again.");
@@ -285,46 +292,49 @@ export default function JobResumePage() {
 
   const startProgressPolling = () => {
     if (progressInterval) clearInterval(progressInterval);
-    
+
     const interval = setInterval(async () => {
       try {
         const token = localStorage.getItem("token");
-        
+
         // Decode userId from token
         let userId = null;
         if (token) {
           try {
-            const payload = JSON.parse(atob(token.split('.')[1]));
+            const payload = JSON.parse(atob(token.split(".")[1]));
             userId = payload.userId;
           } catch (e) {
             console.error("Error decoding token:", e);
           }
         }
-        
+
         if (!userId) {
           console.error("No userId found in token");
           return;
         }
-        
+
         // Add timestamp to prevent caching
         const timestamp = Date.now();
-        const response = await fetch(`/api/jobs/${jobId}/progress?t=${timestamp}&userId=${userId}`, {
-          headers: { 
-            Authorization: `Bearer ${token}`,
-            'Cache-Control': 'no-cache'
-          },
-        });
-        
-        console.log('📊 Progress API response:', response.status);
-        
+        const response = await fetch(
+          `/api/jobs/${jobId}/progress?t=${timestamp}&userId=${userId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Cache-Control": "no-cache",
+            },
+          }
+        );
+
+        console.log("📊 Progress API response:", response.status);
+
         if (response.ok) {
           const data = await response.json();
-          console.log('📊 Progress data received:', data);
-          
+          console.log("📊 Progress data received:", data);
+
           // Check if progress was found
           if (data.found) {
             setProgress(data);
-            
+
             // Stop polling when complete
             if (data.isComplete) {
               console.log("🎉 Analysis complete, stopping polling");
@@ -335,18 +345,22 @@ export default function JobResumePage() {
                 setShowProgress(false);
                 setAnalyzing(false);
                 fetchJobAndResumes(); // Refresh the resume list
-                message.success(`Analysis complete! ${data.successful || 0} resumes processed successfully.`);
+                message.success(
+                  `Analysis complete! ${
+                    data.successful || 0
+                  } resumes processed successfully.`
+                );
               }, 2000);
             }
           } else {
-            console.log('📊 No progress found for this job/user combination');
+            console.log("📊 No progress found for this job/user combination");
           }
         }
       } catch (error) {
         console.error("Error polling progress:", error);
       }
     }, 1000); // Poll every second
-    
+
     setProgressInterval(interval);
   };
 
@@ -372,10 +386,10 @@ export default function JobResumePage() {
     setAnalyzing(true);
     setShowProgress(true);
     startProgressPolling();
-    
+
     try {
       const token = localStorage.getItem("token");
-      
+
       const response = await fetch(`/api/jobs/${jobId}/batch-analyze`, {
         method: "POST",
         headers: {
@@ -418,7 +432,7 @@ export default function JobResumePage() {
     setAnalyzing(true);
     setShowProgress(true);
     startProgressPolling();
-    
+
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(`/api/jobs/${jobId}/batch-analyze`, {
@@ -493,7 +507,7 @@ export default function JobResumePage() {
       setFileList([]);
       setUrlFields([""]);
       setUploadedFiles([]);
-      setUploadStep('select');
+      setUploadStep("select");
       setShowProgress(false);
       setShowUploadProgress(false);
       stopProgressPolling();
@@ -501,10 +515,10 @@ export default function JobResumePage() {
       setUploadProgress({
         total: 0,
         uploaded: 0,
-        currentFile: '',
+        currentFile: "",
         percentage: 0,
         isComplete: false,
-        errors: []
+        errors: [],
       });
     }
   };
@@ -513,9 +527,9 @@ export default function JobResumePage() {
     if (activeUploadTab === "urls") {
       await handleAnalyzeUrls();
     } else {
-      if (uploadStep === 'select') {
+      if (uploadStep === "select") {
         await handleUploadFiles();
-      } else if (uploadStep === 'analyze') {
+      } else if (uploadStep === "analyze") {
         await handleAnalyzeUploadedFiles();
       }
     }
@@ -696,9 +710,59 @@ export default function JobResumePage() {
             type="default"
             size="small"
             icon={<FileTextOutlined />}
-            href={record.resumeUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+            onClick={async () => {
+              try {
+                const token = localStorage.getItem("token");
+
+                if (!token) {
+                  alert("Please log in to access CV files.");
+                  return;
+                }
+
+                const response = await fetch(
+                  `/api/resumes/${record.id}/presigned-url`,
+                  {
+                    headers: { Authorization: `Bearer ${token}` },
+                  }
+                );
+
+                if (response.ok) {
+                  const data = await response.json();
+                  window.open(
+                    data.presignedUrl,
+                    "_blank",
+                    "noopener,noreferrer"
+                  );
+                } else if (response.status === 401) {
+                  alert("Please log in to access CV files.");
+                } else if (response.status === 403) {
+                  alert("You don't have permission to access this CV.");
+                } else {
+                  // Show specific error message
+                  const errorData = await response.json();
+                  console.error(
+                    "Failed to get fresh presigned URL:",
+                    errorData
+                  );
+
+                  if (errorData.error === "S3 configuration error") {
+                    alert(
+                      "CV access is temporarily unavailable due to server configuration. Please contact support."
+                    );
+                  } else {
+                    alert(
+                      "Unable to access CV. Please try again or contact support."
+                    );
+                  }
+                }
+              } catch (error) {
+                console.error("Error getting fresh URL:", error);
+                // Show error message instead of using expired URL
+                alert(
+                  "Unable to access CV. Please try again or contact support."
+                );
+              }
+            }}
             style={{ fontSize: "11px", height: "24px" }}
           >
             CV
@@ -884,8 +948,8 @@ export default function JobResumePage() {
                 </div>
 
                 {/* Progress Bar */}
-                <RealTimeProgressModal 
-                  progress={progress} 
+                <RealTimeProgressModal
+                  progress={progress}
                   visible={showProgress}
                   onCancel={() => setShowProgress(false)}
                 />
@@ -1196,37 +1260,35 @@ export default function JobResumePage() {
             open={uploadModalVisible}
             onCancel={handleCloseModal}
             onOk={undefined}
-            footer={
-              [
-                <Button 
-                  key="cancel" 
-                  onClick={handleCloseModal}
-                  disabled={analyzing || uploading}
-                >
-                  Cancel
-                </Button>,
-                <Button
-                  key="submit"
-                  type="primary"
-                  loading={analyzing || uploading}
-                  onClick={handleAnalyzeResumes}
-                  disabled={
-                    activeUploadTab === "urls" 
-                      ? urlFields.every(u => !u.trim()) 
-                      : (uploadStep === 'select' && fileList.length === 0) || (uploadStep === 'analyze' && uploadedFiles.length === 0)
-                  }
-                >
-                  {activeUploadTab === "urls" 
-                    ? "Analyze URLs"
-                    : uploadStep === 'select' 
-                      ? "Upload Files" 
-                      : uploadStep === 'upload'
-                        ? "Uploading..."
-                        : "Analyze CVs"
-                  }
-                </Button>
-              ]
-            }
+            footer={[
+              <Button
+                key="cancel"
+                onClick={handleCloseModal}
+                disabled={analyzing || uploading}
+              >
+                Cancel
+              </Button>,
+              <Button
+                key="submit"
+                type="primary"
+                loading={analyzing || uploading}
+                onClick={handleAnalyzeResumes}
+                disabled={
+                  activeUploadTab === "urls"
+                    ? urlFields.every((u) => !u.trim())
+                    : (uploadStep === "select" && fileList.length === 0) ||
+                      (uploadStep === "analyze" && uploadedFiles.length === 0)
+                }
+              >
+                {activeUploadTab === "urls"
+                  ? "Analyze URLs"
+                  : uploadStep === "select"
+                  ? "Upload Files"
+                  : uploadStep === "upload"
+                  ? "Uploading..."
+                  : "Analyze CVs"}
+              </Button>,
+            ]}
             confirmLoading={false}
             width={700}
             closable={!analyzing && !uploading}
@@ -1237,8 +1299,8 @@ export default function JobResumePage() {
               onChange={(k) => {
                 if (!analyzing && !uploading) {
                   setActiveUploadTab(k);
-                  if (k === 'files') {
-                    setUploadStep('select');
+                  if (k === "files") {
+                    setUploadStep("select");
                     setUploadedFiles([]);
                   }
                 }
@@ -1250,7 +1312,8 @@ export default function JobResumePage() {
                   children: (
                     <div>
                       <p style={{ color: "#666", marginBottom: 12 }}>
-                        Add one or more resume URLs. The AI will analyze these resumes against the job requirements.
+                        Add one or more resume URLs. The AI will analyze these
+                        resumes against the job requirements.
                       </p>
                       <Space direction="vertical" style={{ width: "100%" }}>
                         {urlFields.map((value, idx) => (
@@ -1274,7 +1337,7 @@ export default function JobResumePage() {
                             )}
                           </div>
                         ))}
-                        <Button 
+                        <Button
                           onClick={addUrlField}
                           disabled={analyzing}
                           type="dashed"
@@ -1292,58 +1355,113 @@ export default function JobResumePage() {
                     <div>
                       {/* Step Progress Indicator */}
                       <div style={{ marginBottom: 20 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
-                          <div style={{
-                            width: 24,
-                            height: 24,
-                            borderRadius: '50%',
-                            background: uploadStep === 'select' ? '#1890ff' : uploadStep === 'upload' || uploadStep === 'analyze' ? '#52c41a' : '#d9d9d9',
-                            color: 'white',
-                            fontSize: '12px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            marginRight: 8
-                          }}>
-                            {uploadStep === 'upload' && uploading ? '⏳' : '1'}
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            marginBottom: 12,
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: "50%",
+                              background:
+                                uploadStep === "select"
+                                  ? "#1890ff"
+                                  : uploadStep === "upload" ||
+                                    uploadStep === "analyze"
+                                  ? "#52c41a"
+                                  : "#d9d9d9",
+                              color: "white",
+                              fontSize: "12px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              marginRight: 8,
+                            }}
+                          >
+                            {uploadStep === "upload" && uploading ? "⏳" : "1"}
                           </div>
-                          <span style={{ 
-                            color: uploadStep === 'select' ? '#1890ff' : uploadStep === 'upload' || uploadStep === 'analyze' ? '#52c41a' : '#666',
-                            fontWeight: uploadStep === 'select' ? 'bold' : 'normal'
-                          }}>
+                          <span
+                            style={{
+                              color:
+                                uploadStep === "select"
+                                  ? "#1890ff"
+                                  : uploadStep === "upload" ||
+                                    uploadStep === "analyze"
+                                  ? "#52c41a"
+                                  : "#666",
+                              fontWeight:
+                                uploadStep === "select" ? "bold" : "normal",
+                            }}
+                          >
                             Select & Upload Files
                           </span>
-                          
-                          <div style={{ width: 40, height: 2, background: uploadStep === 'analyze' ? '#52c41a' : '#d9d9d9', margin: '0 8px' }} />
-                          
-                          <div style={{
-                            width: 24,
-                            height: 24,
-                            borderRadius: '50%',
-                            background: uploadStep === 'analyze' ? '#1890ff' : uploadedFiles.length > 0 ? '#52c41a' : '#d9d9d9',
-                            color: 'white',
-                            fontSize: '12px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            marginRight: 8
-                          }}>
-                            {uploadStep === 'analyze' && analyzing ? '🤖' : '2'}
+
+                          <div
+                            style={{
+                              width: 40,
+                              height: 2,
+                              background:
+                                uploadStep === "analyze"
+                                  ? "#52c41a"
+                                  : "#d9d9d9",
+                              margin: "0 8px",
+                            }}
+                          />
+
+                          <div
+                            style={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: "50%",
+                              background:
+                                uploadStep === "analyze"
+                                  ? "#1890ff"
+                                  : uploadedFiles.length > 0
+                                  ? "#52c41a"
+                                  : "#d9d9d9",
+                              color: "white",
+                              fontSize: "12px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              marginRight: 8,
+                            }}
+                          >
+                            {uploadStep === "analyze" && analyzing ? "🤖" : "2"}
                           </div>
-                          <span style={{ 
-                            color: uploadStep === 'analyze' ? '#1890ff' : uploadedFiles.length > 0 ? '#52c41a' : '#666',
-                            fontWeight: uploadStep === 'analyze' ? 'bold' : 'normal'
-                          }}>
+                          <span
+                            style={{
+                              color:
+                                uploadStep === "analyze"
+                                  ? "#1890ff"
+                                  : uploadedFiles.length > 0
+                                  ? "#52c41a"
+                                  : "#666",
+                              fontWeight:
+                                uploadStep === "analyze" ? "bold" : "normal",
+                            }}
+                          >
                             Analyze with AI
                           </span>
                         </div>
                       </div>
 
                       {/* Step 1: File Selection & Upload */}
-                      {uploadStep === 'select' && (
+                      {uploadStep === "select" && (
                         <div>
-                          <p style={{ color: "#666", marginBottom: 16, fontSize: "15px" }}>
-                            � <strong>Step 1:</strong> Select resume files to upload to secure S3 storage
+                          <p
+                            style={{
+                              color: "#666",
+                              marginBottom: 16,
+                              fontSize: "15px",
+                            }}
+                          >
+                            � <strong>Step 1:</strong> Select resume files to
+                            upload to secure S3 storage
                           </p>
                           <ResumeUploader
                             fileList={fileList}
@@ -1356,12 +1474,20 @@ export default function JobResumePage() {
                       )}
 
                       {/* Step 2: Upload Progress */}
-                      {uploadStep === 'upload' && (
-                        <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-                          <div style={{ fontSize: '48px', marginBottom: 16 }}>📤</div>
-                          <h3 style={{ color: '#1890ff', marginBottom: 8 }}>Uploading to S3...</h3>
-                          <p style={{ color: '#666' }}>
-                            Uploading {fileList.length} file{fileList.length > 1 ? 's' : ''} to secure cloud storage
+                      {uploadStep === "upload" && (
+                        <div
+                          style={{ textAlign: "center", padding: "40px 20px" }}
+                        >
+                          <div style={{ fontSize: "48px", marginBottom: 16 }}>
+                            📤
+                          </div>
+                          <h3 style={{ color: "#1890ff", marginBottom: 8 }}>
+                            Uploading to S3...
+                          </h3>
+                          <p style={{ color: "#666" }}>
+                            Uploading {fileList.length} file
+                            {fileList.length > 1 ? "s" : ""} to secure cloud
+                            storage
                           </p>
                           <div style={{ marginTop: 20 }}>
                             <Spin size="large" />
@@ -1369,29 +1495,47 @@ export default function JobResumePage() {
                         </div>
                       )}
 
-                      {uploadStep === 'analyze' && uploadedFiles.length > 0 && (
-                        <div style={{ padding: '20px' }}>
-                          <div style={{
-                            background: '#e6f7ff', 
-                            border: '1px solid #91d5ff',
-                            borderRadius: 6,
-                            padding: 16,
-                            marginBottom: 16
-                          }}>
-                            <p style={{ margin: 0, color: '#1890ff', fontSize: '14px' }}>
-                              🤖 <strong>Ready for AI Analysis:</strong> Click "Analyze CVs" to process these resumes against the job requirements using advanced AI.
+                      {uploadStep === "analyze" && uploadedFiles.length > 0 && (
+                        <div style={{ padding: "20px" }}>
+                          <div
+                            style={{
+                              background: "#e6f7ff",
+                              border: "1px solid #91d5ff",
+                              borderRadius: 6,
+                              padding: 16,
+                              marginBottom: 16,
+                            }}
+                          >
+                            <p
+                              style={{
+                                margin: 0,
+                                color: "#1890ff",
+                                fontSize: "14px",
+                              }}
+                            >
+                              🤖 <strong>Ready for AI Analysis:</strong> Click
+                              "Analyze CVs" to process these resumes against the
+                              job requirements using advanced AI.
                             </p>
                           </div>
                         </div>
                       )}
 
                       {/* Step 4: Analyzing */}
-                      {uploadStep === 'analyze' && analyzing && (
-                        <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-                          <div style={{ fontSize: '48px', marginBottom: 16 }}>🤖</div>
-                          <h3 style={{ color: '#1890ff', marginBottom: 8 }}>Analyzing with AI...</h3>
-                          <p style={{ color: '#666' }}>
-                            Processing {uploadedFiles.length} resume{uploadedFiles.length > 1 ? 's' : ''} against job requirements
+                      {uploadStep === "analyze" && analyzing && (
+                        <div
+                          style={{ textAlign: "center", padding: "40px 20px" }}
+                        >
+                          <div style={{ fontSize: "48px", marginBottom: 16 }}>
+                            🤖
+                          </div>
+                          <h3 style={{ color: "#1890ff", marginBottom: 8 }}>
+                            Analyzing with AI...
+                          </h3>
+                          <p style={{ color: "#666" }}>
+                            Processing {uploadedFiles.length} resume
+                            {uploadedFiles.length > 1 ? "s" : ""} against job
+                            requirements
                           </p>
                           <div style={{ marginTop: 20 }}>
                             <div className="ant-spin ant-spin-spinning">
@@ -1563,9 +1707,63 @@ export default function JobResumePage() {
                       <Button
                         type="primary"
                         icon={<FileTextOutlined />}
-                        href={selectedResume.resumeUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        onClick={async () => {
+                          try {
+                            const token = localStorage.getItem("token");
+
+                            if (!token) {
+                              alert("Please log in to access CV files.");
+                              return;
+                            }
+
+                            const response = await fetch(
+                              `/api/resumes/${selectedResume.id}/presigned-url`,
+                              {
+                                headers: { Authorization: `Bearer ${token}` },
+                              }
+                            );
+
+                            if (response.ok) {
+                              const data = await response.json();
+                              window.open(
+                                data.presignedUrl,
+                                "_blank",
+                                "noopener,noreferrer"
+                              );
+                            } else if (response.status === 401) {
+                              alert("Please log in to access CV files.");
+                            } else if (response.status === 403) {
+                              alert(
+                                "You don't have permission to access this CV."
+                              );
+                            } else {
+                              // Show specific error message
+                              const errorData = await response.json();
+                              console.error(
+                                "Failed to get fresh presigned URL:",
+                                errorData
+                              );
+
+                              if (
+                                errorData.error === "S3 configuration error"
+                              ) {
+                                alert(
+                                  "CV access is temporarily unavailable due to server configuration. Please contact support."
+                                );
+                              } else {
+                                alert(
+                                  "Unable to access CV. Please try again or contact support."
+                                );
+                              }
+                            }
+                          } catch (error) {
+                            console.error("Error getting fresh URL:", error);
+                            // Show error message instead of using expired URL
+                            alert(
+                              "Unable to access CV. Please try again or contact support."
+                            );
+                          }
+                        }}
                         block
                         size="large"
                       >
@@ -1579,19 +1777,18 @@ export default function JobResumePage() {
           </Drawer>
 
           {/* Upload Progress Modal */}
-          <UploadProgressModal 
+          <UploadProgressModal
             visible={showUploadProgress}
             progress={uploadProgress}
             onCancel={() => setShowUploadProgress(false)}
           />
 
           {/* Analysis Progress Modal */}
-          <RealTimeProgressModal 
+          <RealTimeProgressModal
             visible={showProgress}
             progress={progress}
             onCancel={() => setShowProgress(false)}
           />
-
         </div>
       </Spin>
     </AppLayout>

@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { PrismaClient } from "@prisma/client";
+import { getUserFromRequest } from "@/lib/auth";
 
 const prisma = new PrismaClient();
 
@@ -12,8 +13,23 @@ export default async function handler(
   }
 
   try {
-    // Get all jobs with their meetings
+    // Get current user and verify authentication
+    const user = getUserFromRequest(req);
+    if (!user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    if (!user.companyId) {
+      return res
+        .status(403)
+        .json({ error: "User must be associated with a company" });
+    }
+
+    // Get jobs with their meetings - filtered by company
     const jobs = await prisma.jobPost.findMany({
+      where: {
+        companyId: user.companyId, // Filter by company
+      },
       include: {
         meetings: {
           include: {

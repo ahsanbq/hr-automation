@@ -47,13 +47,11 @@ export class S3Service {
 
       const result = await s3.upload(uploadParams).promise();
 
-      // Generate a presigned URL for accessing the file (valid for 24 hours)
-      const presignedUrl = await this.getPresignedUrl(result.Key, 24 * 60 * 60);
-
+      // Return the S3 key instead of presigned URL to avoid expiration issues
       return {
         success: true,
-        url: presignedUrl, // Use presigned URL instead of Location
-        key: result.Key,
+        url: result.Location, // Use S3 location for reference
+        key: result.Key, // Store this key in database for generating fresh presigned URLs
       };
     } catch (error) {
       console.error("S3 Upload Error:", error);

@@ -2,7 +2,8 @@ import AppLayout from "@/components/layout/AppLayout";
 import StatCards from "@/components/analytics/StatCards";
 import Charts from "@/components/analytics/Charts";
 import RecentActivity from "@/components/analytics/RecentActivity";
-import { Row, Col, Spin, Card } from "antd";
+import CompanyMetrics from "@/components/analytics/CompanyMetrics";
+import { Row, Col, Spin, Card, Tabs } from "antd";
 import { useEffect, useState } from "react";
 
 interface AnalyticsData {
@@ -62,7 +63,18 @@ export default function AnalyticsPage() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch("/api/analytics/dashboard");
+
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("Please log in to view analytics");
+        return;
+      }
+
+      const response = await fetch("/api/analytics/dashboard", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       const result = await response.json();
 
       if (result.success) {
@@ -202,7 +214,7 @@ export default function AnalyticsPage() {
                       marginBottom: "8px",
                     }}
                   >
-                    56%
+                    {Math.round(data.summary.avgMatchScore)}%
                   </div>
                   <span
                     style={{ color: "#fff7e6", fontSize: 11, fontWeight: 400 }}
@@ -257,12 +269,15 @@ export default function AnalyticsPage() {
                       marginBottom: "8px",
                     }}
                   >
-                    9
+                    {data.summary.totalInterviews}
                   </div>
                   <span
                     style={{ color: "#e6fffb", fontSize: 11, fontWeight: 400 }}
                   >
-                    40% progressed to next round.
+                    {Math.round(
+                      data.summary.conversionRates.interviewToMeeting
+                    )}
+                    % progressed to next round.
                   </span>
                 </div>
               </div>
@@ -312,7 +327,10 @@ export default function AnalyticsPage() {
                       marginBottom: "8px",
                     }}
                   >
-                    22.5%
+                    {Math.round(
+                      data.summary.conversionRates.applicationToInterview
+                    )}
+                    %
                   </div>
                   <span
                     style={{ color: "#f6ffed", fontSize: 11, fontWeight: 400 }}
@@ -367,12 +385,19 @@ export default function AnalyticsPage() {
                       marginBottom: "8px",
                     }}
                   >
-                    1,178 total | 372 AI calls
+                    {data.apiLogs?.totalApiCalls || 0} total |{" "}
+                    {data.apiLogs?.openaiCalls || 0} AI calls
                   </div>
                   <span
                     style={{ color: "#fff1f0", fontSize: 11, fontWeight: 400 }}
                   >
-                    95% success | 427ms avg response
+                    {Math.round(
+                      ((data.apiLogs?.successfulCalls || 0) /
+                        (data.apiLogs?.totalApiCalls || 1)) *
+                        100
+                    )}
+                    % success | {data.apiLogs?.avgResponseTime || 0}ms avg
+                    response
                   </span>
                 </div>
               </div>

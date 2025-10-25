@@ -11,12 +11,20 @@ export default async function handler(
   const user = getUserFromRequest(req);
   if (!user) return res.status(401).json({ error: "Unauthorized" });
 
+  if (!user.companyId) {
+    return res
+      .status(403)
+      .json({ error: "User must be associated with a company" });
+  }
+
   if (req.method === "GET") {
     const { include } = req.query;
 
-    // Get jobs created by the user
+    // Get jobs from the user's company
     const jobs = await prisma.jobPost.findMany({
-      where: { createdById: user.userId },
+      where: {
+        companyId: user.companyId, // Filter by company instead of individual user
+      },
       include: {
         companies: true,
         User: { select: { id: true, name: true, email: true } },
@@ -63,10 +71,24 @@ export default async function handler(
         };
       });
 
-      return res.json({ jobs: jobsWithStats });
+      // Transform the jobs with stats to match frontend expectations
+      const transformedJobsWithStats = jobsWithStats.map((job) => ({
+        ...job,
+        createdBy: job.User, // Map User to createdBy
+        company: job.companyName, // Map companyName to company
+      }));
+
+      return res.json({ jobs: transformedJobsWithStats });
     }
 
-    return res.json({ jobs });
+    // Transform the data to match frontend expectations
+    const transformedJobs = jobs.map((job) => ({
+      ...job,
+      createdBy: job.User, // Map User to createdBy
+      company: job.companyName, // Map companyName to company
+    }));
+
+    return res.json({ jobs: transformedJobs });
   }
 
   if (req.method === "POST") {
@@ -110,7 +132,14 @@ export default async function handler(
           User: { select: { id: true, name: true, email: true } },
         },
       });
-      return res.status(201).json(created);
+      // Transform the created job to match frontend expectations
+      const transformedJob = {
+        ...created,
+        createdBy: created.User, // Map User to createdBy
+        company: created.companyName, // Map companyName to company
+      };
+
+      return res.status(201).json(transformedJob);
     } catch (error: any) {
       console.error("Error creating job post:", error);
       return res.status(500).json({ error: "Failed to create job post" });
@@ -127,7 +156,14 @@ export default async function handler(
         User: { select: { id: true, name: true, email: true } },
       },
     });
-    return res.json(updated);
+    // Transform the updated job to match frontend expectations
+    const transformedJob = {
+      ...updated,
+      createdBy: updated.User, // Map User to createdBy
+      company: updated.companyName, // Map companyName to company
+    };
+
+    return res.json(transformedJob);
   }
 
   if (req.method === "DELETE") {
