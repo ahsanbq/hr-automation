@@ -16,6 +16,7 @@ import {
   Spin,
   Tabs,
   Upload,
+  Dropdown,
 } from "antd";
 import {
   UploadOutlined,
@@ -24,6 +25,7 @@ import {
   PhoneOutlined,
   DeleteOutlined,
   FileTextOutlined,
+  DownloadOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 import AppLayout from "@/components/layout/AppLayout";
@@ -561,6 +563,217 @@ export default function JobResumePage() {
     }
   };
 
+  // Export functions
+  const exportToExcel = () => {
+    // Calculate statistics
+    const totalResumes = resumes.length;
+    const avgMatchScore =
+      resumes.length > 0
+        ? (
+            resumes.reduce((sum, r) => sum + (r.matchScore || 0), 0) /
+            resumes.length
+          ).toFixed(1)
+        : 0;
+    const highlyRecommended = resumes.filter(
+      (r) => r.recommendation?.toLowerCase() === "highly recommended"
+    ).length;
+    const consider = resumes.filter(
+      (r) => r.recommendation?.toLowerCase() === "consider"
+    ).length;
+
+    const csvContent = [
+      // Title row
+      [`Resumes for ${job?.jobTitle || "Job Position"}`],
+      // Statistics rows
+      [`Total Resumes,${totalResumes}`],
+      [`Avg Match Score,${avgMatchScore}%`],
+      [`Highly Recommended,${highlyRecommended}`],
+      [`Consider,${consider}`],
+      // Empty row for spacing
+      [""],
+      // Headers
+      [
+        "No.",
+        "Candidate Name",
+        "Email",
+        "Phone",
+        "Match Score",
+        "Recommendation",
+        "Experience",
+        "Remarks",
+      ],
+      // Data rows
+      ...resumes.map((resume, index) => [
+        index + 1, // Serial number
+        resume.candidateName || "",
+        resume.candidateEmail || "",
+        resume.candidatePhone || "",
+        resume.matchScore || 0,
+        resume.recommendation || "",
+        resume.experienceYears || 0,
+        "", // Empty Remarks column
+      ]),
+    ]
+      .map((row) => row.map((cell) => `"${cell}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `resumes_${job?.jobTitle || "job"}_${
+        new Date().toISOString().split("T")[0]
+      }.csv`
+    );
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    message.success("Resumes exported to Excel successfully!");
+  };
+
+  const exportToPDF = () => {
+    // Calculate statistics
+    const totalResumes = resumes.length;
+    const avgMatchScore =
+      resumes.length > 0
+        ? (
+            resumes.reduce((sum, r) => sum + (r.matchScore || 0), 0) /
+            resumes.length
+          ).toFixed(1)
+        : 0;
+    const highlyRecommended = resumes.filter(
+      (r) => r.recommendation?.toLowerCase() === "highly recommended"
+    ).length;
+    const consider = resumes.filter(
+      (r) => r.recommendation?.toLowerCase() === "consider"
+    ).length;
+
+    // Create a simple HTML table for PDF generation
+    const tableHTML = `
+      <html>
+        <head>
+          <title>Resumes Export</title>
+          <style>
+            body { 
+              font-family: Arial, sans-serif; 
+              margin: 20px; 
+              background: white;
+              color: #333;
+            }
+            table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin-top: 20px; 
+              border: 1px solid #ddd; 
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            th, td { 
+              border: 1px solid #ddd; 
+              padding: 12px 8px; 
+              text-align: left; 
+              font-size: 14px;
+            }
+            th { 
+              background-color: #f8f9fa; 
+              font-weight: bold; 
+              color: #495057;
+            }
+            th:last-child, td:last-child { border-right: 1px solid #ddd !important; }
+            tr:last-child td { border-bottom: 1px solid #ddd; }
+            td:last-child { border-right: 1px solid #ddd !important; }
+            tr:nth-child(even) { background-color: #f8f9fa; }
+            tr:hover { background-color: #e9ecef; }
+            .header { text-align: center; margin-bottom: 20px; }
+            .job-title { font-size: 18px; font-weight: bold; }
+            .export-date { font-size: 12px; color: #666; }
+            .stats { margin: 20px 0; }
+            .stats-row { display: flex; justify-content: space-around; margin: 10px 0; }
+            .stat-item { text-align: center; padding: 10px; border: 1px solid #ddd; flex: 1; margin: 0 5px; }
+            .stat-label { font-size: 12px; color: #666; }
+            .stat-value { font-size: 18px; font-weight: bold; color: #1890ff; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="job-title">Resumes for ${
+              job?.jobTitle || "Job Position"
+            }</div>
+            <div class="export-date">Exported on ${new Date().toLocaleDateString()}</div>
+          </div>
+          
+          <div class="stats">
+            <div class="stats-row">
+              <div class="stat-item">
+                <div class="stat-label">Total Resumes</div>
+                <div class="stat-value">${totalResumes}</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-label">Avg Match Score</div>
+                <div class="stat-value">${avgMatchScore}%</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-label">Highly Recommended</div>
+                <div class="stat-value">${highlyRecommended}</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-label">Consider</div>
+                <div class="stat-value">${consider}</div>
+              </div>
+            </div>
+          </div>
+          
+          <table>
+            <thead>
+              <tr>
+                <th>No.</th>
+                <th>Candidate Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Match Score</th>
+                <th>Recommendation</th>
+                <th>Experience</th>
+                <th>Remarks</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${resumes
+                .map(
+                  (resume, index) => `
+                <tr>
+                  <td>${index + 1}</td>
+                  <td>${resume.candidateName || ""}</td>
+                  <td>${resume.candidateEmail || ""}</td>
+                  <td>${resume.candidatePhone || ""}</td>
+                  <td>${resume.matchScore || 0}%</td>
+                  <td>${resume.recommendation || ""}</td>
+                  <td>${resume.experienceYears || 0} years</td>
+                  <td></td>
+                </tr>
+              `
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open("", "_blank");
+    if (printWindow) {
+      printWindow.document.write(tableHTML);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    }
+
+    message.success("Resumes exported to PDF successfully!");
+  };
+
   const addUrlField = () => setUrlFields((prev) => [...prev, ""]);
   const removeUrlField = (index: number) =>
     setUrlFields((prev) => prev.filter((_, i) => i !== index));
@@ -850,14 +1063,47 @@ export default function JobResumePage() {
                     <span style={{ fontSize: "18px", fontWeight: "bold" }}>
                       Resumes for {job?.jobTitle}
                     </span>
-                    <Button
-                      type="primary"
-                      icon={<UploadOutlined />}
-                      onClick={() => setUploadModalVisible(true)}
-                      size="large"
-                    >
-                      Analyze New Resumes
-                    </Button>
+                    <Space>
+                      <Dropdown
+                        menu={{
+                          items: [
+                            {
+                              key: "excel",
+                              label: "Export as Excel",
+                              icon: <DownloadOutlined />,
+                              onClick: exportToExcel,
+                            },
+                            {
+                              key: "pdf",
+                              label: "Export as PDF",
+                              icon: <FileTextOutlined />,
+                              onClick: exportToPDF,
+                            },
+                          ],
+                        }}
+                        trigger={["click"]}
+                      >
+                        <Button
+                          icon={<DownloadOutlined />}
+                          size="large"
+                          style={{
+                            backgroundColor: "#52c41a",
+                            borderColor: "#52c41a",
+                            color: "white",
+                          }}
+                        >
+                          Export
+                        </Button>
+                      </Dropdown>
+                      <Button
+                        type="primary"
+                        icon={<UploadOutlined />}
+                        onClick={() => setUploadModalVisible(true)}
+                        size="large"
+                      >
+                        Analyze New Resumes
+                      </Button>
+                    </Space>
                   </div>
                 }
                 style={{ borderRadius: "8px" }}
