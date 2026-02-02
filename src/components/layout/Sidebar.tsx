@@ -98,27 +98,11 @@ export default function Sidebar({
       },
       {
         key: "/assessment/avatar",
-        icon: <LockOutlined style={{ color: "#999" }} />,
+        icon: <RobotOutlined />,
         label: (
-          <Tooltip
-            title="🚀 Coming Soon - AI Interview features are under development"
-            placement="right"
-            overlayStyle={{ fontSize: "12px" }}
-          >
-            <div
-              className="manrope-medium"
-              style={{
-                color: "#999",
-                cursor: "not-allowed",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-              }}
-            >
-              <RobotOutlined style={{ color: "#999" }} />
-              AI Interviews
-            </div>
-          </Tooltip>
+          <Link href="/assessment/avatar" className="manrope-medium">
+            AI Interviews
+          </Link>
         ),
       },
       {
@@ -181,7 +165,7 @@ export default function Sidebar({
             },
           ]),
     ],
-    [isAdmin]
+    [isAdmin],
   );
 
   // Handle menu selection

@@ -128,7 +128,7 @@ export default function ManageJobsTable({ mode = "manage" as ManageMode }) {
             createdBy: job.createdBy,
             _count: job._count,
             avgMatchScore: job.avgMatchScore,
-          })) || []
+          })) || [],
         );
       } else {
         console.error("Failed to fetch jobs");
@@ -299,7 +299,7 @@ export default function ManageJobsTable({ mode = "manage" as ManageMode }) {
               {score ? `${score}%` : "N/A"}
             </Tag>
           ),
-        }
+        },
       );
     }
 
@@ -369,12 +369,35 @@ export default function ManageJobsTable({ mode = "manage" as ManageMode }) {
     return baseColumns;
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!deleting) return;
     const id = deleting.id;
-    setJobs((prev) => prev.filter((j) => j.id !== id));
+    // If in interview mode, call the API to delete the interview/assessment
+    if (mode === "interview") {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(`/api/assessments/${id}`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (response.status === 204) {
+          setJobs((prev) => prev.filter((j) => j.id !== id));
+          message.success("Interview deleted");
+        } else {
+          const data = await response.json();
+          message.error(data.error || "Failed to delete interview");
+        }
+      } catch (error) {
+        message.error("Error deleting interview");
+      }
+    } else {
+      // Default: just remove from UI (for jobs)
+      setJobs((prev) => prev.filter((j) => j.id !== id));
+      message.success("Job deleted");
+    }
     setDeleting(null);
-    message.success("Job deleted");
   };
 
   return (
@@ -502,8 +525,8 @@ export default function ManageJobsTable({ mode = "manage" as ManageMode }) {
                               (viewing.avgMatchScore || 0) >= 70
                                 ? "#52c41a"
                                 : (viewing.avgMatchScore || 0) >= 50
-                                ? "#faad14"
-                                : "#f5222d",
+                                  ? "#faad14"
+                                  : "#f5222d",
                           }}
                         />
                       </Col>
@@ -533,7 +556,7 @@ export default function ManageJobsTable({ mode = "manage" as ManageMode }) {
                             <StarOutlined style={{ marginRight: "4px" }} />
                             {skill}
                           </Tag>
-                        )
+                        ),
                       )
                     ) : (
                       <span style={{ color: "#999" }}>No skills specified</span>
@@ -593,7 +616,7 @@ export default function ManageJobsTable({ mode = "manage" as ManageMode }) {
                               </span>
                               <span>{item}</span>
                             </div>
-                          )
+                          ),
                         )}
                       </div>
                     </Card>
@@ -636,7 +659,7 @@ export default function ManageJobsTable({ mode = "manage" as ManageMode }) {
                               </span>
                               <span>{item}</span>
                             </div>
-                          )
+                          ),
                         )}
                       </div>
                     </Card>
@@ -713,7 +736,7 @@ export default function ManageJobsTable({ mode = "manage" as ManageMode }) {
                               day: "numeric",
                               hour: "2-digit",
                               minute: "2-digit",
-                            }
+                            },
                           )
                         : "N/A"}
                     </p>

@@ -65,21 +65,29 @@ export default function AppLayout({
         <Content
           style={{
             margin: 16,
-            height: "calc(100vh - 120px)",
-            overflow: "auto",
+            height: "calc(100vh - 64px - 36px - 32px)", // 64px header + 36px footer + 32px margins
+            overflow: "hidden",
             display: "flex",
             flexDirection: "column",
           }}
         >
-          <div style={{ position: "relative", flex: 1 }}>
+          <div
+            style={{
+              position: "relative",
+              flex: 1,
+              overflow: "auto",
+              height: "100%",
+            }}
+          >
             <Spin spinning={loading} size="large">
               <div
                 style={{
                   padding: 16,
-                  minHeight: "100%",
+                  height: "100%",
                   background: "#fff",
                   borderRadius: 12,
                   boxShadow: "0 4px 16px rgba(0,0,0,0.04)",
+                  overflow: "auto",
                 }}
               >
                 {children}
@@ -92,9 +100,10 @@ export default function AppLayout({
             textAlign: "center",
             background: "transparent",
             flexShrink: 0,
-            padding: "8px 0", // 🔹 reduce vertical padding
-            lineHeight: "20px", // 🔹 tighten text spacing
-            fontSize: "14px", // optional: smaller text
+            padding: "8px 0",
+            lineHeight: "20px",
+            fontSize: "14px",
+            height: "36px",
           }}
         >
           Synchro Hire © {new Date().getFullYear()}

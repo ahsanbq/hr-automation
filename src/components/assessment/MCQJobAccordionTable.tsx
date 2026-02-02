@@ -134,6 +134,79 @@ const MCQJobAccordionTable: React.FC<MCQJobAccordionTableProps> = ({
   const [selectedInterview, setSelectedInterview] = useState<any>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
 
+  // Helper function to format answers for display
+  const formatAnswerForDisplay = (answer: any): string => {
+    if (!answer && answer !== 0 && answer !== false)
+      return "No answer provided";
+
+    // Handle string answers
+    if (typeof answer === "string") {
+      return answer.trim() || "Empty answer";
+    }
+
+    // Handle number and boolean answers
+    if (typeof answer === "number" || typeof answer === "boolean") {
+      return String(answer);
+    }
+
+    // Handle array answers (multiple choice)
+    if (Array.isArray(answer)) {
+      if (answer.length === 0) return "No options selected";
+      return answer
+        .filter((item) => item !== null && item !== undefined)
+        .join(", ");
+    }
+
+    // Handle object answers
+    if (typeof answer === "object" && answer !== null) {
+      // Prioritize selectedText for MCQ answers
+      if (answer.selectedText && typeof answer.selectedText === "string") {
+        return answer.selectedText.trim();
+      }
+
+      // Try other common properties
+      if (answer.text && typeof answer.text === "string")
+        return answer.text.trim();
+      if (answer.value && typeof answer.value === "string")
+        return answer.value.trim();
+      if (answer.option && typeof answer.option === "string")
+        return answer.option.trim();
+      if (answer.label && typeof answer.label === "string")
+        return answer.label.trim();
+
+      // For objects, try to extract the first meaningful string value
+      const values = Object.values(answer).filter(
+        (v) =>
+          v !== null && v !== undefined && v !== "" && typeof v === "string",
+      );
+
+      if (values.length > 0) {
+        return String(values[0]).trim();
+      }
+    }
+
+    return "Invalid answer format";
+  };
+
+  // Helper function to normalize answers for comparison
+  const normalizeAnswerForComparison = (answer: any): any => {
+    if (typeof answer === "object" && answer !== null) {
+      if (Array.isArray(answer)) {
+        return answer[0];
+      }
+      // Prioritize selectedText for MCQ answers
+      return (
+        answer.selectedText ||
+        answer.text ||
+        answer.value ||
+        answer.option ||
+        answer.label ||
+        Object.values(answer)[0]
+      );
+    }
+    return answer;
+  };
+
   useEffect(() => {
     fetchJobsWithInterviews();
   }, []);
@@ -165,7 +238,7 @@ const MCQJobAccordionTable: React.FC<MCQJobAccordionTableProps> = ({
                 headers: {
                   Authorization: `Bearer ${token}`,
                 },
-              }
+              },
             );
 
             if (interviewsResponse.ok) {
@@ -186,7 +259,7 @@ const MCQJobAccordionTable: React.FC<MCQJobAccordionTableProps> = ({
           } catch (error) {
             console.error(
               `Error fetching interviews for job ${job.id}:`,
-              error
+              error,
             );
             return {
               ...job,
@@ -194,7 +267,7 @@ const MCQJobAccordionTable: React.FC<MCQJobAccordionTableProps> = ({
               _count: { interviews: 0 },
             };
           }
-        })
+        }),
       );
 
       setJobs(jobsWithInterviews);
@@ -369,7 +442,7 @@ const MCQJobAccordionTable: React.FC<MCQJobAccordionTableProps> = ({
               <div style={{ marginTop: 4 }}>
                 <Tag
                   color={getAttemptStatusColor(
-                    record.interviewAttempts[0].status
+                    record.interviewAttempts[0].status,
                   )}
                 >
                   {record.interviewAttempts[0].status.replace("_", " ")}
@@ -585,7 +658,7 @@ const MCQJobAccordionTable: React.FC<MCQJobAccordionTableProps> = ({
                       value={
                         attempt.maxScore
                           ? Math.round(
-                              ((attempt.score || 0) / attempt.maxScore) * 100
+                              ((attempt.score || 0) / attempt.maxScore) * 100,
                             )
                           : 0
                       }
@@ -641,7 +714,7 @@ const MCQJobAccordionTable: React.FC<MCQJobAccordionTableProps> = ({
                       (question: any, index: number) => {
                         // Find if this question has been answered
                         const questionAnswer = answers.find(
-                          (answer: any) => answer.question.id === question.id
+                          (answer: any) => answer.question.id === question.id,
                         );
 
                         // Determine question status and styling
@@ -701,17 +774,58 @@ const MCQJobAccordionTable: React.FC<MCQJobAccordionTableProps> = ({
                                 </div>
                               </div>
 
-                              {question.options &&
-                                Array.isArray(question.options) && (
-                                  <div style={{ marginBottom: 12 }}>
-                                    <Text strong>Options:</Text>
-                                    <div style={{ marginTop: 4 }}>
-                                      {question.options.map(
-                                        (option: string, optIndex: number) => {
+                              {question.options && (
+                                <div style={{ marginBottom: 12 }}>
+                                  <Text strong>Options:</Text>
+                                  <div style={{ marginTop: 4 }}>
+                                    {(() => {
+                                      // Normalize options to always be an array of strings
+                                      let optionsArray = [];
+
+                                      if (Array.isArray(question.options)) {
+                                        optionsArray = question.options;
+                                      } else if (
+                                        typeof question.options === "object" &&
+                                        question.options !== null
+                                      ) {
+                                        optionsArray = Object.values(
+                                          question.options,
+                                        );
+                                      } else if (
+                                        typeof question.options === "string"
+                                      ) {
+                                        optionsArray = [question.options];
+                                      }
+
+                                      // Normalize correct answer for comparison
+                                      let correctAnswer =
+                                        normalizeAnswerForComparison(
+                                          question.correct,
+                                        );
+
+                                      // Normalize candidate answer for comparison
+                                      let candidateAnswer = questionAnswer
+                                        ? normalizeAnswerForComparison(
+                                            questionAnswer.answer,
+                                          )
+                                        : null;
+
+                                      return optionsArray.map(
+                                        (option: any, optIndex: number) => {
+                                          // Convert option to string for display
+                                          let optionText =
+                                            typeof option === "string"
+                                              ? option
+                                              : option?.text ||
+                                                option?.value ||
+                                                option?.label ||
+                                                String(option);
+
                                           let optionBgColor = "#fafafa";
                                           let optionBorderColor = "#d9d9d9";
                                           let isCorrectOption =
-                                            option === question.correct;
+                                            optionText === correctAnswer ||
+                                            option === correctAnswer;
 
                                           if (isCorrectOption) {
                                             optionBgColor = "#f6ffed";
@@ -722,7 +836,8 @@ const MCQJobAccordionTable: React.FC<MCQJobAccordionTableProps> = ({
                                           if (
                                             questionAnswer &&
                                             !questionAnswer.isCorrect &&
-                                            questionAnswer.answer === option
+                                            (candidateAnswer === optionText ||
+                                              candidateAnswer === option)
                                           ) {
                                             optionBgColor = "#fff2f0";
                                             optionBorderColor = "#ffccc7";
@@ -740,7 +855,7 @@ const MCQJobAccordionTable: React.FC<MCQJobAccordionTableProps> = ({
                                                 fontSize: "13px",
                                               }}
                                             >
-                                              {option}
+                                              {optionText}
                                               {isCorrectOption && (
                                                 <Tag
                                                   color="green"
@@ -751,8 +866,10 @@ const MCQJobAccordionTable: React.FC<MCQJobAccordionTableProps> = ({
                                               )}
                                               {questionAnswer &&
                                                 !questionAnswer.isCorrect &&
-                                                questionAnswer.answer ===
-                                                  option && (
+                                                (candidateAnswer ===
+                                                  optionText ||
+                                                  candidateAnswer ===
+                                                    option) && (
                                                   <Tag
                                                     color="red"
                                                     style={{ marginLeft: 8 }}
@@ -762,11 +879,12 @@ const MCQJobAccordionTable: React.FC<MCQJobAccordionTableProps> = ({
                                                 )}
                                             </div>
                                           );
-                                        }
-                                      )}
-                                    </div>
+                                        },
+                                      );
+                                    })()}
                                   </div>
-                                )}
+                                </div>
+                              )}
 
                               {questionAnswer ? (
                                 <div style={{ marginBottom: 12 }}>
@@ -778,10 +896,19 @@ const MCQJobAccordionTable: React.FC<MCQJobAccordionTableProps> = ({
                                           ? "green"
                                           : "red"
                                       }
+                                      style={{
+                                        fontSize: "13px",
+                                        padding: "4px 8px",
+                                        maxWidth: "100%",
+                                        whiteSpace: "pre-wrap",
+                                        wordBreak: "break-word",
+                                      }}
                                     >
-                                      {typeof questionAnswer.answer === "string"
-                                        ? questionAnswer.answer
-                                        : JSON.stringify(questionAnswer.answer)}
+                                      {(() => {
+                                        return formatAnswerForDisplay(
+                                          questionAnswer.answer,
+                                        );
+                                      })()}
                                     </Tag>
                                   </div>
                                   <div
@@ -793,7 +920,7 @@ const MCQJobAccordionTable: React.FC<MCQJobAccordionTableProps> = ({
                                   >
                                     Answered at:{" "}
                                     {dayjs(questionAnswer.answeredAt).format(
-                                      "MMM DD, YYYY HH:mm"
+                                      "MMM DD, YYYY HH:mm",
                                     )}
                                   </div>
                                 </div>
@@ -842,7 +969,7 @@ const MCQJobAccordionTable: React.FC<MCQJobAccordionTableProps> = ({
                             </Card>
                           </Col>
                         );
-                      }
+                      },
                     )}
                   </Row>
                 )}

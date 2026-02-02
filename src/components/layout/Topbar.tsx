@@ -312,6 +312,8 @@ export default function Topbar({ title, subtitle }: TopbarProps) {
         zIndex: 1000,
         transition: "all 0.3s ease",
         boxShadow: isScrolled ? "0 4px 6px -1px rgba(0, 0, 0, 0.1)" : "none",
+        height: "64px",
+        lineHeight: "64px",
       }}
     >
       <div
