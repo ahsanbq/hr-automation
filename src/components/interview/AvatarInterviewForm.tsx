@@ -264,11 +264,10 @@ export default function AvatarInterviewForm({
                 ? "Loading..."
                 : "No job positions found. Please create a job post first."
             }
-            filterOption={(input, option) =>
-              (option?.children as string)
-                .toLowerCase()
-                .includes(input.toLowerCase())
-            }
+            filterOption={(input, option) => {
+              const label = option?.children || option?.label || '';
+              return String(label).toLowerCase().includes(input.toLowerCase());
+            }}
             onChange={(value) => {
               setSelectedJobId(value);
               form.setFieldsValue({ resumeId: undefined });
@@ -291,11 +290,10 @@ export default function AvatarInterviewForm({
             placeholder="Select candidate"
             disabled={!selectedJobId}
             showSearch
-            filterOption={(input, option) =>
-              (option?.children as string)
-                .toLowerCase()
-                .includes(input.toLowerCase())
-            }
+            filterOption={(input, option) => {
+              const label = option?.children || option?.label || '';
+              return String(label).toLowerCase().includes(input.toLowerCase());
+            }}
           >
             {resumes.map((resume) => (
               <Option key={resume.id} value={resume.id}>
