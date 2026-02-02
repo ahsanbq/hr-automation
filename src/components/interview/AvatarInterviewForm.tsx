@@ -265,7 +265,7 @@ export default function AvatarInterviewForm({
                 : "No job positions found. Please create a job post first."
             }
             filterOption={(input, option) => {
-              const label = option?.children || option?.label || '';
+              const label = option?.children || option?.label || "";
               return String(label).toLowerCase().includes(input.toLowerCase());
             }}
             onChange={(value) => {
@@ -291,7 +291,7 @@ export default function AvatarInterviewForm({
             disabled={!selectedJobId}
             showSearch
             filterOption={(input, option) => {
-              const label = option?.children || option?.label || '';
+              const label = option?.children || option?.label || "";
               return String(label).toLowerCase().includes(input.toLowerCase());
             }}
           >
