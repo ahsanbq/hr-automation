@@ -39,10 +39,10 @@ const { TabPane } = Tabs;
 export default function AvatarInterviewDetailPage() {
   const router = useRouter();
   const { assessmentId } = router.query;
-    const [loading, setLoading] = useState(true);
-    const [inviteLoading, setInviteLoading] = useState(false);
-    const [inviteModalVisible, setInviteModalVisible] = useState(false);
-    const [inviteEmail, setInviteEmail] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteModalVisible, setInviteModalVisible] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
   const [interview, setInterview] = useState<any>(null);
 
   useEffect(() => {
@@ -138,7 +138,7 @@ export default function AvatarInterviewDetailPage() {
   };
 
   const handleAnalyze = async () => {
-      setInviteLoading(true);
+    setInviteLoading(true);
     Modal.confirm({
       title: "Run AI Analysis",
       content: "This will analyze the interview recordings using AI. Continue?",
@@ -239,7 +239,9 @@ export default function AvatarInterviewDetailPage() {
             <Button
               icon={<EditOutlined />}
               type="primary"
-              onClick={() => router.push(`/assessment/avatar?edit=${interview.id}`)}
+              onClick={() =>
+                router.push(`/assessment/avatar?edit=${interview.id}`)
+              }
             >
               Edit
             </Button>
@@ -258,12 +260,18 @@ export default function AvatarInterviewDetailPage() {
               centered
             >
               <div style={{ textAlign: "center", padding: 24 }}>
-                <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 48, marginBottom: 16 }} />
+                <CheckCircleOutlined
+                  style={{ color: "#52c41a", fontSize: 48, marginBottom: 16 }}
+                />
                 <h2>Invitation Sent!</h2>
                 <p>
-                  The interview invitation has been sent{inviteEmail ? ` to ${inviteEmail}` : ""}.
+                  The interview invitation has been sent
+                  {inviteEmail ? ` to ${inviteEmail}` : ""}.
                 </p>
-                <Button type="primary" onClick={() => setInviteModalVisible(false)}>
+                <Button
+                  type="primary"
+                  onClick={() => setInviteModalVisible(false)}
+                >
                   OK
                 </Button>
               </div>
