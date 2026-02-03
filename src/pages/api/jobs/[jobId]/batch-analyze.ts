@@ -9,7 +9,7 @@ import { updateProgress } from "@/lib/progress-store";
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse
+  res: NextApiResponse,
 ) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -93,7 +93,7 @@ export default async function handler(
     }
 
     console.log(
-      `🔄 Processing ${pathsToAnalyze.length} resumes in ${batches.length} batches of ${batch_size}`
+      `🔄 Processing ${pathsToAnalyze.length} resumes in ${batches.length} batches of ${batch_size}`,
     );
 
     const savedResumes = [];
@@ -107,7 +107,7 @@ export default async function handler(
       console.log(
         `📦 Processing batch ${batchIndex + 1}/${batches.length} (${
           batch.length
-        } resumes)`
+        } resumes)`,
       );
 
       // Update progress for current batch
@@ -127,7 +127,7 @@ export default async function handler(
         for (const analysis of batchAnalysisResponse.analyses) {
           processedCount++;
           const currentPercentage = Math.round(
-            (processedCount / pathsToAnalyze.length) * 100
+            (processedCount / pathsToAnalyze.length) * 100,
           );
 
           // Update current file being processed
@@ -141,6 +141,16 @@ export default async function handler(
 
           if (analysis.success) {
             try {
+              // Convert education array to JSON string if it's an array
+              let educationStr: string | null = null;
+              if (analysis.candidate.education) {
+                if (Array.isArray(analysis.candidate.education)) {
+                  educationStr = JSON.stringify(analysis.candidate.education);
+                } else if (typeof analysis.candidate.education === "string") {
+                  educationStr = analysis.candidate.education;
+                }
+              }
+
               const resume = await prisma.resume.create({
                 data: {
                   id: crypto.randomUUID(),
@@ -152,7 +162,7 @@ export default async function handler(
                   recommendation: analysis.analysis.recommendation,
                   skills: analysis.candidate.skills,
                   experienceYears: analysis.candidate.experience_years,
-                  education: analysis.candidate.education,
+                  education: educationStr,
                   summary: analysis.candidate.summary,
                   location: analysis.candidate.location,
                   linkedinUrl: analysis.candidate.linkedin_url,
@@ -160,7 +170,7 @@ export default async function handler(
                   currentJobTitle: analysis.candidate.current_job_title,
                   processingMethod: analysis.candidate.processing_method,
                   analysisTimestamp: new Date(
-                    analysis.candidate.analysis_timestamp
+                    analysis.candidate.analysis_timestamp,
                   ),
                   fileName: analysis.analysis.file_name,
                   fileSizeMb: analysis.analysis.file_size_mb,
@@ -180,7 +190,7 @@ export default async function handler(
               });
 
               console.log(
-                `✅ Saved resume ${processedCount}/${pathsToAnalyze.length}: ${analysis.candidate.name}`
+                `✅ Saved resume ${processedCount}/${pathsToAnalyze.length}: ${analysis.candidate.name}`,
               );
             } catch (dbError) {
               console.error("Database error saving resume:", dbError);
@@ -212,7 +222,7 @@ export default async function handler(
             });
 
             console.log(
-              `❌ Failed resume ${processedCount}/${pathsToAnalyze.length}: ${analysis.resume_path}`
+              `❌ Failed resume ${processedCount}/${pathsToAnalyze.length}: ${analysis.resume_path}`,
             );
           }
 
@@ -258,7 +268,7 @@ export default async function handler(
     });
 
     console.log(
-      `🎉 Batch processing complete: ${savedResumes.length}/${pathsToAnalyze.length} successful`
+      `🎉 Batch processing complete: ${savedResumes.length}/${pathsToAnalyze.length} successful`,
     );
 
     return res.status(200).json({

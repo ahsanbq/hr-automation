@@ -11,6 +11,7 @@ import {
   Progress,
   Tag,
   Modal,
+  Input,
 } from "antd";
 import {
   VideoCameraOutlined,
@@ -36,6 +37,10 @@ export default function TakeAIInterviewPage() {
   const [recordingTime, setRecordingTime] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasPermissions, setHasPermissions] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [sessionPassword, setSessionPassword] = useState("");
+  const [isVerified, setIsVerified] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
@@ -74,6 +79,12 @@ export default function TakeAIInterviewPage() {
             data.assessmentStage.avatarAssessment.timeLimit * 60,
           );
         }
+        // Check if session password is required
+        if (data.assessmentStage.avatarAssessment.sessionPasswordHash) {
+          setShowPasswordModal(true);
+        } else {
+          setIsVerified(true);
+        }
       } else {
         message.error("Failed to load interview details");
       }
@@ -108,7 +119,48 @@ export default function TakeAIInterviewPage() {
     }
   };
 
+  const verifyPassword = async () => {
+    if (!sessionPassword.trim()) {
+      message.warning("Please enter the session password");
+      return;
+    }
+
+    setVerifying(true);
+    try {
+      const response = await fetch(
+        `/api/assessments/avatar/${assessmentId}/verify-password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ sessionPassword }),
+        },
+      );
+
+      if (response.ok) {
+        setIsVerified(true);
+        setShowPasswordModal(false);
+        message.success("Password verified successfully");
+      } else {
+        const data = await response.json();
+        message.error(data.error || "Invalid session password");
+      }
+    } catch (error) {
+      console.error("Error verifying password:", error);
+      message.error("Error verifying password");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
   const startInterview = async () => {
+    if (!isVerified) {
+      message.warning("Please verify your session password first");
+      setShowPasswordModal(true);
+      return;
+    }
+
     if (!interview.avatarAssessment.recordingEnabled) {
       setIsStarted(true);
       startTimer();
@@ -454,6 +506,46 @@ export default function TakeAIInterviewPage() {
             </Card>
           )}
         </div>
+
+        {/* Session Password Verification Modal */}
+        <Modal
+          visible={showPasswordModal}
+          title="🔐 Enter Session Password"
+          closable={false}
+          maskClosable={false}
+          footer={[
+            <Button
+              key="verify"
+              type="primary"
+              loading={verifying}
+              onClick={verifyPassword}
+            >
+              Verify
+            </Button>,
+          ]}
+        >
+          <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+            <Alert
+              message="Session Password Required"
+              description="Please enter the session password that was sent to your email to access this interview."
+              type="info"
+              showIcon
+            />
+            <Input.Password
+              size="large"
+              placeholder="Enter session password (e.g., ABC123XY)"
+              value={sessionPassword}
+              onChange={(e) => setSessionPassword(e.target.value.toUpperCase())}
+              onPressEnter={verifyPassword}
+              maxLength={8}
+              style={{ letterSpacing: "2px", fontSize: "16px" }}
+            />
+            <Text type="secondary" style={{ fontSize: "12px" }}>
+              The password is case-insensitive and was included in your
+              invitation email.
+            </Text>
+          </Space>
+        </Modal>
       </div>
     </>
   );

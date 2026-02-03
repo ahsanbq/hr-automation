@@ -462,6 +462,8 @@ model AvatarAssessment {
   recordingEnabled  Boolean             @default(true)
   timeLimit         Int?                // Time limit in minutes
   evaluationCriteria Json?              // AI evaluation criteria
+  sessionPassword    String?            // Plain password for email display
+  sessionPasswordHash String?           // Bcrypt hashed password for validation
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
 
