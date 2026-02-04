@@ -12,7 +12,7 @@ import { generateCustomizedQuestions } from "@/lib/ai-interview-service";
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse
+  res: NextApiResponse,
 ) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -29,13 +29,17 @@ export default async function handler(
     const { num_questions, difficulty } = req.query;
 
     // Validate required fields
-    if (!jobPostId || typeof jobPostId !== 'string' || jobPostId.trim() === '') {
+    if (
+      !jobPostId ||
+      typeof jobPostId !== "string" ||
+      jobPostId.trim() === ""
+    ) {
       return res.status(400).json({
         error: "jobPostId is required and must be a valid string",
       });
     }
-    
-    if (!resumeId || typeof resumeId !== 'string' || resumeId.trim() === '') {
+
+    if (!resumeId || typeof resumeId !== "string" || resumeId.trim() === "") {
       return res.status(400).json({
         error: "resumeId is required and must be a valid string",
       });
@@ -133,7 +137,7 @@ export default async function handler(
     const aiResponse = await generateCustomizedQuestions(
       aiRequest,
       numQuestionsInt,
-      difficulty as QuestionDifficulty
+      difficulty as QuestionDifficulty,
     );
 
     return res.status(200).json({

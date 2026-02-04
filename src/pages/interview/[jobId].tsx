@@ -94,7 +94,8 @@ export default function InterviewJobPage() {
   const [selectedResume, setSelectedResume] = useState<Resume | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [aiGeneratorVisible, setAiGeneratorVisible] = useState(false);
-  const [selectedCandidateForAI, setSelectedCandidateForAI] = useState<Resume | null>(null);
+  const [selectedCandidateForAI, setSelectedCandidateForAI] =
+    useState<Resume | null>(null);
 
   useEffect(() => {
     if (jobId) {
@@ -339,8 +340,8 @@ export default function InterviewJobPage() {
                 record.interview.percentage >= 80
                   ? "green"
                   : record.interview.percentage >= 60
-                  ? "orange"
-                  : "red"
+                    ? "orange"
+                    : "red"
               }
               style={{ fontSize: "11px", margin: 0 }}
             >
@@ -515,7 +516,7 @@ export default function InterviewJobPage() {
                           resumes.length > 0
                             ? resumes.reduce(
                                 (sum, r) => sum + (r.matchScore || 0),
-                                0
+                                0,
                               ) / resumes.length
                             : 0
                         }
@@ -526,7 +527,7 @@ export default function InterviewJobPage() {
                             resumes.length > 0 &&
                             resumes.reduce(
                               (sum, r) => sum + (r.matchScore || 0),
-                              0
+                              0,
                             ) /
                               resumes.length >=
                               70
@@ -558,7 +559,7 @@ export default function InterviewJobPage() {
                         title="Meetings Completed"
                         value={
                           resumes.filter(
-                            (r) => r.meeting?.status === "COMPLETED"
+                            (r) => r.meeting?.status === "COMPLETED",
                           ).length
                         }
                         valueStyle={{ color: "#722ed1", fontSize: "24px" }}
@@ -639,10 +640,11 @@ export default function InterviewJobPage() {
                           setSelectedCandidateForAI(null);
                           setAiGeneratorVisible(true);
                         }}
-                        style={{ 
-                          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                        style={{
+                          background:
+                            "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                           color: "white",
-                          border: "none"
+                          border: "none",
                         }}
                       >
                         Generate AI Questions
@@ -698,7 +700,9 @@ export default function InterviewJobPage() {
         candidateName={selectedCandidateForAI?.candidateName}
         onQuestionsGenerated={(questions) => {
           console.log("Generated AI Questions:", questions);
-          message.success(`Successfully generated ${questions.length} AI questions!`);
+          message.success(
+            `Successfully generated ${questions.length} AI questions!`,
+          );
           // TODO: You can save these questions to database or use them in interview creation
         }}
       />

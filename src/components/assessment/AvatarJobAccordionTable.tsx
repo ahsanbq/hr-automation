@@ -503,7 +503,7 @@ const AvatarJobAccordionTable: React.FC<AvatarJobAccordionTableProps> = ({
               e.stopPropagation();
               onGenerateQuestions?.(record.id);
             }}
-            style={{ 
+            style={{
               color: "#722ed1",
               borderColor: "#722ed1",
             }}

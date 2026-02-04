@@ -9,26 +9,33 @@ The AI Interview Question Generation Module has been **fully restructured and im
 ## 📦 What Was Created
 
 ### 1. Type Definitions
+
 **File:** `src/types/ai-interview.ts`
+
 - ✅ TypeScript interfaces for all three question types
 - ✅ Database mapper functions (JobPost → API format, Resume → API format)
 - ✅ Enums for question types and difficulty levels
 - ✅ Helper utilities for parsing data
 
 ### 2. AI Service Client
+
 **File:** `src/lib/ai-interview-service.ts`
+
 - ✅ `generateBehavioralQuestions()` - Calls FastAPI endpoint
 - ✅ `generateTechnicalQuestions()` - Calls FastAPI endpoint
 - ✅ `generateCustomizedQuestions()` - Calls FastAPI endpoint
 - ✅ Error handling and 30-second timeouts
 
 ### 3. Backend API Endpoints
+
 **Files:**
+
 - `src/pages/api/interview/generate-behavioral.ts`
 - `src/pages/api/interview/generate-technical.ts`
 - `src/pages/api/interview/generate-customized.ts`
 
 **Features:**
+
 - ✅ Authentication using existing `getUserFromRequest()`
 - ✅ Auto-fetch data from JobPost and Resume tables
 - ✅ Data validation and error handling
@@ -36,9 +43,11 @@ The AI Interview Question Generation Module has been **fully restructured and im
 - ✅ Returns structured JSON responses
 
 ### 4. Frontend Component
+
 **File:** `src/components/interview/AIQuestionGenerator.tsx`
 
 **Features:**
+
 - ✅ Beautiful Ant Design UI with Radio selector for question types
 - ✅ Dynamic form based on selected question type
 - ✅ Focus areas input for Behavioral questions
@@ -48,7 +57,9 @@ The AI Interview Question Generation Module has been **fully restructured and im
 - ✅ Callback for generated questions
 
 ### 5. Documentation
+
 **Files:**
+
 - `AI_INTERVIEW_QUESTION_GENERATION_MODULE.md` - Complete module documentation
 - `AI_INTERVIEW_INTEGRATION_GUIDE.md` - Step-by-step integration guide
 
@@ -57,6 +68,7 @@ The AI Interview Question Generation Module has been **fully restructured and im
 ## 🗄️ Database Field Mapping
 
 ### ✅ Automatically Extracted from JobPost Table
+
 - `jobTitle` → `title`
 - `companyName` → `company`
 - `location` → `location`
@@ -70,6 +82,7 @@ The AI Interview Question Generation Module has been **fully restructured and im
 - `benefits` → `benefits` (parsed as array)
 
 ### ✅ Automatically Extracted from Resume Table
+
 - `resumeUrl` / `s3Key` → `resume_path`
 - `candidateName` → `name`
 - `candidateEmail` → `email`
@@ -86,6 +99,7 @@ The AI Interview Question Generation Module has been **fully restructured and im
 - `analysisTimestamp` → `analysis_timestamp`
 
 ### ⚠️ Manual Input Required (HR provides via frontend)
+
 - `number_of_questions` (1-20)
 - `difficulty` (Easy, Medium, Hard)
 - `focus_areas` (only for Behavioral questions)
@@ -95,6 +109,7 @@ The AI Interview Question Generation Module has been **fully restructured and im
 ## 🔌 API Endpoints Summary
 
 ### 1. Behavioral Questions
+
 ```
 POST /api/interview/generate-behavioral
 
@@ -108,6 +123,7 @@ Body:
 ```
 
 ### 2. Technical Questions
+
 ```
 POST /api/interview/generate-technical?difficulty=Hard&num_questions=5
 
@@ -118,6 +134,7 @@ Body:
 ```
 
 ### 3. Customized Questions
+
 ```
 POST /api/interview/generate-customized?num_questions=4&difficulty=Medium
 
@@ -145,7 +162,7 @@ import AIQuestionGenerator from "@/components/interview/AIQuestionGenerator";
     // Handle generated questions
     console.log(questions);
   }}
-/>
+/>;
 ```
 
 ---
@@ -155,6 +172,7 @@ import AIQuestionGenerator from "@/components/interview/AIQuestionGenerator";
 ### Step 1: Ensure FastAPI Backend is Ready
 
 The backend must have these endpoints:
+
 - `POST /generate-behavioral-questions`
 - `POST /generate-technical-questions?difficulty=X&num_questions=Y`
 - `POST /generate-customized-questions?num_questions=X&difficulty=Y`
@@ -167,7 +185,7 @@ Choose one of the integration methods from `AI_INTERVIEW_INTEGRATION_GUIDE.md`:
 
 **Option A:** Add to existing interview page  
 **Option B:** Create standalone question generator page  
-**Option C:** Integrate into interview form  
+**Option C:** Integrate into interview form
 
 ### Step 3: Test the Flow
 
@@ -209,16 +227,19 @@ Choose one of the integration methods from `AI_INTERVIEW_INTEGRATION_GUIDE.md`:
 ## 🎯 Key Features
 
 ### 1. Behavioral Questions Generator
+
 - Focus on soft skills and behavioral competencies
 - Customizable focus areas (Leadership, Teamwork, etc.)
 - Expected answer points for HR evaluation
 
 ### 2. Technical Questions Generator
+
 - Based on job requirements and technical skills
 - Auto-extracts skills from job post
 - Difficulty-based question generation
 
 ### 3. Customized Candidate Questions
+
 - Personalized to candidate's resume
 - Considers match score and experience
 - Reasoning provided for each question
@@ -248,6 +269,7 @@ Choose one of the integration methods from `AI_INTERVIEW_INTEGRATION_GUIDE.md`:
 ## 🐛 Error Handling
 
 All endpoints handle:
+
 - Missing or invalid parameters
 - Database record not found
 - AI service timeout/failure
@@ -291,6 +313,7 @@ All endpoints handle:
 **You now have a production-ready, scalable AI Interview Question Generation Module!**
 
 The module:
+
 - ✅ Meets all requirements from your specification
 - ✅ Auto-extracts data from existing database tables
 - ✅ Supports 3 question generation types
@@ -299,6 +322,7 @@ The module:
 - ✅ Follows clean code and architecture principles
 
 **Total Files Created:** 8
+
 1. `src/types/ai-interview.ts` (305 lines)
 2. `src/lib/ai-interview-service.ts` (91 lines)
 3. `src/pages/api/interview/generate-behavioral.ts` (104 lines)

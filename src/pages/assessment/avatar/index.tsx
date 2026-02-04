@@ -1,7 +1,11 @@
 ﻿import React, { useState } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Card, Button, Space, Modal, message } from "antd";
-import { PlusOutlined, RobotOutlined, ThunderboltOutlined } from "@ant-design/icons";
+import {
+  PlusOutlined,
+  RobotOutlined,
+  ThunderboltOutlined,
+} from "@ant-design/icons";
 import { useRouter } from "next/router";
 import AvatarJobAccordionTable from "@/components/assessment/AvatarJobAccordionTable";
 import AvatarInterviewForm from "@/components/interview/AvatarInterviewForm";
@@ -88,8 +92,8 @@ export default function AIInterviewsPage() {
         </div>
       </Card>
 
-      <AvatarJobAccordionTable 
-        key={refreshKey} 
+      <AvatarJobAccordionTable
+        key={refreshKey}
         onGenerateQuestions={(jobId) => handleOpenAIGenerator(jobId)}
       />
 
@@ -143,7 +147,9 @@ export default function AIInterviewsPage() {
         jobPostId={selectedJobId || ""}
         onQuestionsGenerated={(questions) => {
           console.log("Generated AI Questions:", questions);
-          message.success(`Successfully generated ${questions.length} AI questions!`);
+          message.success(
+            `Successfully generated ${questions.length} AI questions!`,
+          );
         }}
       />
     </AppLayout>

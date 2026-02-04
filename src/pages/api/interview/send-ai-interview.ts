@@ -9,7 +9,7 @@ import { sendAIInterviewInvitation } from "@/lib/email";
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse
+  res: NextApiResponse,
 ) {
   const user = getUserFromRequest(req);
   if (!user) return res.status(401).json({ error: "Unauthorized" });
@@ -107,7 +107,7 @@ export default async function handler(
       interview.jobPost.jobTitle,
       interview.jobPost.companyName,
       duration,
-      `AI-generated ${questionType} interview questions`
+      `AI-generated ${questionType} interview questions`,
     );
 
     if (!emailSent) {

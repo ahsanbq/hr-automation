@@ -7,6 +7,7 @@ Your system is correctly configured to use the external FastAPI endpoints:
 **Base URL:** `https://ai.synchro-hire.com`
 
 **Endpoints:**
+
 1. ✅ `POST /generate-behavioral-questions`
 2. ✅ `POST /generate-technical-questions?difficulty={difficulty}&num_questions={num}`
 3. ✅ `POST /generate-customized-questions?num_questions={num}&difficulty={difficulty}`
@@ -32,6 +33,7 @@ Your system is correctly configured to use the external FastAPI endpoints:
 ### 2. Test API Directly (Advanced)
 
 #### Test Behavioral Questions
+
 ```bash
 curl -X POST http://localhost:3000/api/interview/generate-behavioral \
   -H "Content-Type: application/json" \
@@ -45,6 +47,7 @@ curl -X POST http://localhost:3000/api/interview/generate-behavioral \
 ```
 
 #### Test Technical Questions
+
 ```bash
 curl -X POST "http://localhost:3000/api/interview/generate-technical?difficulty=Medium&num_questions=3" \
   -H "Content-Type: application/json" \
@@ -55,6 +58,7 @@ curl -X POST "http://localhost:3000/api/interview/generate-technical?difficulty=
 ```
 
 #### Test Customized Questions
+
 ```bash
 curl -X POST "http://localhost:3000/api/interview/generate-customized?num_questions=3&difficulty=Medium" \
   -H "Content-Type: application/json" \
@@ -89,6 +93,7 @@ Display in UI
 ## 📊 Request Format Sent to FastAPI
 
 ### Behavioral Questions Request
+
 ```json
 POST https://ai.synchro-hire.com/generate-behavioral-questions
 Content-Type: application/json
@@ -114,6 +119,7 @@ Content-Type: application/json
 ```
 
 ### Technical Questions Request
+
 ```json
 POST https://ai.synchro-hire.com/generate-technical-questions?difficulty=Hard&num_questions=5
 Content-Type: application/json
@@ -134,6 +140,7 @@ Content-Type: application/json
 ```
 
 ### Customized Questions Request
+
 ```json
 POST https://ai.synchro-hire.com/generate-customized-questions?num_questions=4&difficulty=Medium
 Content-Type: application/json
@@ -176,13 +183,16 @@ Content-Type: application/json
 ## 🔧 Troubleshooting
 
 ### Issue: "Failed to generate questions"
+
 **Possible Causes:**
+
 1. FastAPI server at `https://ai.synchro-hire.com` is down
 2. Network connectivity issue
 3. FastAPI timeout (>30 seconds)
 4. Invalid request format
 
 **How to Debug:**
+
 1. Open browser DevTools → Network tab
 2. Generate questions
 3. Look for the API call to `/api/interview/generate-*`
@@ -190,10 +200,13 @@ Content-Type: application/json
 5. Check browser console for errors
 
 ### Issue: "Job post not found" or "Resume not found"
+
 **Solution:** Ensure valid job and resume IDs exist in your database
 
 ### Issue: Timeout after 30 seconds
-**Solution:** 
+
+**Solution:**
+
 - Reduce number of questions
 - Check FastAPI server performance
 - Increase timeout in `ai-interview-service.ts` if needed

@@ -5,7 +5,7 @@ import { getUserFromRequest } from "@/lib/auth";
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse
+  res: NextApiResponse,
 ) {
   const user = getUserFromRequest(req);
   if (!user) return res.status(401).json({ error: "Unauthorized" });
@@ -22,7 +22,7 @@ export default async function handler(
 async function handleCreate(
   req: NextApiRequest,
   res: NextApiResponse,
-  user: any
+  user: any,
 ) {
   try {
     const {
@@ -78,7 +78,7 @@ async function handleCreate(
 async function handleList(
   req: NextApiRequest,
   res: NextApiResponse,
-  user: any
+  user: any,
 ) {
   try {
     if (!user.companyId) {

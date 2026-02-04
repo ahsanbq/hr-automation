@@ -185,7 +185,9 @@ export default function AssignAIInterviewModal({
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const selectedTemplate = templates.find((t) => t.id === selectedTemplateId);
+      const selectedTemplate = templates.find(
+        (t) => t.id === selectedTemplateId,
+      );
 
       if (!selectedTemplate) {
         message.error("Selected template not found");
@@ -204,7 +206,7 @@ export default function AssignAIInterviewModal({
         },
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       message.success("AI Interview sent to candidate successfully!");
@@ -320,7 +322,9 @@ export default function AssignAIInterviewModal({
             {getSelectedTemplate() && (
               <Card style={{ marginBottom: 16, background: "#f0f2f5" }}>
                 <Space>
-                  <FileTextOutlined style={{ fontSize: 20, color: "#722ed1" }} />
+                  <FileTextOutlined
+                    style={{ fontSize: 20, color: "#722ed1" }}
+                  />
                   <div>
                     <Text strong>Selected Template:</Text>
                     <br />
@@ -373,15 +377,14 @@ export default function AssignAIInterviewModal({
             {getSelectedJob() && (
               <Card style={{ marginBottom: 16, background: "#f0f2f5" }}>
                 <Space>
-                  <FolderOutlined
-                    style={{ fontSize: 20, color: "#722ed1" }}
-                  />
+                  <FolderOutlined style={{ fontSize: 20, color: "#722ed1" }} />
                   <div>
                     <Text strong>Selected Job:</Text>
                     <br />
                     <Text>
                       {getSelectedJob()?.jobTitle} -{" "}
-                      {getSelectedJob()?.company || getSelectedJob()?.companyName}
+                      {getSelectedJob()?.company ||
+                        getSelectedJob()?.companyName}
                     </Text>
                   </div>
                 </Space>
@@ -420,7 +423,9 @@ export default function AssignAIInterviewModal({
                       <Radio value={candidate.id}>
                         <Space direction="vertical">
                           <Text strong>{candidate.candidateName}</Text>
-                          <Text type="secondary">{candidate.candidateEmail}</Text>
+                          <Text type="secondary">
+                            {candidate.candidateEmail}
+                          </Text>
                           {candidate.matchScore && (
                             <Tag color="green">
                               Match: {candidate.matchScore}%
@@ -461,7 +466,9 @@ export default function AssignAIInterviewModal({
                   )}
                   <Space wrap>
                     <Tag color="blue">{template?.questionType}</Tag>
-                    <Tag color="green">{template?.totalQuestions} Questions</Tag>
+                    <Tag color="green">
+                      {template?.totalQuestions} Questions
+                    </Tag>
                     {template?.difficulty && (
                       <Tag color="orange">{template.difficulty}</Tag>
                     )}

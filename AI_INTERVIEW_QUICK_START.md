@@ -47,7 +47,7 @@ export default function InterviewPage() {
   return (
     <div>
       {/* Your existing content */}
-      
+
       <Button
         type="primary"
         icon={<ThunderboltOutlined />}
@@ -75,6 +75,7 @@ export default function InterviewPage() {
 ### Step 4: Test the Flow
 
 1. **Start your Next.js server:**
+
    ```bash
    npm run dev
    ```
@@ -102,6 +103,7 @@ export default function InterviewPage() {
 **Test using curl or Postman:**
 
 #### Test 1: Behavioral Questions
+
 ```bash
 curl -X POST http://localhost:3000/api/interview/generate-behavioral \
   -H "Content-Type: application/json" \
@@ -115,6 +117,7 @@ curl -X POST http://localhost:3000/api/interview/generate-behavioral \
 ```
 
 #### Test 2: Technical Questions
+
 ```bash
 curl -X POST "http://localhost:3000/api/interview/generate-technical?difficulty=Medium&num_questions=3" \
   -H "Content-Type: application/json" \
@@ -125,6 +128,7 @@ curl -X POST "http://localhost:3000/api/interview/generate-technical?difficulty=
 ```
 
 #### Test 3: Customized Questions
+
 ```bash
 curl -X POST "http://localhost:3000/api/interview/generate-customized?num_questions=3&difficulty=Medium" \
   -H "Content-Type: application/json" \
@@ -140,22 +144,29 @@ curl -X POST "http://localhost:3000/api/interview/generate-customized?num_questi
 ## 🐛 Troubleshooting
 
 ### Issue: "Unauthorized" Error
+
 **Solution:** Ensure you're logged in and JWT token is valid.
 
 ### Issue: "Job post not found"
+
 **Solution:** Verify the `jobPostId` exists in your database.
 
 ### Issue: "Resume not found" or "Resume does not belong to job post"
+
 **Solution:** Ensure `resumeId` is valid and belongs to the specified `jobPostId`.
 
 ### Issue: "Failed to generate questions"
-**Solution:** 
+
+**Solution:**
+
 - Check FastAPI backend is running
 - Verify `NEXT_PUBLIC_FASTAPI_URL` is correct
 - Check FastAPI logs for errors
 
 ### Issue: Timeout
+
 **Solution:** AI generation can take 10-30 seconds. If consistently timing out:
+
 - Reduce number of questions
 - Check FastAPI server resources
 - Increase timeout in `ai-interview-service.ts` (currently 30s)
@@ -165,6 +176,7 @@ curl -X POST "http://localhost:3000/api/interview/generate-customized?num_questi
 ## 📊 Expected Response Format
 
 ### Behavioral Questions Response
+
 ```json
 {
   "success": true,
@@ -190,6 +202,7 @@ curl -X POST "http://localhost:3000/api/interview/generate-customized?num_questi
 ```
 
 ### Technical Questions Response
+
 ```json
 {
   "success": true,
@@ -211,6 +224,7 @@ curl -X POST "http://localhost:3000/api/interview/generate-customized?num_questi
 ```
 
 ### Customized Questions Response
+
 ```json
 {
   "success": true,
@@ -242,6 +256,7 @@ curl -X POST "http://localhost:3000/api/interview/generate-customized?num_questi
 ## 🎨 Customization Options
 
 ### Change Modal Width
+
 ```tsx
 // In AIQuestionGenerator.tsx, find the Modal component:
 <Modal
@@ -251,12 +266,14 @@ curl -X POST "http://localhost:3000/api/interview/generate-customized?num_questi
 ```
 
 ### Change Timeout
+
 ```tsx
 // In ai-interview-service.ts:
 timeout: 45000,  // Change from 30000 (30s) to 45000 (45s)
 ```
 
 ### Add Default Focus Areas
+
 ```tsx
 // In AIQuestionGenerator.tsx, Form initialValues:
 initialValues={{
@@ -267,15 +284,16 @@ initialValues={{
 ```
 
 ### Disable Question Types
+
 ```tsx
 // In AIQuestionGenerator.tsx, conditionally hide options:
-{!props.disableBehavioral && (
-  <Card>
-    <Radio value={QuestionGenerationType.BEHAVIORAL}>
-      ...
-    </Radio>
-  </Card>
-)}
+{
+  !props.disableBehavioral && (
+    <Card>
+      <Radio value={QuestionGenerationType.BEHAVIORAL}>...</Radio>
+    </Card>
+  );
+}
 ```
 
 ---
@@ -313,6 +331,7 @@ const handleQuestionsGenerated = async (questions: any[]) => {
 ## 📚 Documentation Reference
 
 For more details, see:
+
 1. **AI_INTERVIEW_MODULE_IMPLEMENTATION_SUMMARY.md** - Complete summary
 2. **AI_INTERVIEW_QUESTION_GENERATION_MODULE.md** - Full documentation
 3. **AI_INTERVIEW_INTEGRATION_GUIDE.md** - Detailed integration examples
@@ -339,17 +358,18 @@ Before going to production:
 
 ## 🎯 Quick Reference
 
-| Question Type | Requires Resume? | Manual Input | Auto-Extracted |
-|--------------|-----------------|--------------|----------------|
-| **Behavioral** | No | Focus areas, difficulty, quantity | Job requirements |
-| **Technical** | No | Difficulty, quantity | Job requirements, skills |
-| **Customized** | Yes | Difficulty, quantity | Job + Resume data |
+| Question Type  | Requires Resume? | Manual Input                      | Auto-Extracted           |
+| -------------- | ---------------- | --------------------------------- | ------------------------ |
+| **Behavioral** | No               | Focus areas, difficulty, quantity | Job requirements         |
+| **Technical**  | No               | Difficulty, quantity              | Job requirements, skills |
+| **Customized** | Yes              | Difficulty, quantity              | Job + Resume data        |
 
 ---
 
 ## 🚀 You're Ready to Go!
 
 The module is **production-ready** and fully integrated with your existing:
+
 - ✅ Database schema (JobPost, Resume tables)
 - ✅ Authentication system (JWT)
 - ✅ Frontend stack (React, TypeScript, Ant Design)

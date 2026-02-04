@@ -19,16 +19,19 @@ const AI_API_BASE = "https://ai.synchro-hire.com";
  * @returns Array of behavioral questions with expected answer points
  */
 export async function generateBehavioralQuestions(
-  request: BehavioralQuestionRequest
+  request: BehavioralQuestionRequest,
 ): Promise<BehavioralQuestionResponse> {
   try {
-    const response = await fetch(`${AI_API_BASE}/generate-behavioral-questions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const response = await fetch(
+      `${AI_API_BASE}/generate-behavioral-questions`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(request),
       },
-      body: JSON.stringify(request),
-    });
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -39,9 +42,7 @@ export async function generateBehavioralQuestions(
     return data;
   } catch (error: any) {
     console.error("Error generating behavioral questions:", error);
-    throw new Error(
-      error.message || "Failed to generate behavioral questions"
-    );
+    throw new Error(error.message || "Failed to generate behavioral questions");
   }
 }
 
@@ -55,7 +56,7 @@ export async function generateBehavioralQuestions(
 export async function generateTechnicalQuestions(
   request: TechnicalQuestionRequest,
   difficulty: QuestionDifficulty,
-  num_questions: number
+  num_questions: number,
 ): Promise<TechnicalQuestionResponse> {
   try {
     const response = await fetch(
@@ -66,7 +67,7 @@ export async function generateTechnicalQuestions(
           "Content-Type": "application/json",
         },
         body: JSON.stringify(request),
-      }
+      },
     );
 
     if (!response.ok) {
@@ -78,9 +79,7 @@ export async function generateTechnicalQuestions(
     return data;
   } catch (error: any) {
     console.error("Error generating technical questions:", error);
-    throw new Error(
-      error.message || "Failed to generate technical questions"
-    );
+    throw new Error(error.message || "Failed to generate technical questions");
   }
 }
 
@@ -94,7 +93,7 @@ export async function generateTechnicalQuestions(
 export async function generateCustomizedQuestions(
   request: CustomizedQuestionRequest,
   num_questions: number,
-  difficulty: QuestionDifficulty
+  difficulty: QuestionDifficulty,
 ): Promise<CustomizedQuestionResponse> {
   try {
     const response = await fetch(
@@ -105,7 +104,7 @@ export async function generateCustomizedQuestions(
           "Content-Type": "application/json",
         },
         body: JSON.stringify(request),
-      }
+      },
     );
 
     if (!response.ok) {
@@ -117,8 +116,6 @@ export async function generateCustomizedQuestions(
     return data;
   } catch (error: any) {
     console.error("Error generating customized questions:", error);
-    throw new Error(
-      error.message || "Failed to generate customized questions"
-    );
+    throw new Error(error.message || "Failed to generate customized questions");
   }
 }

@@ -171,7 +171,7 @@ export interface ResumeData {
 // Helper functions for mapping database data to API request formats
 export function mapJobPostToBehavioralRequest(
   jobPost: JobPostData,
-  config: QuestionGeneratorConfig
+  config: QuestionGeneratorConfig,
 ): BehavioralQuestionRequest {
   return {
     job_requirement: {
@@ -194,7 +194,7 @@ export function mapJobPostToBehavioralRequest(
 }
 
 export function mapJobPostToTechnicalRequest(
-  jobPost: JobPostData
+  jobPost: JobPostData,
 ): TechnicalQuestionRequest {
   return {
     title: jobPost.jobTitle,
@@ -213,7 +213,7 @@ export function mapJobPostToTechnicalRequest(
 
 export function mapToCustomizedRequest(
   resume: ResumeData,
-  jobPost: JobPostData
+  jobPost: JobPostData,
 ): CustomizedQuestionRequest {
   return {
     candidate: {
@@ -238,7 +238,8 @@ export function mapToCustomizedRequest(
       volunteer_experience: [],
       interests: [],
       processing_method: resume.processingMethod || "AI Resume Parser",
-      analysis_timestamp: resume.analysisTimestamp?.toISOString() || new Date().toISOString(),
+      analysis_timestamp:
+        resume.analysisTimestamp?.toISOString() || new Date().toISOString(),
     },
     job_requirement: {
       title: jobPost.jobTitle,
@@ -259,15 +260,18 @@ export function mapToCustomizedRequest(
 // Helper function to parse comma-separated strings or JSON arrays
 function parseStringArray(value: string | null): string[] {
   if (!value) return [];
-  
+
   // Try parsing as JSON first
   try {
     const parsed = JSON.parse(value);
     if (Array.isArray(parsed)) return parsed;
   } catch {
     // If not JSON, split by comma
-    return value.split(",").map((s) => s.trim()).filter(Boolean);
+    return value
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
   }
-  
+
   return [];
 }

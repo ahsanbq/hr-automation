@@ -14,7 +14,7 @@ import { generateBehavioralQuestions } from "@/lib/ai-interview-service";
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse
+  res: NextApiResponse,
 ) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -40,12 +40,16 @@ export default async function handler(
     } = req.body;
 
     // Validate required fields
-    if (!jobPostId || typeof jobPostId !== 'string' || jobPostId.trim() === '') {
+    if (
+      !jobPostId ||
+      typeof jobPostId !== "string" ||
+      jobPostId.trim() === ""
+    ) {
       return res.status(400).json({
         error: "jobPostId is required and must be a valid string",
       });
     }
-    
+
     if (!number_of_questions || !difficulty) {
       return res.status(400).json({
         error: "Missing required fields: number_of_questions, difficulty",

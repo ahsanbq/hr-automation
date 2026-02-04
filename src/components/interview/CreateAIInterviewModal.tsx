@@ -69,11 +69,11 @@ export default function CreateAIInterviewModal({
   const [candidates, setCandidates] = useState<CandidateOption[]>([]);
   const [loadingJobs, setLoadingJobs] = useState(false);
   const [loadingCandidates, setLoadingCandidates] = useState(false);
-  
+
   // Form data state
   const [selectedJobId, setSelectedJobId] = useState<string>();
   const [questionType, setQuestionType] = useState<QuestionGenerationType>(
-    QuestionGenerationType.BEHAVIORAL
+    QuestionGenerationType.BEHAVIORAL,
   );
   const [selectedCandidateId, setSelectedCandidateId] = useState<string>();
   const [generatedQuestions, setGeneratedQuestions] = useState<any[]>([]);
@@ -161,7 +161,10 @@ export default function CreateAIInterviewModal({
       }
     } else if (currentStep === 1) {
       // Validate question type and candidate if needed
-      if (questionType === QuestionGenerationType.CUSTOMIZED && !selectedCandidateId) {
+      if (
+        questionType === QuestionGenerationType.CUSTOMIZED &&
+        !selectedCandidateId
+      ) {
         message.error("Please select a candidate for customized questions");
         return;
       }
@@ -231,13 +234,18 @@ export default function CreateAIInterviewModal({
       if (response.data.success) {
         const questions = response.data.data.questions || [];
         setGeneratedQuestions(questions);
-        
+
         // Auto-generate template title
-        const selectedJob = jobs.find(j => j.id === selectedJobId);
-        const typeLabel = questionType.charAt(0) + questionType.slice(1).toLowerCase();
-        setTemplateTitle(`${typeLabel} Questions - ${selectedJob?.title || 'Job'}`);
-        
-        message.success(`Generated ${questions.length} questions successfully!`);
+        const selectedJob = jobs.find((j) => j.id === selectedJobId);
+        const typeLabel =
+          questionType.charAt(0) + questionType.slice(1).toLowerCase();
+        setTemplateTitle(
+          `${typeLabel} Questions - ${selectedJob?.title || "Job"}`,
+        );
+
+        message.success(
+          `Generated ${questions.length} questions successfully!`,
+        );
         handleNext(); // Move to review step
       } else {
         message.error("Failed to generate questions");
@@ -245,7 +253,10 @@ export default function CreateAIInterviewModal({
     } catch (error: any) {
       console.error("❌ Generate error:", error);
       console.error("❌ Error response:", error.response?.data);
-      const errorMessage = error.response?.data?.error || error.response?.data?.message || "Failed to generate questions";
+      const errorMessage =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        "Failed to generate questions";
       message.error(errorMessage);
     } finally {
       setLoading(false);
@@ -276,7 +287,7 @@ export default function CreateAIInterviewModal({
         },
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       message.success("AI Interview template saved successfully!");
@@ -312,7 +323,7 @@ export default function CreateAIInterviewModal({
         },
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       message.success("AI Interview sent to candidate successfully!");
@@ -354,7 +365,9 @@ export default function CreateAIInterviewModal({
                 size="large"
                 optionFilterProp="children"
                 filterOption={(input, option) =>
-                  (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                  (option?.label ?? "")
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
                 }
                 options={jobs.map((job) => ({
                   value: job.id,
@@ -411,9 +424,15 @@ export default function CreateAIInterviewModal({
               initialValue={QuestionDifficulty.MEDIUM}
             >
               <Select size="large">
-                <Select.Option value={QuestionDifficulty.EASY}>Easy</Select.Option>
-                <Select.Option value={QuestionDifficulty.MEDIUM}>Medium</Select.Option>
-                <Select.Option value={QuestionDifficulty.HARD}>Hard</Select.Option>
+                <Select.Option value={QuestionDifficulty.EASY}>
+                  Easy
+                </Select.Option>
+                <Select.Option value={QuestionDifficulty.MEDIUM}>
+                  Medium
+                </Select.Option>
+                <Select.Option value={QuestionDifficulty.HARD}>
+                  Hard
+                </Select.Option>
               </Select>
             </Form.Item>
 
@@ -428,7 +447,9 @@ export default function CreateAIInterviewModal({
                   size="large"
                   optionFilterProp="children"
                   filterOption={(input, option) =>
-                    (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                    (option?.label ?? "")
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
                   }
                   options={candidates.map((candidate) => ({
                     value: candidate.id,
@@ -448,7 +469,11 @@ export default function CreateAIInterviewModal({
               </Form.Item>
             )}
 
-            <Form.Item name="duration" label="Interview Duration (minutes)" initialValue={30}>
+            <Form.Item
+              name="duration"
+              label="Interview Duration (minutes)"
+              initialValue={30}
+            >
               <InputNumber min={10} max={120} style={{ width: "100%" }} />
             </Form.Item>
           </div>
@@ -479,7 +504,9 @@ export default function CreateAIInterviewModal({
                   <Space direction="vertical" style={{ width: "100%" }}>
                     <div>
                       <Tag color="blue">{questionType}</Tag>
-                      <Tag color="green">{generatedQuestions.length} Questions</Tag>
+                      <Tag color="green">
+                        {generatedQuestions.length} Questions
+                      </Tag>
                     </div>
                     <Form.Item
                       label="Template Title"
@@ -492,7 +519,10 @@ export default function CreateAIInterviewModal({
                         size="large"
                       />
                     </Form.Item>
-                    <Form.Item name="description" label="Description (Optional)">
+                    <Form.Item
+                      name="description"
+                      label="Description (Optional)"
+                    >
                       <TextArea
                         rows={2}
                         placeholder="Add description for this question set"
@@ -511,14 +541,15 @@ export default function CreateAIInterviewModal({
                             {index + 1}. {question.question}
                           </Text>
                           {question.expectedAnswer && (
-                            <Paragraph type="secondary" style={{ marginBottom: 0 }}>
+                            <Paragraph
+                              type="secondary"
+                              style={{ marginBottom: 0 }}
+                            >
                               <Text type="secondary">Expected: </Text>
                               {question.expectedAnswer}
                             </Paragraph>
                           )}
-                          {question.category && (
-                            <Tag>{question.category}</Tag>
-                          )}
+                          {question.category && <Tag>{question.category}</Tag>}
                         </Space>
                       </Card>
                     </List.Item>
@@ -558,7 +589,11 @@ export default function CreateAIInterviewModal({
         return (
           <Space>
             <Button onClick={onClose}>Cancel</Button>
-            <Button type="primary" onClick={handleNext} disabled={!selectedJobId}>
+            <Button
+              type="primary"
+              onClick={handleNext}
+              disabled={!selectedJobId}
+            >
               Next
             </Button>
           </Space>
@@ -599,7 +634,9 @@ export default function CreateAIInterviewModal({
                 icon={<SendOutlined />}
                 onClick={handleSendToCandidate}
                 loading={loading}
-                disabled={generatedQuestions.length === 0 || !selectedCandidateId}
+                disabled={
+                  generatedQuestions.length === 0 || !selectedCandidateId
+                }
               >
                 Send to Candidate
               </Button>

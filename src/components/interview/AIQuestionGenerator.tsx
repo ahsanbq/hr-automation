@@ -60,18 +60,24 @@ export default function AIQuestionGenerator({
   candidateName,
   onQuestionsGenerated,
 }: AIQuestionGeneratorProps) {
-  console.log("🔷 AIQuestionGenerator RENDERED", { visible, jobPostId, resumeId });
-  
+  console.log("🔷 AIQuestionGenerator RENDERED", {
+    visible,
+    jobPostId,
+    resumeId,
+  });
+
   const [form] = Form.useForm();
   const [questionType, setQuestionType] = useState<QuestionGenerationType>(
-    QuestionGenerationType.BEHAVIORAL
+    QuestionGenerationType.BEHAVIORAL,
   );
   const [loading, setLoading] = useState(false);
   const [generatedQuestions, setGeneratedQuestions] = useState<any[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [jobs, setJobs] = useState<JobOption[]>([]);
   const [loadingJobs, setLoadingJobs] = useState(false);
-  const [selectedJobId, setSelectedJobId] = useState<string | undefined>(jobPostId);
+  const [selectedJobId, setSelectedJobId] = useState<string | undefined>(
+    jobPostId,
+  );
 
   // Fetch jobs list when modal opens
   useEffect(() => {
@@ -101,7 +107,9 @@ export default function AIQuestionGenerator({
       console.log("Parsed jobs list:", jobsList);
       setJobs(jobsList);
       if (jobsList.length === 0) {
-        message.warning("No job positions found. Please create a job post first.");
+        message.warning(
+          "No job positions found. Please create a job post first.",
+        );
       }
     } catch (error) {
       console.error("Failed to fetch jobs:", error);
@@ -116,20 +124,20 @@ export default function AIQuestionGenerator({
     console.log("🔵 selectedJobId:", selectedJobId);
     console.log("🔵 resumeId:", resumeId);
     console.log("🔵 questionType:", questionType);
-    
+
     try {
       console.log("🔵 Validating form fields...");
       await form.validateFields();
       const values = form.getFieldsValue();
       console.log("🔵 Form values:", values);
-      
+
       // Validate selectedJobId
-      if (!selectedJobId || selectedJobId.trim() === '') {
+      if (!selectedJobId || selectedJobId.trim() === "") {
         console.error("❌ selectedJobId is missing or empty");
         message.error("Please select a job to generate questions");
         return;
       }
-      
+
       console.log("🔵 Setting loading state...");
       setLoading(true);
       setGeneratedQuestions([]);
@@ -172,7 +180,7 @@ export default function AIQuestionGenerator({
               focus_areas: values.focus_areas,
               difficulty: values.difficulty,
             },
-            { headers }
+            { headers },
           );
           break;
 
@@ -184,25 +192,30 @@ export default function AIQuestionGenerator({
           }>(
             `/api/interview/generate-technical?difficulty=${values.difficulty}&num_questions=${values.number_of_questions}`,
             { jobPostId: selectedJobId },
-            { headers }
+            { headers },
           );
           break;
 
         case QuestionGenerationType.CUSTOMIZED:
           if (!resumeId) {
             console.error("❌ resumeId is missing for customized questions");
-            message.error("Candidate resume is required for customized questions");
+            message.error(
+              "Candidate resume is required for customized questions",
+            );
             setLoading(false);
             return;
           }
-          console.log("🔵 Calling customized API with:", { selectedJobId, resumeId });
+          console.log("🔵 Calling customized API with:", {
+            selectedJobId,
+            resumeId,
+          });
           response = await axios.post<{
             success: boolean;
             data: CustomizedQuestionResponse;
           }>(
             `/api/interview/generate-customized?difficulty=${values.difficulty}&num_questions=${values.number_of_questions}`,
             { jobPostId: selectedJobId, resumeId },
-            { headers }
+            { headers },
           );
           break;
 
@@ -216,9 +229,9 @@ export default function AIQuestionGenerator({
         setGeneratedQuestions(response.data.data.questions);
         setShowResults(true);
         message.success(
-          `Successfully generated ${response.data.data.questions.length} questions!`
+          `Successfully generated ${response.data.data.questions.length} questions!`,
         );
-        
+
         if (onQuestionsGenerated) {
           onQuestionsGenerated(response.data.data.questions);
         }
@@ -230,7 +243,9 @@ export default function AIQuestionGenerator({
       console.error("❌ Error generating questions:", error);
       console.error("❌ Error response:", error.response?.data);
       message.error(
-        error.response?.data?.error || error.message || "Failed to generate questions"
+        error.response?.data?.error ||
+          error.message ||
+          "Failed to generate questions",
       );
     } finally {
       console.log("🔵 Setting loading to false");
@@ -313,9 +328,11 @@ export default function AIQuestionGenerator({
                 showSearch
                 optionFilterProp="children"
                 filterOption={(input, option) =>
-                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                  (option?.label ?? "")
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
                 }
-                options={jobs.map(job => ({
+                options={jobs.map((job) => ({
                   value: job.id,
                   label: `${job.title} - ${job.company}`,
                 }))}
@@ -323,7 +340,7 @@ export default function AIQuestionGenerator({
               />
             </Form.Item>
           )}
-          
+
           <Alert
             message="Select Question Generation Type"
             description="Choose how you want to generate interview questions for this candidate"
@@ -360,7 +377,7 @@ export default function AIQuestionGenerator({
                       style={{ marginLeft: 24, marginBottom: 0, marginTop: 4 }}
                     >
                       {getQuestionTypeDescription(
-                        QuestionGenerationType.BEHAVIORAL
+                        QuestionGenerationType.BEHAVIORAL,
                       )}
                     </Paragraph>
                   </Radio>
@@ -386,7 +403,7 @@ export default function AIQuestionGenerator({
                       style={{ marginLeft: 24, marginBottom: 0, marginTop: 4 }}
                     >
                       {getQuestionTypeDescription(
-                        QuestionGenerationType.TECHNICAL
+                        QuestionGenerationType.TECHNICAL,
                       )}
                     </Paragraph>
                   </Radio>
@@ -410,21 +427,22 @@ export default function AIQuestionGenerator({
                     <Space>
                       {getQuestionTypeIcon(QuestionGenerationType.CUSTOMIZED)}
                       <strong>Customized Candidate Questions</strong>
-                      {candidateName && (
-                        <Tag color="blue">{candidateName}</Tag>
-                      )}
+                      {candidateName && <Tag color="blue">{candidateName}</Tag>}
                     </Space>
                     <Paragraph
                       type="secondary"
                       style={{ marginLeft: 24, marginBottom: 0, marginTop: 4 }}
                     >
                       {getQuestionTypeDescription(
-                        QuestionGenerationType.CUSTOMIZED
+                        QuestionGenerationType.CUSTOMIZED,
                       )}
                     </Paragraph>
                   </Radio>
                   {!resumeId && (
-                    <Text type="danger" style={{ marginLeft: 24, fontSize: 12 }}>
+                    <Text
+                      type="danger"
+                      style={{ marginLeft: 24, fontSize: 12 }}
+                    >
                       * Candidate must be selected to use this option
                     </Text>
                   )}
@@ -507,8 +525,12 @@ export default function AIQuestionGenerator({
               >
                 Generate Questions
               </Button>
-              <Button htmlType="button" onClick={handleReset}>Reset</Button>
-              <Button htmlType="button" onClick={onClose}>Cancel</Button>
+              <Button htmlType="button" onClick={handleReset}>
+                Reset
+              </Button>
+              <Button htmlType="button" onClick={onClose}>
+                Cancel
+              </Button>
             </Space>
           </Form.Item>
         </Form>

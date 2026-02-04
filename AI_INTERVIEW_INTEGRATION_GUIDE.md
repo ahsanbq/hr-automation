@@ -27,7 +27,10 @@ export default function InterviewManagementPage() {
   const router = useRouter();
   const { jobId } = router.query;
 
-  const handleGenerateQuestions = (candidate?: { resumeId: string; name: string }) => {
+  const handleGenerateQuestions = (candidate?: {
+    resumeId: string;
+    name: string;
+  }) => {
     if (candidate) {
       setSelectedCandidate(candidate);
     }
@@ -55,10 +58,12 @@ export default function InterviewManagementPage() {
                 <Button
                   type="primary"
                   icon={<ThunderboltOutlined />}
-                  onClick={() => handleGenerateQuestions({
-                    resumeId: record.id,
-                    name: record.candidateName,
-                  })}
+                  onClick={() =>
+                    handleGenerateQuestions({
+                      resumeId: record.id,
+                      name: record.candidateName,
+                    })
+                  }
                 >
                   Generate AI Questions
                 </Button>
@@ -183,7 +188,8 @@ export default function GenerateQuestionsPage() {
               >
                 {candidates.map((candidate) => (
                   <Option key={candidate.id} value={candidate.id}>
-                    {candidate.candidateName} ({candidate.candidateEmail}) - Match Score: {candidate.matchScore}%
+                    {candidate.candidateName} ({candidate.candidateEmail}) -
+                    Match Score: {candidate.matchScore}%
                   </Option>
                 ))}
               </Select>
@@ -231,7 +237,11 @@ import AIQuestionGenerator from "./AIQuestionGenerator";
 import { Button } from "antd";
 import { ThunderboltOutlined } from "@ant-design/icons";
 
-export default function InterviewForm({ jobId, resumeId, candidateName }: Props) {
+export default function InterviewForm({
+  jobId,
+  resumeId,
+  candidateName,
+}: Props) {
   const [showAIGenerator, setShowAIGenerator] = useState(false);
   const [questions, setQuestions] = useState<any[]>([]);
 
@@ -252,7 +262,7 @@ export default function InterviewForm({ jobId, resumeId, candidateName }: Props)
   return (
     <Form>
       {/* Your existing form fields */}
-      
+
       <Form.Item label="Questions">
         <Button
           type="dashed"
@@ -262,7 +272,7 @@ export default function InterviewForm({ jobId, resumeId, candidateName }: Props)
         >
           Generate Questions with AI
         </Button>
-        
+
         {/* Your existing question list */}
         {questions.map((q) => (
           <div key={q.id}>{q.question}</div>
@@ -306,7 +316,7 @@ async function generateBehavioral(jobId: string) {
 async function generateTechnical(jobId: string) {
   const response = await axios.post(
     "/api/interview/generate-technical?difficulty=Hard&num_questions=5",
-    { jobPostId: jobId }
+    { jobPostId: jobId },
   );
   return response.data;
 }
@@ -315,7 +325,7 @@ async function generateTechnical(jobId: string) {
 async function generateCustomized(jobId: string, resumeId: string) {
   const response = await axios.post(
     "/api/interview/generate-customized?num_questions=4&difficulty=Medium",
-    { jobPostId: jobId, resumeId: resumeId }
+    { jobPostId: jobId, resumeId: resumeId },
   );
   return response.data;
 }
@@ -403,12 +413,12 @@ const handleQuestionsGenerated = async (questions: any[]) => {
 
 ## 🐛 Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| Component doesn't show | Check that `visible` prop is true |
+| Issue                        | Solution                                   |
+| ---------------------------- | ------------------------------------------ |
+| Component doesn't show       | Check that `visible` prop is true          |
 | No candidates for customized | Ensure resumeId is passed to the component |
-| API errors | Verify FastAPI backend is running |
-| Questions not saving | Implement `onQuestionsGenerated` callback |
+| API errors                   | Verify FastAPI backend is running          |
+| Questions not saving         | Implement `onQuestionsGenerated` callback  |
 
 ---
 

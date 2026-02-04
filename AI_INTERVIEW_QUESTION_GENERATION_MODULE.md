@@ -39,40 +39,40 @@ src/
 
 The module automatically extracts the following fields from the `JobPost` table:
 
-| Database Field | API Field | Description |
-|---------------|-----------|-------------|
-| `jobTitle` | `title` | Job position title |
-| `companyName` | `company` | Company name |
-| `location` | `location` | Job location |
-| `jobType` | `job_type` | Employment type (Full-time, Part-time, etc.) |
-| `experienceLevel` | `experience_level` | Required experience level |
-| `skillsRequired` | `skills_required` | Array of required skills |
-| `keyResponsibilities` | `responsibilities` | Job responsibilities |
-| `qualifications` | `qualifications` | Required qualifications |
-| `jobDescription` | `description` | Full job description |
-| `salaryRange` | `salary_range` | Salary range (optional) |
-| `benefits` | `benefits` | Job benefits (optional) |
+| Database Field        | API Field          | Description                                  |
+| --------------------- | ------------------ | -------------------------------------------- |
+| `jobTitle`            | `title`            | Job position title                           |
+| `companyName`         | `company`          | Company name                                 |
+| `location`            | `location`         | Job location                                 |
+| `jobType`             | `job_type`         | Employment type (Full-time, Part-time, etc.) |
+| `experienceLevel`     | `experience_level` | Required experience level                    |
+| `skillsRequired`      | `skills_required`  | Array of required skills                     |
+| `keyResponsibilities` | `responsibilities` | Job responsibilities                         |
+| `qualifications`      | `qualifications`   | Required qualifications                      |
+| `jobDescription`      | `description`      | Full job description                         |
+| `salaryRange`         | `salary_range`     | Salary range (optional)                      |
+| `benefits`            | `benefits`         | Job benefits (optional)                      |
 
 ### Resume (Candidate) Table Fields Used
 
 The module automatically extracts the following fields from the `Resume` table:
 
-| Database Field | API Field | Description |
-|---------------|-----------|-------------|
-| `resumeUrl` / `s3Key` | `resume_path` | Path to candidate's resume |
-| `candidateName` | `name` | Candidate's full name |
-| `candidateEmail` | `email` | Email address |
-| `candidatePhone` | `phone` | Phone number |
-| `skills` | `skills` | Array of candidate skills |
-| `experienceYears` | `experience_years` | Years of experience |
-| `education` | `education` | Education background |
-| `matchScore` | `match_score` | AI-calculated match score |
-| `summary` | `summary` | Resume summary |
-| `location` | `location` | Candidate location |
-| `linkedinUrl` | `linkedin_url` | LinkedIn profile |
-| `githubUrl` | `github_url` | GitHub profile |
-| `processingMethod` | `processing_method` | How resume was processed |
-| `analysisTimestamp` | `analysis_timestamp` | When resume was analyzed |
+| Database Field        | API Field            | Description                |
+| --------------------- | -------------------- | -------------------------- |
+| `resumeUrl` / `s3Key` | `resume_path`        | Path to candidate's resume |
+| `candidateName`       | `name`               | Candidate's full name      |
+| `candidateEmail`      | `email`              | Email address              |
+| `candidatePhone`      | `phone`              | Phone number               |
+| `skills`              | `skills`             | Array of candidate skills  |
+| `experienceYears`     | `experience_years`   | Years of experience        |
+| `education`           | `education`          | Education background       |
+| `matchScore`          | `match_score`        | AI-calculated match score  |
+| `summary`             | `summary`            | Resume summary             |
+| `location`            | `location`           | Candidate location         |
+| `linkedinUrl`         | `linkedin_url`       | LinkedIn profile           |
+| `githubUrl`           | `github_url`         | GitHub profile             |
+| `processingMethod`    | `processing_method`  | How resume was processed   |
+| `analysisTimestamp`   | `analysis_timestamp` | When resume was analyzed   |
 
 ### Manual Input Fields (Provided by HR)
 
@@ -93,21 +93,18 @@ These fields are **NOT** in the database and must be provided by HR users throug
 **Purpose:** Generate questions focused on soft skills, problem-solving, and behavioral competencies.
 
 **Request Body:**
+
 ```json
 {
   "jobPostId": "clx1y2z3a4b5c6d7e8f9g0h1",
   "number_of_questions": 5,
   "difficulty": "Medium",
-  "focus_areas": [
-    "Leadership",
-    "Teamwork",
-    "Problem Solving",
-    "Communication"
-  ]
+  "focus_areas": ["Leadership", "Teamwork", "Problem Solving", "Communication"]
 }
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -134,6 +131,7 @@ These fields are **NOT** in the database and must be provided by HR users throug
 ```
 
 **FastAPI Backend Expectation:**
+
 ```
 POST {{baseUrl}}/generate-behavioral-questions
 
@@ -155,6 +153,7 @@ Request Body:
 **Purpose:** Generate technical questions based on job requirements and required skills.
 
 **Request Body:**
+
 ```json
 {
   "jobPostId": "clx1y2z3a4b5c6d7e8f9g0h1"
@@ -162,6 +161,7 @@ Request Body:
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -189,6 +189,7 @@ Request Body:
 ```
 
 **FastAPI Backend Expectation:**
+
 ```
 POST {{baseUrl}}/generate-technical-questions?difficulty=Medium&num_questions=5
 
@@ -217,6 +218,7 @@ Request Body:
 **Purpose:** Generate personalized questions tailored to the candidate's resume and the job requirements.
 
 **Request Body:**
+
 ```json
 {
   "jobPostId": "clx1y2z3a4b5c6d7e8f9g0h1",
@@ -225,6 +227,7 @@ Request Body:
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -258,6 +261,7 @@ Request Body:
 ```
 
 **FastAPI Backend Expectation:**
+
 ```
 POST {{baseUrl}}/generate-customized-questions?num_questions=4&difficulty=Medium
 
@@ -322,14 +326,14 @@ function InterviewPage() {
 
 ### Component Props
 
-| Prop | Type | Required | Description |
-|------|------|----------|-------------|
-| `visible` | `boolean` | Yes | Show/hide modal |
-| `onClose` | `() => void` | Yes | Close handler |
-| `jobPostId` | `string` | Yes | Job post ID from database |
-| `resumeId` | `string` | No | Candidate resume ID (required for customized questions) |
-| `candidateName` | `string` | No | Candidate name for display |
-| `onQuestionsGenerated` | `(questions: any[]) => void` | No | Callback with generated questions |
+| Prop                   | Type                         | Required | Description                                             |
+| ---------------------- | ---------------------------- | -------- | ------------------------------------------------------- |
+| `visible`              | `boolean`                    | Yes      | Show/hide modal                                         |
+| `onClose`              | `() => void`                 | Yes      | Close handler                                           |
+| `jobPostId`            | `string`                     | Yes      | Job post ID from database                               |
+| `resumeId`             | `string`                     | No       | Candidate resume ID (required for customized questions) |
+| `candidateName`        | `string`                     | No       | Candidate name for display                              |
+| `onQuestionsGenerated` | `(questions: any[]) => void` | No       | Callback with generated questions                       |
 
 ---
 
@@ -359,7 +363,7 @@ function InterviewPage() {
 ## 🔄 Data Flow
 
 ```
-Frontend (React) 
+Frontend (React)
     ↓
 Next.js API Route (/api/interview/generate-*)
     ↓
@@ -451,13 +455,13 @@ curl -X POST "http://localhost:3000/api/interview/generate-customized?num_questi
 
 ### Common Issues
 
-| Issue | Solution |
-|-------|----------|
-| "Job post not found" | Verify `jobPostId` exists in database |
-| "Resume not found" | Verify `resumeId` exists and belongs to job post |
-| "focus_areas must be a non-empty array" | Provide at least one focus area for behavioral questions |
-| "Failed to generate questions" | Check FastAPI backend is running and accessible |
-| Timeout error | AI generation can take 10-30 seconds; increase timeout if needed |
+| Issue                                   | Solution                                                         |
+| --------------------------------------- | ---------------------------------------------------------------- |
+| "Job post not found"                    | Verify `jobPostId` exists in database                            |
+| "Resume not found"                      | Verify `resumeId` exists and belongs to job post                 |
+| "focus_areas must be a non-empty array" | Provide at least one focus area for behavioral questions         |
+| "Failed to generate questions"          | Check FastAPI backend is running and accessible                  |
+| Timeout error                           | AI generation can take 10-30 seconds; increase timeout if needed |
 
 ### Debugging Tips
 
@@ -501,6 +505,6 @@ This module provides a **clean, scalable, and production-ready** solution for AI
 ✅ Provides a user-friendly React UI  
 ✅ Follows clean architecture principles  
 ✅ Includes comprehensive type safety  
-✅ Is fully documented and testable  
+✅ Is fully documented and testable
 
 **Ready for production use!** 🚀
