@@ -25,6 +25,7 @@ import {
   CloseCircleOutlined,
   VideoCameraOutlined,
   RobotOutlined,
+  ThunderboltOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useRouter } from "next/router";
@@ -73,10 +74,12 @@ interface JobWithInterviews {
 
 interface AvatarJobAccordionTableProps {
   onRefresh?: () => void;
+  onGenerateQuestions?: (jobId: string) => void;
 }
 
 const AvatarJobAccordionTable: React.FC<AvatarJobAccordionTableProps> = ({
   onRefresh,
+  onGenerateQuestions,
 }) => {
   const router = useRouter();
   const [jobs, setJobs] = useState<JobWithInterviews[]>([]);
@@ -484,6 +487,30 @@ const AvatarJobAccordionTable: React.FC<AvatarJobAccordionTableProps> = ({
         <div style={{ fontSize: "12px" }}>
           {dayjs(date).format("MMM DD, YYYY")}
         </div>
+      ),
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      width: 100,
+      render: (_: any, record: JobWithInterviews) => (
+        <Tooltip title="Generate AI Questions">
+          <Button
+            type="default"
+            size="small"
+            icon={<ThunderboltOutlined />}
+            onClick={(e) => {
+              e.stopPropagation();
+              onGenerateQuestions?.(record.id);
+            }}
+            style={{ 
+              color: "#722ed1",
+              borderColor: "#722ed1",
+            }}
+          >
+            AI Q's
+          </Button>
+        </Tooltip>
       ),
     },
   ];

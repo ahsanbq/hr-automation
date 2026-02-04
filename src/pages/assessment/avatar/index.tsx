@@ -1,19 +1,35 @@
 ﻿import React, { useState } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Card, Button, Space, Modal, message } from "antd";
-import { PlusOutlined, RobotOutlined } from "@ant-design/icons";
+import { PlusOutlined, RobotOutlined, ThunderboltOutlined } from "@ant-design/icons";
 import { useRouter } from "next/router";
 import AvatarJobAccordionTable from "@/components/assessment/AvatarJobAccordionTable";
 import AvatarInterviewForm from "@/components/interview/AvatarInterviewForm";
+import AIQuestionGenerator from "@/components/interview/AIQuestionGenerator";
+import CreateAIInterviewModal from "@/components/interview/CreateAIInterviewModal";
+import AssignAIInterviewModal from "@/components/interview/AssignAIInterviewModal";
 
 export default function AIInterviewsPage() {
   const router = useRouter();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [aiGeneratorVisible, setAiGeneratorVisible] = useState(false);
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [createAIModalVisible, setCreateAIModalVisible] = useState(false);
+  const [assignAIModalVisible, setAssignAIModalVisible] = useState(false);
 
   const handleCreateInterview = () => {
-    console.log("Create interview button clicked");
-    setIsModalVisible(true);
+    console.log("Assign AI Interview button clicked");
+    setAssignAIModalVisible(true);
+  };
+
+  const handleOpenAIGenerator = (jobId?: string) => {
+    setSelectedJobId(jobId || null);
+    setAiGeneratorVisible(true);
+  };
+
+  const handleOpenCreateAIModal = () => {
+    setCreateAIModalVisible(true);
   };
 
   return (
@@ -48,20 +64,36 @@ export default function AIInterviewsPage() {
           </div>
           <Space>
             <Button
+              type="default"
+              icon={<ThunderboltOutlined />}
+              onClick={handleOpenCreateAIModal}
+              size="large"
+              style={{
+                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                color: "white",
+                border: "none",
+              }}
+            >
+              Create AI Interview
+            </Button>
+            <Button
               type="primary"
               icon={<PlusOutlined />}
               onClick={handleCreateInterview}
               size="large"
-              style={{ backgroundColor: "#722ed1", borderColor: "#722ed1" }}
             >
-              Create AI Interview
+              Assign AI Interview
             </Button>
           </Space>
         </div>
       </Card>
 
-      <AvatarJobAccordionTable key={refreshKey} />
+      <AvatarJobAccordionTable 
+        key={refreshKey} 
+        onGenerateQuestions={(jobId) => handleOpenAIGenerator(jobId)}
+      />
 
+      {/* Legacy Create Interview Modal */}
       <Modal
         title="Create AI Interview"
         open={isModalVisible}
@@ -80,6 +112,40 @@ export default function AIInterviewsPage() {
           onCancel={() => setIsModalVisible(false)}
         />
       </Modal>
+
+      {/* Create AI Interview Modal - Multi-step */}
+      <CreateAIInterviewModal
+        visible={createAIModalVisible}
+        onClose={() => setCreateAIModalVisible(false)}
+        onSuccess={() => {
+          message.success("AI Interview created successfully!");
+          setRefreshKey((prev) => prev + 1);
+        }}
+      />
+
+      {/* Assign AI Interview Modal - Multi-step */}
+      <AssignAIInterviewModal
+        visible={assignAIModalVisible}
+        onClose={() => setAssignAIModalVisible(false)}
+        onSuccess={() => {
+          message.success("AI Interview assigned successfully!");
+          setRefreshKey((prev) => prev + 1);
+        }}
+      />
+
+      {/* AI Question Generator Modal - Legacy/Quick Generate */}
+      <AIQuestionGenerator
+        visible={aiGeneratorVisible}
+        onClose={() => {
+          setAiGeneratorVisible(false);
+          setSelectedJobId(null);
+        }}
+        jobPostId={selectedJobId || ""}
+        onQuestionsGenerated={(questions) => {
+          console.log("Generated AI Questions:", questions);
+          message.success(`Successfully generated ${questions.length} AI questions!`);
+        }}
+      />
     </AppLayout>
   );
 }

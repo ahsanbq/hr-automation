@@ -128,6 +128,7 @@ model User {
   CandidateInteraction CandidateInteraction[]
   assessmentStages AssessmentStage[]
   mcqTemplates      MCQTemplate[]
+  aiInterviewTemplates AIInterviewTemplate[]
   offerLetters     OfferLetter[]
 }
 
@@ -146,6 +147,7 @@ model companies {
   JobPost         JobPost[]
   User            User[]
   mcqTemplates    MCQTemplate[]
+  aiInterviewTemplates AIInterviewTemplate[]
 }
 
 model meetings {
@@ -514,6 +516,32 @@ model MCQTemplate {
   @@index([topic])
   @@index([difficulty])
   @@map("mcq_templates")
+}
+
+// AI Interview Question Templates (saved question sets)
+model AIInterviewTemplate {
+  id              String       @id @default(cuid())
+  title           String       // Template name (e.g., "Senior Developer Behavioral Questions")
+  description     String?      // Optional description
+  questionType    String       // "BEHAVIORAL", "TECHNICAL", "CUSTOMIZED"
+  questions       Json         // Array of generated questions with metadata
+  jobPostId       String?      // Optional job reference
+  difficulty      String?      // EASY, MEDIUM, HARD
+  totalQuestions  Int          @default(5)
+  isActive        Boolean      @default(true)
+  companyId       Int          // Company that owns this template
+  createdById     Int          // User who created this template
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  // Relations
+  company         companies    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdBy       User         @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([createdById])
+  @@index([questionType])
+  @@map("ai_interview_templates")
 }
 
 // MCQ Questions for assessments (job-specific)

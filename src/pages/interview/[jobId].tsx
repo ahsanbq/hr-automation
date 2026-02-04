@@ -30,10 +30,12 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   TrophyOutlined,
+  ThunderboltOutlined,
 } from "@ant-design/icons";
 import InterviewForm from "@/components/interview/InterviewForm";
 import MCQManager from "@/components/interview/MCQManager";
 import InterviewTaker from "@/components/interview/InterviewTaker";
+import AIQuestionGenerator from "@/components/interview/AIQuestionGenerator";
 import { Interview, InterviewStatus, ShortlistStatus } from "@/types/interview";
 import dayjs from "dayjs";
 
@@ -91,6 +93,8 @@ export default function InterviewJobPage() {
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [selectedResume, setSelectedResume] = useState<Resume | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [aiGeneratorVisible, setAiGeneratorVisible] = useState(false);
+  const [selectedCandidateForAI, setSelectedCandidateForAI] = useState<Resume | null>(null);
 
   useEffect(() => {
     if (jobId) {
@@ -379,6 +383,20 @@ export default function InterviewJobPage() {
               </Button>
             </Tooltip>
           )}
+          <Tooltip title="Generate AI Questions">
+            <Button
+              type="default"
+              size="small"
+              icon={<ThunderboltOutlined />}
+              onClick={() => {
+                setSelectedCandidateForAI(record);
+                setAiGeneratorVisible(true);
+              }}
+              style={{ fontSize: "11px", height: "24px", color: "#722ed1" }}
+            >
+              AI Q's
+            </Button>
+          </Tooltip>
           <Tooltip title="Schedule Meeting">
             <Button
               type="default"
@@ -615,6 +633,21 @@ export default function InterviewJobPage() {
                         Create Interview
                       </Button>
                       <Button
+                        block
+                        icon={<ThunderboltOutlined />}
+                        onClick={() => {
+                          setSelectedCandidateForAI(null);
+                          setAiGeneratorVisible(true);
+                        }}
+                        style={{ 
+                          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                          color: "white",
+                          border: "none"
+                        }}
+                      >
+                        Generate AI Questions
+                      </Button>
+                      <Button
                         type="default"
                         block
                         icon={<CalendarOutlined />}
@@ -652,6 +685,23 @@ export default function InterviewJobPage() {
           }}
         />
       </Modal>
+
+      {/* AI Question Generator Modal */}
+      <AIQuestionGenerator
+        visible={aiGeneratorVisible}
+        onClose={() => {
+          setAiGeneratorVisible(false);
+          setSelectedCandidateForAI(null);
+        }}
+        jobPostId={jobId as string}
+        resumeId={selectedCandidateForAI?.id}
+        candidateName={selectedCandidateForAI?.candidateName}
+        onQuestionsGenerated={(questions) => {
+          console.log("Generated AI Questions:", questions);
+          message.success(`Successfully generated ${questions.length} AI questions!`);
+          // TODO: You can save these questions to database or use them in interview creation
+        }}
+      />
     </AppLayout>
   );
 }
