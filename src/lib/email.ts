@@ -143,8 +143,38 @@ export async function sendAIInterviewInvitation(
   companyName: string,
   timeLimit?: number,
   customMessage?: string,
+  // New optional fields for enhanced email
+  interviewId?: string,
+  interviewTitle?: string,
+  sessionStartISO?: string,
+  sessionEndISO?: string,
 ): Promise<boolean> {
   const subject = `AI Interview Invitation - ${jobTitle}`;
+
+  // Format start/end times if provided
+  let startTimeDisplay = "";
+  let endTimeDisplay = "";
+  let dateDisplay = "";
+  if (sessionStartISO) {
+    const startDate = new Date(sessionStartISO);
+    dateDisplay = startDate.toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+    startTimeDisplay = startDate.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+  if (sessionEndISO) {
+    const endDate = new Date(sessionEndISO);
+    endTimeDisplay = endDate.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
 
   const html = `
     <!DOCTYPE html>
@@ -168,8 +198,12 @@ export async function sendAIInterviewInvitation(
           .password-box { background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%); color: white; padding: 20px; border-radius: 5px; text-align: center; margin: 20px 0; }
           .password-box h3 { margin: 0 0 10px 0; font-size: 18px; }
           .password-box .password { font-size: 32px; font-weight: bold; letter-spacing: 3px; font-family: 'Courier New', monospace; padding: 10px; background: rgba(255,255,255,0.2); border-radius: 5px; margin: 10px 0; }
-          .button { display: inline-block; background-color: #1890ff; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 20px 0; }
+          .button { display: inline-block; background-color: #1890ff; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 20px 0; font-size: 18px; }
           .button:hover { background-color: #096dd9; }
+          .id-box { background: #f6f8fa; border: 1px solid #d0d7de; padding: 12px 16px; border-radius: 6px; text-align: center; margin: 15px 0; font-family: 'Courier New', monospace; font-size: 14px; color: #555; }
+          .schedule-box { background: linear-gradient(135deg, #722ed1 0%, #531dab 100%); color: white; padding: 20px; border-radius: 5px; text-align: center; margin: 20px 0; }
+          .schedule-box h3 { margin: 0 0 10px 0; font-size: 18px; }
+          .schedule-box .time { font-size: 22px; font-weight: bold; margin: 5px 0; }
           .instructions { background-color: #fff7e6; padding: 20px; border-radius: 5px; border-left: 4px solid #fa8c16; margin: 20px 0; }
           .instructions h3 { margin-top: 0; color: #fa8c16; }
           .instructions ul { margin: 10px 0; padding-left: 20px; }
@@ -180,7 +214,7 @@ export async function sendAIInterviewInvitation(
       <body>
         <div class="container">
           <div class="header">
-            <h1>🤖 AI Interview Invitation</h1>
+            <h1>🤖 ${interviewTitle || "AI Interview"} Invitation</h1>
           </div>
           
           <div class="content">
@@ -191,12 +225,29 @@ export async function sendAIInterviewInvitation(
             <div class="info-box">
               <h3>📋 Interview Details:</h3>
               <ul>
+                <li><strong>Interview Title:</strong> ${interviewTitle || "AI Interview"}</li>
+                ${interviewId ? `<li><strong>Interview ID:</strong> ${interviewId}</li>` : ""}
                 <li><strong>Position:</strong> ${jobTitle}</li>
                 <li><strong>Company:</strong> ${companyName}</li>
-                <li><strong>Interview Type:</strong> AI Avatar Interview</li>
-                ${timeLimit ? `<li><strong>Time Limit:</strong> ${timeLimit} minutes</li>` : ""}
+                <li><strong>Email:</strong> ${candidateEmail}</li>
+                <li><strong>Interview Type:</strong> AI Interview</li>
+                ${timeLimit ? `<li><strong>Duration:</strong> ${timeLimit} minutes</li>` : ""}
               </ul>
             </div>
+
+            ${
+              dateDisplay || startTimeDisplay || endTimeDisplay
+                ? `
+            <div class="schedule-box">
+              <h3>📅 Interview Schedule</h3>
+              ${dateDisplay ? `<div class="time">${dateDisplay}</div>` : ""}
+              ${startTimeDisplay && endTimeDisplay ? `<div class="time">🕐 ${startTimeDisplay} — ${endTimeDisplay}</div>` : ""}
+            </div>
+            `
+                : ""
+            }
+
+            ${interviewId ? `<div class="id-box">Interview ID: <strong>${interviewId}</strong></div>` : ""}
 
             <div class="password-box">
               <h3>🔐 Session Password</h3>
@@ -209,7 +260,7 @@ export async function sendAIInterviewInvitation(
             <div class="instructions">
               <h3>⚠️ Important Instructions:</h3>
               <ul>
-                <li>Click the button below to start your interview</li>
+                <li>Click the "Start Now" button below to begin your interview</li>
                 <li>Enter your session password when prompted</li>
                 <li>Ensure you have a stable internet connection</li>
                 <li>Find a quiet place for the interview</li>
@@ -219,7 +270,7 @@ export async function sendAIInterviewInvitation(
             </div>
             
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${interviewLink}" class="button">🚀 Start AI Interview</a>
+              <a href="${interviewLink}" class="button">🚀 Start Now</a>
             </div>
             
             <p>Good luck with your interview!</p>

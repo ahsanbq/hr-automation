@@ -1,5 +1,5 @@
-// Multi-step modal for creating AI Interview question sets
-// Similar to MCQ Creator workflow
+// Multi-step modal for creating AI Interview sessions
+// New flow: Select Job → Select Candidate → Session Setup → Generate Questions → Send
 
 import React, { useState, useEffect } from "react";
 import {
@@ -8,9 +8,10 @@ import {
   Button,
   Form,
   Select,
-  Radio,
-  InputNumber,
   Input,
+  InputNumber,
+  DatePicker,
+  TimePicker,
   message,
   Card,
   Space,
@@ -20,24 +21,28 @@ import {
   Tag,
   Alert,
   Spin,
+  Result,
+  Descriptions,
 } from "antd";
 import {
   ThunderboltOutlined,
-  BulbOutlined,
-  CodeOutlined,
   UserOutlined,
   CheckCircleOutlined,
-  SaveOutlined,
   SendOutlined,
+  CalendarOutlined,
+  ClockCircleOutlined,
+  FileTextOutlined,
+  SolutionOutlined,
+  MailOutlined,
+  CopyOutlined,
+  LockOutlined,
+  PlusOutlined,
+  DeleteOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
-import {
-  QuestionGenerationType,
-  QuestionDifficulty,
-} from "@/types/ai-interview";
+import dayjs from "dayjs";
 
 const { Title, Text, Paragraph } = Typography;
-const { TextArea } = Input;
 
 interface CreateAIInterviewModalProps {
   visible: boolean;
@@ -55,6 +60,21 @@ interface CandidateOption {
   id: string;
   name: string;
   email: string;
+  matchScore?: number;
+  skills?: string[];
+}
+
+interface CreatedSession {
+  id: string;
+  title: string;
+  duration: number;
+  sessionStart: string;
+  sessionEnd: string;
+  candidateEmail: string;
+  sessionPassword: string;
+  jobTitle: string;
+  companyName: string;
+  candidateName: string;
 }
 
 export default function CreateAIInterviewModal({
@@ -72,12 +92,14 @@ export default function CreateAIInterviewModal({
 
   // Form data state
   const [selectedJobId, setSelectedJobId] = useState<string>();
-  const [questionType, setQuestionType] = useState<QuestionGenerationType>(
-    QuestionGenerationType.BEHAVIORAL,
-  );
   const [selectedCandidateId, setSelectedCandidateId] = useState<string>();
-  const [generatedQuestions, setGeneratedQuestions] = useState<any[]>([]);
-  const [templateTitle, setTemplateTitle] = useState("");
+  const [createdSession, setCreatedSession] = useState<CreatedSession | null>(
+    null,
+  );
+  const [generatedQuestions, setGeneratedQuestions] = useState<string[]>([]);
+  const [emailSent, setEmailSent] = useState(false);
+  const [newQuestion, setNewQuestion] = useState("");
+  const [questionsModified, setQuestionsModified] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -97,10 +119,12 @@ export default function CreateAIInterviewModal({
     setCurrentStep(0);
     form.resetFields();
     setSelectedJobId(undefined);
-    setQuestionType(QuestionGenerationType.BEHAVIORAL);
     setSelectedCandidateId(undefined);
+    setCreatedSession(null);
     setGeneratedQuestions([]);
-    setTemplateTitle("");
+    setEmailSent(false);
+    setNewQuestion("");
+    setQuestionsModified(false);
   };
 
   const fetchJobs = async () => {
@@ -132,14 +156,14 @@ export default function CreateAIInterviewModal({
       const response = await axios.get(`/api/resumes?jobId=${jobId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log("Candidates API response:", response.data);
       const candidatesData = response.data.resumes || response.data || [];
       const candidatesList = candidatesData.map((resume: any) => ({
         id: resume.id,
         name: resume.candidateName,
         email: resume.candidateEmail,
+        matchScore: resume.matchScore,
+        skills: resume.skills,
       }));
-      console.log("Parsed candidates list:", candidatesList);
       setCandidates(candidatesList);
       if (candidatesList.length === 0) {
         message.warning("No candidates found for this job position");
@@ -154,18 +178,13 @@ export default function CreateAIInterviewModal({
 
   const handleNext = () => {
     if (currentStep === 0) {
-      // Validate job selection
       if (!selectedJobId) {
         message.error("Please select a job");
         return;
       }
     } else if (currentStep === 1) {
-      // Validate question type and candidate if needed
-      if (
-        questionType === QuestionGenerationType.CUSTOMIZED &&
-        !selectedCandidateId
-      ) {
-        message.error("Please select a candidate for customized questions");
+      if (!selectedCandidateId) {
+        message.error("Please select a candidate");
         return;
       }
     }
@@ -176,86 +195,102 @@ export default function CreateAIInterviewModal({
     setCurrentStep(currentStep - 1);
   };
 
-  const handleGenerateQuestions = async () => {
+  // Step 2: Create Interview Session
+  const handleCreateSession = async () => {
     try {
-      setLoading(true);
-      const values = form.getFieldsValue();
-      const token = localStorage.getItem("token");
+      const values = await form.validateFields([
+        "interview_date",
+        "start_time",
+        "end_time",
+      ]);
 
-      console.log("🔵 Generate Questions - Selected Job ID:", selectedJobId);
-      console.log("🔵 Question Type:", questionType);
-      console.log("🔵 Form Values:", values);
-      console.log("🔵 Selected Candidate ID:", selectedCandidateId);
-
-      // Validate selectedJobId
-      if (!selectedJobId) {
-        message.error("Please select a job first");
-        setLoading(false);
+      if (!values.interview_date || !values.start_time || !values.end_time) {
+        message.error("Please fill in all session details");
         return;
       }
 
-      let response;
-      let endpoint = "";
-      let payload: any = { jobPostId: selectedJobId };
+      setLoading(true);
+      const token = localStorage.getItem("token");
 
-      switch (questionType) {
-        case QuestionGenerationType.BEHAVIORAL:
-          endpoint = "/api/interview/generate-behavioral";
-          payload = {
-            ...payload,
-            number_of_questions: values.number_of_questions || 5,
-            focus_areas: values.focus_areas || [],
-            difficulty: values.difficulty || QuestionDifficulty.MEDIUM,
-          };
-          break;
+      const interviewDate = dayjs(values.interview_date).format("YYYY-MM-DD");
+      const startTime = dayjs(values.start_time).format("HH:mm:ss");
+      const endTime = dayjs(values.end_time).format("HH:mm:ss");
 
-        case QuestionGenerationType.TECHNICAL:
-          endpoint = `/api/interview/generate-technical?difficulty=${values.difficulty || QuestionDifficulty.MEDIUM}&num_questions=${values.number_of_questions || 5}`;
-          break;
+      const response = await axios.post(
+        "/api/interview/create-ai-session",
+        {
+          jobPostId: selectedJobId,
+          candidateId: selectedCandidateId,
+          interviewDate,
+          startTime,
+          endTime,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
 
-        case QuestionGenerationType.CUSTOMIZED:
-          if (!selectedCandidateId) {
-            message.error("Please select a candidate");
-            setLoading(false);
-            return;
-          }
-          endpoint = `/api/interview/generate-customized?difficulty=${values.difficulty || QuestionDifficulty.MEDIUM}&num_questions=${values.number_of_questions || 5}`;
-          payload.resumeId = selectedCandidateId;
-          break;
+      if (response.data.success) {
+        setCreatedSession(response.data.interview);
+        message.success("Interview session created successfully!");
+        setCurrentStep(currentStep + 1);
+      } else {
+        message.error(
+          response.data.error || "Failed to create interview session",
+        );
       }
+    } catch (error: any) {
+      console.error("Create session error:", error);
+      const errorMessage =
+        error.response?.data?.error ||
+        error.message ||
+        "Failed to create interview session";
+      message.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      console.log("🔵 API Endpoint:", endpoint);
-      console.log("🔵 Payload:", payload);
+  // Step 3: Generate Questions
+  const handleGenerateQuestions = async () => {
+    if (!createdSession) {
+      message.error("Please create an interview session first");
+      return;
+    }
 
-      response = await axios.post(endpoint, payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+
+      const response = await axios.post(
+        "/api/interview/generate-simple-questions",
+        {
+          interviewId: createdSession.id,
+          jobPostId: selectedJobId,
+          candidateId: selectedCandidateId,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
 
       if (response.data.success) {
         const questions = response.data.data.questions || [];
         setGeneratedQuestions(questions);
-
-        // Auto-generate template title
-        const selectedJob = jobs.find((j) => j.id === selectedJobId);
-        const typeLabel =
-          questionType.charAt(0) + questionType.slice(1).toLowerCase();
-        setTemplateTitle(
-          `${typeLabel} Questions - ${selectedJob?.title || "Job"}`,
-        );
-
         message.success(
           `Generated ${questions.length} questions successfully!`,
         );
-        handleNext(); // Move to review step
+        setCurrentStep(currentStep + 1);
       } else {
-        message.error("Failed to generate questions");
+        message.error(
+          response.data.error || "Failed to generate questions",
+        );
       }
     } catch (error: any) {
-      console.error("❌ Generate error:", error);
-      console.error("❌ Error response:", error.response?.data);
+      console.error("Generate questions error:", error);
       const errorMessage =
         error.response?.data?.error ||
-        error.response?.data?.message ||
+        error.message ||
         "Failed to generate questions";
       message.error(errorMessage);
     } finally {
@@ -263,48 +298,15 @@ export default function CreateAIInterviewModal({
     }
   };
 
-  const handleSaveTemplate = async () => {
-    if (!templateTitle.trim()) {
-      message.error("Please enter a template title");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const token = localStorage.getItem("token");
-      const values = form.getFieldsValue();
-
-      await axios.post(
-        "/api/interview/ai-templates",
-        {
-          title: templateTitle,
-          description: values.description,
-          questionType,
-          questions: generatedQuestions,
-          jobPostId: selectedJobId,
-          difficulty: values.difficulty,
-          totalQuestions: generatedQuestions.length,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-
-      message.success("AI Interview template saved successfully!");
-      onSuccess?.();
-      onClose();
-      resetModal();
-    } catch (error: any) {
-      console.error("Save error:", error);
-      message.error(error.response?.data?.error || "Failed to save template");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Step 4: Send to Candidate
   const handleSendToCandidate = async () => {
-    if (!selectedCandidateId) {
-      message.error("Please select a candidate");
+    if (!createdSession) {
+      message.error("No interview session found");
+      return;
+    }
+
+    if (generatedQuestions.length === 0) {
+      message.error("Please add at least one question before sending");
       return;
     }
 
@@ -312,41 +314,92 @@ export default function CreateAIInterviewModal({
       setLoading(true);
       const token = localStorage.getItem("token");
 
-      await axios.post(
+      // If questions were modified (added/deleted), sync to DB first
+      if (questionsModified) {
+        await axios.post(
+          "/api/interview/sync-questions",
+          {
+            interviewId: createdSession.id,
+            questions: generatedQuestions,
+          },
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+      }
+
+      const response = await axios.post(
         "/api/interview/send-ai-interview",
         {
-          candidateId: selectedCandidateId,
-          jobPostId: selectedJobId,
-          questions: generatedQuestions,
-          questionType,
-          duration: form.getFieldValue("duration") || 30,
+          interviewId: createdSession.id,
         },
         {
           headers: { Authorization: `Bearer ${token}` },
         },
       );
 
-      message.success("AI Interview sent to candidate successfully!");
-      onSuccess?.();
-      onClose();
-      resetModal();
+      if (response.data.success) {
+        setEmailSent(true);
+        message.success("Interview invitation sent to candidate!");
+        onSuccess?.();
+      } else {
+        message.error(
+          response.data.error || "Failed to send interview invitation",
+        );
+      }
     } catch (error: any) {
       console.error("Send error:", error);
-      message.error(error.response?.data?.error || "Failed to send interview");
+      const errorMessage =
+        error.response?.data?.error ||
+        error.message ||
+        "Failed to send interview invitation";
+      message.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
+
+  const handleCopyPassword = () => {
+    if (createdSession?.sessionPassword) {
+      navigator.clipboard.writeText(createdSession.sessionPassword);
+      message.success("Password copied to clipboard!");
+    }
+  };
+
+  // Add a manually typed question
+  const handleAddQuestion = () => {
+    const trimmed = newQuestion.trim();
+    if (!trimmed) {
+      message.warning("Please type a question first");
+      return;
+    }
+    setGeneratedQuestions((prev) => [...prev, trimmed]);
+    setNewQuestion("");
+    setQuestionsModified(true);
+    message.success("Question added");
+  };
+
+  // Delete a question by index
+  const handleDeleteQuestion = (index: number) => {
+    setGeneratedQuestions((prev) => prev.filter((_, i) => i !== index));
+    setQuestionsModified(true);
+    message.success("Question removed");
+  };
+
+  const selectedJob = jobs.find((j) => j.id === selectedJobId);
+  const selectedCandidate = candidates.find(
+    (c) => c.id === selectedCandidateId,
+  );
 
   const renderStepContent = () => {
     switch (currentStep) {
+      // ===== Step 0: Select Job =====
       case 0:
-        // Step 1: Select Job
         return (
           <div>
             <Alert
               message="Select Job Position"
-              description="Choose the job for which you want to create AI interview questions"
+              description="Choose the job position for the AI interview"
               type="info"
               showIcon
               style={{ marginBottom: 24 }}
@@ -354,12 +407,15 @@ export default function CreateAIInterviewModal({
             <Form.Item
               label="Job Position"
               required
-              tooltip="Select the job position"
+              tooltip="Select the job position for the interview"
             >
               <Select
-                placeholder="Select a job"
+                placeholder="Search and select a job..."
                 value={selectedJobId}
-                onChange={setSelectedJobId}
+                onChange={(val) => {
+                  setSelectedJobId(val);
+                  setSelectedCandidateId(undefined);
+                }}
                 loading={loadingJobs}
                 showSearch
                 size="large"
@@ -371,209 +427,533 @@ export default function CreateAIInterviewModal({
                 }
                 options={jobs.map((job) => ({
                   value: job.id,
-                  label: `${job.title} - ${job.company}`,
+                  label: `${job.title} — ${job.company}`,
                 }))}
               />
             </Form.Item>
+            {selectedJob && (
+              <Card
+                size="small"
+                style={{
+                  background: "#f6ffed",
+                  borderColor: "#b7eb8f",
+                  marginTop: 12,
+                }}
+              >
+                <Text strong style={{ color: "#389e0d" }}>
+                  <CheckCircleOutlined /> Selected:{" "}
+                </Text>
+                <Text>
+                  {selectedJob.title} at {selectedJob.company}
+                </Text>
+              </Card>
+            )}
           </div>
         );
 
+      // ===== Step 1: Select Candidate =====
       case 1:
-        // Step 2: Select Question Type and Configure
         return (
           <div>
             <Alert
-              message="Configure AI Interview Questions"
-              description="Select question type and configure generation parameters"
+              message="Select Candidate"
+              description={`Choose a candidate from "${selectedJob?.title || "selected job"}" to interview`}
+              type="info"
+              showIcon
+              style={{ marginBottom: 24 }}
+            />
+            <Form.Item
+              label="Candidate"
+              required
+              tooltip="Select the candidate for the interview"
+            >
+              <Select
+                placeholder="Search and select a candidate..."
+                value={selectedCandidateId}
+                onChange={setSelectedCandidateId}
+                loading={loadingCandidates}
+                showSearch
+                size="large"
+                optionFilterProp="children"
+                filterOption={(input, option) =>
+                  (option?.label ?? "")
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }
+                options={candidates.map((candidate) => ({
+                  value: candidate.id,
+                  label: `${candidate.name} (${candidate.email || "No email"})${candidate.matchScore ? ` — ${candidate.matchScore}% match` : ""}`,
+                }))}
+              />
+            </Form.Item>
+            {selectedCandidate && (
+              <Card
+                size="small"
+                style={{
+                  background: "#f6ffed",
+                  borderColor: "#b7eb8f",
+                  marginTop: 12,
+                }}
+              >
+                <Space direction="vertical" size={4}>
+                  <Text strong style={{ color: "#389e0d" }}>
+                    <CheckCircleOutlined /> Selected Candidate
+                  </Text>
+                  <Text>
+                    <UserOutlined /> {selectedCandidate.name}
+                  </Text>
+                  <Text>
+                    <MailOutlined /> {selectedCandidate.email || "No email"}
+                  </Text>
+                  {selectedCandidate.matchScore && (
+                    <Tag color="blue">
+                      Match Score: {selectedCandidate.matchScore}%
+                    </Tag>
+                  )}
+                  {selectedCandidate.skills &&
+                    selectedCandidate.skills.length > 0 && (
+                      <div>
+                        {selectedCandidate.skills.slice(0, 5).map((skill) => (
+                          <Tag key={skill} style={{ marginBottom: 4 }}>
+                            {skill}
+                          </Tag>
+                        ))}
+                        {selectedCandidate.skills.length > 5 && (
+                          <Tag>+{selectedCandidate.skills.length - 5} more</Tag>
+                        )}
+                      </div>
+                    )}
+                </Space>
+              </Card>
+            )}
+          </div>
+        );
+
+      // ===== Step 2: Session Setup + Create =====
+      case 2:
+        return (
+          <div>
+            <Alert
+              message="Session Setup"
+              description="Set the interview date and time, then create the interview session"
               type="info"
               showIcon
               style={{ marginBottom: 24 }}
             />
 
-            <Form.Item label="Question Type" required>
-              <Radio.Group
-                value={questionType}
-                onChange={(e) => setQuestionType(e.target.value)}
+            {/* Summary of selections */}
+            <Card
+              size="small"
+              style={{ marginBottom: 20, background: "#fafafa" }}
+            >
+              <Descriptions size="small" column={1}>
+                <Descriptions.Item label="Job Position">
+                  <Text strong>{selectedJob?.title}</Text>
+                  <Text type="secondary"> at {selectedJob?.company}</Text>
+                </Descriptions.Item>
+                <Descriptions.Item label="Candidate">
+                  <Text strong>{selectedCandidate?.name}</Text>
+                  <Text type="secondary">
+                    {" "}
+                    ({selectedCandidate?.email})
+                  </Text>
+                </Descriptions.Item>
+              </Descriptions>
+            </Card>
+
+            <Form.Item
+              name="interview_date"
+              label="Interview Date"
+              rules={[
+                { required: true, message: "Please select interview date" },
+              ]}
+            >
+              <DatePicker
                 size="large"
+                style={{ width: "100%" }}
+                placeholder="Select interview date"
+                disabledDate={(current) =>
+                  current && current < dayjs().startOf("day")
+                }
+              />
+            </Form.Item>
+
+            <div style={{ display: "flex", gap: 16 }}>
+              <Form.Item
+                name="start_time"
+                label="Start Time"
+                rules={[
+                  { required: true, message: "Please select start time" },
+                ]}
+                style={{ flex: 1 }}
               >
-                <Radio.Button value={QuestionGenerationType.BEHAVIORAL}>
-                  <BulbOutlined /> Behavioral
-                </Radio.Button>
-                <Radio.Button value={QuestionGenerationType.TECHNICAL}>
-                  <CodeOutlined /> Technical
-                </Radio.Button>
-                <Radio.Button value={QuestionGenerationType.CUSTOMIZED}>
-                  <UserOutlined /> Customized
-                </Radio.Button>
-              </Radio.Group>
-            </Form.Item>
-
-            <Divider />
-
-            <Form.Item
-              name="number_of_questions"
-              label="Number of Questions"
-              initialValue={5}
-            >
-              <InputNumber min={1} max={20} style={{ width: "100%" }} />
-            </Form.Item>
-
-            <Form.Item
-              name="difficulty"
-              label="Difficulty Level"
-              initialValue={QuestionDifficulty.MEDIUM}
-            >
-              <Select size="large">
-                <Select.Option value={QuestionDifficulty.EASY}>
-                  Easy
-                </Select.Option>
-                <Select.Option value={QuestionDifficulty.MEDIUM}>
-                  Medium
-                </Select.Option>
-                <Select.Option value={QuestionDifficulty.HARD}>
-                  Hard
-                </Select.Option>
-              </Select>
-            </Form.Item>
-
-            {questionType === QuestionGenerationType.CUSTOMIZED && (
-              <Form.Item label="Select Candidate" required>
-                <Select
-                  placeholder="Select a candidate"
-                  value={selectedCandidateId}
-                  onChange={setSelectedCandidateId}
-                  loading={loadingCandidates}
-                  showSearch
+                <TimePicker
                   size="large"
-                  optionFilterProp="children"
-                  filterOption={(input, option) =>
-                    (option?.label ?? "")
-                      .toLowerCase()
-                      .includes(input.toLowerCase())
-                  }
-                  options={candidates.map((candidate) => ({
-                    value: candidate.id,
-                    label: `${candidate.name} (${candidate.email})`,
-                  }))}
+                  style={{ width: "100%" }}
+                  format="HH:mm"
+                  placeholder="Start time"
+                  minuteStep={5}
                 />
               </Form.Item>
-            )}
 
-            {questionType === QuestionGenerationType.BEHAVIORAL && (
-              <Form.Item name="focus_areas" label="Focus Areas (Optional)">
-                <Select
-                  mode="tags"
+              <Form.Item
+                name="end_time"
+                label="End Time"
+                rules={[
+                  { required: true, message: "Please select end time" },
+                ]}
+                style={{ flex: 1 }}
+              >
+                <TimePicker
                   size="large"
-                  placeholder="Add focus areas (e.g., Leadership, Communication)"
+                  style={{ width: "100%" }}
+                  format="HH:mm"
+                  placeholder="End time"
+                  minuteStep={5}
                 />
               </Form.Item>
-            )}
-
-            <Form.Item
-              name="duration"
-              label="Interview Duration (minutes)"
-              initialValue={30}
-            >
-              <InputNumber min={10} max={120} style={{ width: "100%" }} />
-            </Form.Item>
+            </div>
           </div>
         );
 
-      case 2:
-        // Step 3: Review and Save/Send
+      // ===== Step 3: Generate Questions =====
+      case 3:
         return (
           <div>
             <Alert
-              message="Review Generated Questions"
-              description="Review the AI-generated questions and save as template or send to candidate"
-              type="success"
+              message="Generate AI Questions"
+              description="Generate interview questions using AI based on the job requirements and candidate profile"
+              type="info"
               showIcon
               style={{ marginBottom: 24 }}
             />
+
+            {createdSession && (
+              <Card
+                size="small"
+                style={{
+                  marginBottom: 20,
+                  background: "#f6ffed",
+                  borderColor: "#b7eb8f",
+                }}
+              >
+                <Descriptions size="small" column={1} title="Session Created">
+                  <Descriptions.Item label="Interview ID">
+                    <Text code copyable>
+                      {createdSession.id}
+                    </Text>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Title">
+                    {createdSession.title}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Duration">
+                    {createdSession.duration} minutes
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Session Password">
+                    <Space>
+                      <Text code strong style={{ fontSize: 16 }}>
+                        {createdSession.sessionPassword}
+                      </Text>
+                      <Button
+                        size="small"
+                        icon={<CopyOutlined />}
+                        onClick={handleCopyPassword}
+                      >
+                        Copy
+                      </Button>
+                    </Space>
+                  </Descriptions.Item>
+                </Descriptions>
+              </Card>
+            )}
 
             {loading ? (
               <div style={{ textAlign: "center", padding: "40px" }}>
                 <Spin size="large" />
                 <Paragraph style={{ marginTop: 16 }}>
-                  Generating questions...
+                  Generating AI interview questions...
                 </Paragraph>
+                <Text type="secondary">
+                  This may take a moment as we analyze the job requirements and
+                  candidate profile.
+                </Text>
               </div>
-            ) : generatedQuestions.length > 0 ? (
-              <>
-                <Card style={{ marginBottom: 16 }}>
-                  <Space direction="vertical" style={{ width: "100%" }}>
-                    <div>
-                      <Tag color="blue">{questionType}</Tag>
-                      <Tag color="green">
-                        {generatedQuestions.length} Questions
-                      </Tag>
-                    </div>
-                    <Form.Item
-                      label="Template Title"
-                      tooltip="Give this question set a name for future use"
-                    >
-                      <Input
-                        value={templateTitle}
-                        onChange={(e) => setTemplateTitle(e.target.value)}
-                        placeholder="e.g., Senior Developer Behavioral Questions"
-                        size="large"
-                      />
-                    </Form.Item>
-                    <Form.Item
-                      name="description"
-                      label="Description (Optional)"
-                    >
-                      <TextArea
-                        rows={2}
-                        placeholder="Add description for this question set"
-                      />
-                    </Form.Item>
-                  </Space>
-                </Card>
+            ) : (
+              <div style={{ textAlign: "center", padding: "20px" }}>
+                <ThunderboltOutlined
+                  style={{ fontSize: 48, color: "#722ed1", marginBottom: 16 }}
+                />
+                <Title level={4}>Ready to Generate Questions</Title>
+                <Paragraph type="secondary">
+                  Click the button below to generate AI-powered interview
+                  questions tailored to the job requirements and candidate
+                  profile.
+                </Paragraph>
+                <Button
+                  type="primary"
+                  size="large"
+                  icon={<ThunderboltOutlined />}
+                  onClick={handleGenerateQuestions}
+                  loading={loading}
+                  style={{
+                    background:
+                      "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                    border: "none",
+                    height: 48,
+                    fontSize: 16,
+                    paddingLeft: 32,
+                    paddingRight: 32,
+                  }}
+                >
+                  Generate Questions
+                </Button>
+              </div>
+            )}
+          </div>
+        );
 
-                <List
-                  dataSource={generatedQuestions}
-                  renderItem={(question: any, index) => (
-                    <List.Item>
-                      <Card style={{ width: "100%" }} size="small">
-                        <Space direction="vertical" style={{ width: "100%" }}>
-                          <Text strong>
-                            {index + 1}. {question.question}
-                          </Text>
-                          {question.expectedAnswer && (
-                            <Paragraph
-                              type="secondary"
-                              style={{ marginBottom: 0 }}
-                            >
-                              <Text type="secondary">Expected: </Text>
-                              {question.expectedAnswer}
-                            </Paragraph>
-                          )}
-                          {question.category && <Tag>{question.category}</Tag>}
-                        </Space>
-                      </Card>
-                    </List.Item>
-                  )}
-                  style={{ maxHeight: 400, overflow: "auto" }}
+      // ===== Step 4: Review & Send =====
+      case 4:
+        return (
+          <div>
+            {emailSent ? (
+              <Result
+                status="success"
+                title="Interview Invitation Sent!"
+                subTitle={`The AI interview invitation has been sent to ${createdSession?.candidateEmail}`}
+                extra={[
+                  <Button
+                    key="close"
+                    type="primary"
+                    onClick={() => {
+                      onClose();
+                      resetModal();
+                    }}
+                  >
+                    Close
+                  </Button>,
+                ]}
+              >
+                <Descriptions
+                  size="small"
+                  column={1}
+                  bordered
+                  style={{ marginTop: 16 }}
+                >
+                  <Descriptions.Item label="Interview Title">
+                    {createdSession?.title}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Interview ID">
+                    <Text code>{createdSession?.id}</Text>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Candidate">
+                    {createdSession?.candidateName} (
+                    {createdSession?.candidateEmail})
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Session Password">
+                    <Text code strong>
+                      {createdSession?.sessionPassword}
+                    </Text>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Questions">
+                    {generatedQuestions.length} questions
+                  </Descriptions.Item>
+                </Descriptions>
+              </Result>
+            ) : (
+              <>
+                <Alert
+                  message="Review & Send Interview"
+                  description="Review the generated questions and send the interview invitation to the candidate"
+                  type="success"
+                  showIcon
+                  style={{ marginBottom: 24 }}
                 />
 
-                {questionType === QuestionGenerationType.CUSTOMIZED && (
-                  <Alert
-                    message="Send to Candidate"
-                    description="These customized questions are ready to be sent to the selected candidate"
-                    type="info"
-                    showIcon
-                    style={{ marginTop: 16 }}
-                  />
+                {/* Session Summary */}
+                {createdSession && (
+                  <Card
+                    size="small"
+                    title={
+                      <Space>
+                        <FileTextOutlined />
+                        <span>Interview Session Summary</span>
+                      </Space>
+                    }
+                    style={{ marginBottom: 16 }}
+                  >
+                    <Descriptions size="small" column={2}>
+                      <Descriptions.Item label="Title">
+                        {createdSession.title}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Interview ID">
+                        <Text code>{createdSession.id}</Text>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Job">
+                        {createdSession.jobTitle}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Company">
+                        {createdSession.companyName}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Candidate">
+                        {createdSession.candidateName}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Email">
+                        {createdSession.candidateEmail}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Duration">
+                        {createdSession.duration} min
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Password">
+                        <Text code strong>
+                          {createdSession.sessionPassword}
+                        </Text>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Start Time">
+                        {createdSession.sessionStart
+                          ? new Date(
+                              createdSession.sessionStart,
+                            ).toLocaleString()
+                          : "N/A"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="End Time">
+                        {createdSession.sessionEnd
+                          ? new Date(
+                              createdSession.sessionEnd,
+                            ).toLocaleString()
+                          : "N/A"}
+                      </Descriptions.Item>
+                    </Descriptions>
+                  </Card>
                 )}
+
+                {/* Questions List */}
+                <Card
+                  size="small"
+                  title={
+                    <Space>
+                      <ThunderboltOutlined style={{ color: "#722ed1" }} />
+                      <span>
+                        Questions ({generatedQuestions.length})
+                      </span>
+                      {questionsModified && (
+                        <Tag color="orange" style={{ marginLeft: 8 }}>
+                          Modified
+                        </Tag>
+                      )}
+                    </Space>
+                  }
+                  style={{ marginBottom: 16 }}
+                >
+                  <List
+                    dataSource={generatedQuestions}
+                    renderItem={(question: string, index: number) => (
+                      <List.Item
+                        style={{ padding: "8px 0" }}
+                        actions={[
+                          <Button
+                            key="delete"
+                            type="text"
+                            danger
+                            size="small"
+                            icon={<DeleteOutlined />}
+                            onClick={() => handleDeleteQuestion(index)}
+                          />,
+                        ]}
+                      >
+                        <div
+                          style={{
+                            width: "100%",
+                            paddingRight: 8,
+                          }}
+                        >
+                          <Text strong>
+                            Q{index + 1}. {question}
+                          </Text>
+                        </div>
+                      </List.Item>
+                    )}
+                    style={{ maxHeight: 280, overflow: "auto" }}
+                    locale={{ emptyText: "No questions yet. Add one below." }}
+                  />
+
+                  <Divider style={{ margin: "12px 0" }} />
+
+                  {/* Add Question Manually */}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <Input.TextArea
+                      value={newQuestion}
+                      onChange={(e) => setNewQuestion(e.target.value)}
+                      placeholder="Type a custom question to add..."
+                      autoSize={{ minRows: 1, maxRows: 3 }}
+                      style={{ flex: 1 }}
+                      onPressEnter={(e) => {
+                        if (!e.shiftKey) {
+                          e.preventDefault();
+                          handleAddQuestion();
+                        }
+                      }}
+                    />
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={handleAddQuestion}
+                      disabled={!newQuestion.trim()}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                </Card>
+
+                {/* Email Preview Info */}
+                <Alert
+                  message="Email will include"
+                  description={
+                    <ul style={{ margin: "8px 0 0 0", paddingLeft: 20 }}>
+                      <li>
+                        Interview Title: <strong>{createdSession?.title}</strong>
+                      </li>
+                      <li>
+                        Interview ID: <strong>{createdSession?.id}</strong>
+                      </li>
+                      <li>
+                        Session Password:{" "}
+                        <strong>{createdSession?.sessionPassword}</strong>
+                      </li>
+                      <li>
+                        Candidate Email:{" "}
+                        <strong>{createdSession?.candidateEmail}</strong>
+                      </li>
+                      <li>
+                        Start Time:{" "}
+                        <strong>
+                          {createdSession?.sessionStart
+                            ? new Date(
+                                createdSession.sessionStart,
+                              ).toLocaleString()
+                            : "N/A"}
+                        </strong>
+                      </li>
+                      <li>
+                        End Time:{" "}
+                        <strong>
+                          {createdSession?.sessionEnd
+                            ? new Date(
+                                createdSession.sessionEnd,
+                              ).toLocaleString()
+                            : "N/A"}
+                        </strong>
+                      </li>
+                      <li>
+                        <strong>"Start Now"</strong> button
+                      </li>
+                    </ul>
+                  }
+                  type="info"
+                  showIcon
+                  icon={<MailOutlined />}
+                />
               </>
-            ) : (
-              <Alert
-                message="No questions generated yet"
-                description="Click 'Generate Questions' to create AI interview questions"
-                type="warning"
-                showIcon
-              />
             )}
           </div>
         );
@@ -584,6 +964,21 @@ export default function CreateAIInterviewModal({
   };
 
   const getStepButtons = () => {
+    // If email already sent, only show close button
+    if (emailSent) {
+      return (
+        <Button
+          type="primary"
+          onClick={() => {
+            onClose();
+            resetModal();
+          }}
+        >
+          Close
+        </Button>
+      );
+    }
+
     switch (currentStep) {
       case 0:
         return (
@@ -606,11 +1001,10 @@ export default function CreateAIInterviewModal({
             <Button onClick={onClose}>Cancel</Button>
             <Button
               type="primary"
-              icon={<ThunderboltOutlined />}
-              onClick={handleGenerateQuestions}
-              loading={loading}
+              onClick={handleNext}
+              disabled={!selectedCandidateId}
             >
-              Generate Questions
+              Next
             </Button>
           </Space>
         );
@@ -621,26 +1015,43 @@ export default function CreateAIInterviewModal({
             <Button onClick={handlePrevious}>Previous</Button>
             <Button onClick={onClose}>Cancel</Button>
             <Button
-              icon={<SaveOutlined />}
-              onClick={handleSaveTemplate}
+              type="primary"
+              icon={<SolutionOutlined />}
+              onClick={handleCreateSession}
+              loading={loading}
+            >
+              Create Interview Session
+            </Button>
+          </Space>
+        );
+
+      case 3:
+        return (
+          <Space>
+            <Button onClick={onClose}>Cancel</Button>
+            {/* Generate button is rendered inline in the step content */}
+          </Space>
+        );
+
+      case 4:
+        return (
+          <Space>
+            <Button onClick={onClose}>Cancel</Button>
+            <Button
+              type="primary"
+              icon={<SendOutlined />}
+              onClick={handleSendToCandidate}
               loading={loading}
               disabled={generatedQuestions.length === 0}
+              size="large"
+              style={{
+                background:
+                  "linear-gradient(135deg, #52c41a 0%, #389e0d 100%)",
+                border: "none",
+              }}
             >
-              Save as Template
+              Send Interview to Candidate
             </Button>
-            {questionType === QuestionGenerationType.CUSTOMIZED && (
-              <Button
-                type="primary"
-                icon={<SendOutlined />}
-                onClick={handleSendToCandidate}
-                loading={loading}
-                disabled={
-                  generatedQuestions.length === 0 || !selectedCandidateId
-                }
-              >
-                Send to Candidate
-              </Button>
-            )}
           </Space>
         );
 
@@ -654,30 +1065,42 @@ export default function CreateAIInterviewModal({
       title={
         <Space>
           <ThunderboltOutlined style={{ color: "#722ed1" }} />
-          <span>Create AI Interview Questions</span>
+          <span>Create AI Interview</span>
         </Space>
       }
       open={visible}
-      onCancel={onClose}
-      width={800}
+      onCancel={() => {
+        onClose();
+        resetModal();
+      }}
+      width={850}
       footer={getStepButtons()}
       destroyOnClose
     >
       <Steps
         current={currentStep}
         style={{ marginBottom: 24 }}
+        size="small"
         items={[
           {
             title: "Select Job",
+            icon: <FileTextOutlined />,
+          },
+          {
+            title: "Select Candidate",
             icon: <UserOutlined />,
           },
           {
-            title: "Configure",
+            title: "Session Setup",
+            icon: <CalendarOutlined />,
+          },
+          {
+            title: "Generate Questions",
             icon: <ThunderboltOutlined />,
           },
           {
-            title: "Review & Save",
-            icon: <CheckCircleOutlined />,
+            title: "Review & Send",
+            icon: <SendOutlined />,
           },
         ]}
       />

@@ -257,6 +257,61 @@ export function mapToCustomizedRequest(
   };
 }
 
+// ===== SIMPLE INTERVIEW QUESTIONS (New Flow) =====
+export interface SimpleQuestionJobRequirement {
+  title: string;
+  company: string;
+  location: string;
+  job_type: string;
+  experience_level: string;
+  skills_required: string | string[];
+  responsibilities: string | string[];
+  qualifications: string | string[];
+  description: string;
+  salary_range: string | null;
+  benefits: string | string[] | null;
+}
+
+export interface SimpleQuestionCandidate {
+  resume_path: string;
+  name: string;
+  email: string;
+  phone: string;
+  skills: string[];
+  experience_years: number;
+  education: string | string[];
+  match_score: number;
+  summary: string;
+  location: string;
+  linkedin_url: string;
+  github_url: string;
+  github_username: string;
+  portfolio_url: string;
+  current_job_title: string;
+  work_experience: any[];
+  projects: any[];
+  certifications: string[];
+  publications: string[];
+  languages: string[];
+  awards: string[];
+  volunteer_experience: any[];
+  interests: string[];
+  processing_method: string;
+  analysis_timestamp: string;
+}
+
+export interface SimpleInterviewQuestionsRequest {
+  jobRequirement: SimpleQuestionJobRequirement;
+  candidate: SimpleQuestionCandidate;
+}
+
+// The API returns questions as plain strings
+export interface SimpleInterviewQuestionsResponse {
+  success: boolean;
+  questions: string[];
+  message?: string;
+}
+
 // Helper function to parse comma-separated strings or JSON arrays
 function parseStringArray(value: string | null): string[] {
   if (!value) return [];

@@ -1,5 +1,5 @@
 // API endpoint to send AI Interview to candidate
-// Similar to send-mcq workflow
+// Supports both legacy flow and new session-based flow
 
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/db";
@@ -20,15 +20,104 @@ export default async function handler(
 
   try {
     const {
+      // New flow: interview session already exists
+      interviewId,
+      // Legacy flow fields (kept for backward compatibility)
       candidateId,
       jobPostId,
       questions,
       questionType,
       duration,
-      templateId, // Optional: if using saved template
     } = req.body;
 
-    // Validation
+    // === NEW FLOW: Send from existing interview session ===
+    if (interviewId) {
+      const interview = await prisma.interview.findUnique({
+        where: { id: interviewId },
+        include: {
+          jobPost: true,
+          resume: true,
+          questions: { orderBy: { order: "asc" } },
+        },
+      });
+
+      if (!interview) {
+        return res.status(404).json({ error: "Interview session not found" });
+      }
+
+      if (!interview.candidateEmail) {
+        return res.status(400).json({ error: "Candidate email is missing" });
+      }
+
+      if (interview.questions.length === 0) {
+        return res.status(400).json({
+          error: "No questions found. Please generate questions first.",
+        });
+      }
+
+      // Update interview status to PUBLISHED
+      await prisma.interview.update({
+        where: { id: interviewId },
+        data: { status: "PUBLISHED" },
+      });
+
+      // Format times for email
+      const startTimeStr = interview.sessionStart
+        ? new Date(interview.sessionStart).toLocaleString("en-US", {
+            dateStyle: "full",
+            timeStyle: "short",
+          })
+        : "Not set";
+      const endTimeStr = interview.sessionEnd
+        ? new Date(interview.sessionEnd).toLocaleString("en-US", {
+            timeStyle: "short",
+          })
+        : "Not set";
+
+      // Generate the interview link
+      const testLink = `https://exam.synchro-hire.com/`;
+
+      // Send email with full interview details
+      const emailSent = await sendAIInterviewInvitation(
+        interview.candidateEmail,
+        interview.resume.candidateName,
+        testLink,
+        interview.sessionPassword || "",
+        interview.jobPost.jobTitle,
+        interview.jobPost.companyName,
+        interview.duration,
+        undefined,
+        // New fields for enhanced email
+        interview.id,
+        interview.title,
+        interview.sessionStart?.toISOString(),
+        interview.sessionEnd?.toISOString(),
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: emailSent
+          ? "AI Interview sent successfully to candidate via email"
+          : "AI Interview published (email failed to send)",
+        emailSent,
+        interview: {
+          id: interview.id,
+          title: interview.title,
+          duration: interview.duration,
+          totalQuestions: interview.questions.length,
+          sessionStart: interview.sessionStart,
+          sessionEnd: interview.sessionEnd,
+        },
+        candidate: {
+          email: interview.candidateEmail,
+          name: interview.resume.candidateName,
+          testLink,
+          sessionPassword: interview.sessionPassword,
+        },
+      });
+    }
+
+    // === LEGACY FLOW: Create interview and send in one step ===
     if (!candidateId || !jobPostId || !questions || questions.length === 0) {
       return res.status(400).json({
         error: "Candidate ID, job ID, and questions are required",
@@ -58,23 +147,22 @@ export default async function handler(
     // Create Interview record
     const interview = await prisma.interview.create({
       data: {
-        title: `AI Interview - ${questionType}`,
-        description: `AI-generated ${questionType} questions (${questions.length} questions)`,
+        title: "AI Interview",
+        description: `AI-generated ${questionType || "ESSAY"} questions (${questions.length} questions)`,
         duration: duration || 30,
         status: "PUBLISHED",
         attempted: false,
         candidateEmail: candidate.candidateEmail,
-        sessionPassword: plainPassword, // For email display
-        sessionPasswordHash: hashedPassword, // For validation
+        sessionPassword: plainPassword,
+        sessionPasswordHash: hashedPassword,
         jobPostId: jobPostId,
         resumeId: candidateId,
         userId: user.userId,
-        // Store AI questions in Question table
         questions: {
           create: questions.map((q: any, index: number) => ({
-            type: "ESSAY", // AI interviews are essay/open-ended questions
+            type: "ESSAY",
             question: q.question,
-            correct: q.expectedAnswer || "", // Store expected answer for reference
+            correct: q.expectedAnswer || q.expected_answer_points?.join("; ") || "",
             points: 1,
             order: index + 1,
           })),
@@ -86,16 +174,7 @@ export default async function handler(
       },
     });
 
-    // Create Interview Attempt
-    const attempt = await prisma.interviewAttempt.create({
-      data: {
-        interviewerId: user.userId,
-        interviewId: interview.id,
-        status: "IN_PROGRESS",
-      },
-    });
-
-    // Generate test link (assuming same portal as MCQ)
+    // Generate test link
     const testLink = `https://exam.synchro-hire.com/`;
 
     // Send email notification
@@ -107,7 +186,6 @@ export default async function handler(
       interview.jobPost.jobTitle,
       interview.jobPost.companyName,
       duration,
-      `AI-generated ${questionType} interview questions`,
     );
 
     if (!emailSent) {
@@ -127,10 +205,9 @@ export default async function handler(
         totalQuestions: questions.length,
         questionType,
       },
-      attempt: {
-        id: attempt.id,
-        candidateEmail: candidate.candidateEmail,
-        candidateName: candidate.candidateName,
+      candidate: {
+        email: candidate.candidateEmail,
+        name: candidate.candidateName,
         testLink,
         sessionPassword: plainPassword,
       },

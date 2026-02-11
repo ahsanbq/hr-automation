@@ -9,6 +9,8 @@ import {
   CustomizedQuestionRequest,
   CustomizedQuestionResponse,
   QuestionDifficulty,
+  SimpleInterviewQuestionsRequest,
+  SimpleInterviewQuestionsResponse,
 } from "@/types/ai-interview";
 
 const AI_API_BASE = "https://ai.synchro-hire.com";
@@ -117,5 +119,41 @@ export async function generateCustomizedQuestions(
   } catch (error: any) {
     console.error("Error generating customized questions:", error);
     throw new Error(error.message || "Failed to generate customized questions");
+  }
+}
+
+/**
+ * Generate Simple Interview Questions based on job requirement + candidate profile
+ * Uses the new /generate-simple-interview-questions endpoint
+ * @param request - Job requirement and candidate details
+ * @returns Array of interview questions
+ */
+export async function generateSimpleInterviewQuestions(
+  request: SimpleInterviewQuestionsRequest,
+): Promise<SimpleInterviewQuestionsResponse> {
+  try {
+    const response = await fetch(
+      `${AI_API_BASE}/generate-simple-interview-questions`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(request),
+      },
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`AI API failed: ${response.statusText}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error: any) {
+    console.error("Error generating simple interview questions:", error);
+    throw new Error(
+      error.message || "Failed to generate simple interview questions",
+    );
   }
 }
