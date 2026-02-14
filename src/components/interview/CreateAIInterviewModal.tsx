@@ -209,6 +209,21 @@ export default function CreateAIInterviewModal({
         return;
       }
 
+      // Validate duration is between 1-20 minutes
+      const startTimeObj = dayjs(values.start_time);
+      const endTimeObj = dayjs(values.end_time);
+      const durationMinutes = endTimeObj.diff(startTimeObj, "minute");
+
+      if (durationMinutes < 1) {
+        message.error("Interview duration must be at least 1 minute");
+        return;
+      }
+
+      if (durationMinutes > 20) {
+        message.error("Interview duration cannot exceed 20 minutes");
+        return;
+      }
+
       setLoading(true);
       const token = localStorage.getItem("token");
 
@@ -282,9 +297,7 @@ export default function CreateAIInterviewModal({
         );
         setCurrentStep(currentStep + 1);
       } else {
-        message.error(
-          response.data.error || "Failed to generate questions",
-        );
+        message.error(response.data.error || "Failed to generate questions");
       }
     } catch (error: any) {
       console.error("Generate questions error:", error);
@@ -553,10 +566,7 @@ export default function CreateAIInterviewModal({
                 </Descriptions.Item>
                 <Descriptions.Item label="Candidate">
                   <Text strong>{selectedCandidate?.name}</Text>
-                  <Text type="secondary">
-                    {" "}
-                    ({selectedCandidate?.email})
-                  </Text>
+                  <Text type="secondary"> ({selectedCandidate?.email})</Text>
                 </Descriptions.Item>
               </Descriptions>
             </Card>
@@ -592,16 +602,18 @@ export default function CreateAIInterviewModal({
                   style={{ width: "100%" }}
                   format="HH:mm"
                   placeholder="Start time"
-                  minuteStep={5}
+                  minuteStep={1}
+                  onChange={() => {
+                    // Clear end time when start time changes
+                    form.setFieldsValue({ end_time: null });
+                  }}
                 />
               </Form.Item>
 
               <Form.Item
                 name="end_time"
-                label="End Time"
-                rules={[
-                  { required: true, message: "Please select end time" },
-                ]}
+                label="End Time (1-20 min after start)"
+                rules={[{ required: true, message: "Please select end time" }]}
                 style={{ flex: 1 }}
               >
                 <TimePicker
@@ -609,10 +621,84 @@ export default function CreateAIInterviewModal({
                   style={{ width: "100%" }}
                   format="HH:mm"
                   placeholder="End time"
-                  minuteStep={5}
+                  minuteStep={1}
+                  disabledTime={() => {
+                    const startTime = form.getFieldValue("start_time");
+                    if (!startTime) {
+                      // If no start time, allow all times
+                      return {
+                        disabledHours: () => [],
+                        disabledMinutes: () => [],
+                      };
+                    }
+
+                    const start = dayjs(startTime);
+                    const startHour = start.hour();
+                    const startMinute = start.minute();
+
+                    return {
+                      disabledHours: () => {
+                        const hours = [];
+                        // Calculate which hours are valid
+                        // Valid range: start time + 1 min to start time + 20 min
+                        const minEndHour = start.add(1, "minute").hour();
+                        const maxEndHour = start.add(20, "minute").hour();
+
+                        for (let i = 0; i < 24; i++) {
+                          // Handle potential hour wrap-around
+                          if (maxEndHour >= minEndHour) {
+                            // Normal case: no midnight crossing
+                            if (i < minEndHour || i > maxEndHour) {
+                              hours.push(i);
+                            }
+                          } else {
+                            // Crosses midnight (e.g., 23:55 to 00:15)
+                            if (i > maxEndHour && i < minEndHour) {
+                              hours.push(i);
+                            }
+                          }
+                        }
+                        return hours;
+                      },
+                      disabledMinutes: (selectedHour: number) => {
+                        const minutes = [];
+
+                        for (let i = 0; i < 60; i++) {
+                          // Create a time with selected hour and this minute
+                          let endTime = start
+                            .hour(selectedHour)
+                            .minute(i)
+                            .second(0);
+
+                          // Handle day wrap if end time is before start time
+                          if (endTime.isBefore(start)) {
+                            endTime = endTime.add(1, "day");
+                          }
+
+                          const diffMinutes = endTime.diff(start, "minute");
+
+                          // Disable if less than 1 minute or more than 20 minutes
+                          if (diffMinutes < 1 || diffMinutes > 20) {
+                            minutes.push(i);
+                          }
+                        }
+                        return minutes;
+                      },
+                    };
+                  }}
                 />
               </Form.Item>
             </div>
+
+            {form.getFieldValue("start_time") &&
+              form.getFieldValue("end_time") && (
+                <Alert
+                  message={`Duration: ${dayjs(form.getFieldValue("end_time")).diff(dayjs(form.getFieldValue("start_time")), "minute")} minutes`}
+                  type="info"
+                  showIcon
+                  style={{ marginTop: 8 }}
+                />
+              )}
           </div>
         );
 
@@ -818,9 +904,7 @@ export default function CreateAIInterviewModal({
                       </Descriptions.Item>
                       <Descriptions.Item label="End Time">
                         {createdSession.sessionEnd
-                          ? new Date(
-                              createdSession.sessionEnd,
-                            ).toLocaleString()
+                          ? new Date(createdSession.sessionEnd).toLocaleString()
                           : "N/A"}
                       </Descriptions.Item>
                     </Descriptions>
@@ -833,9 +917,7 @@ export default function CreateAIInterviewModal({
                   title={
                     <Space>
                       <ThunderboltOutlined style={{ color: "#722ed1" }} />
-                      <span>
-                        Questions ({generatedQuestions.length})
-                      </span>
+                      <span>Questions ({generatedQuestions.length})</span>
                       {questionsModified && (
                         <Tag color="orange" style={{ marginLeft: 8 }}>
                           Modified
@@ -911,7 +993,8 @@ export default function CreateAIInterviewModal({
                   description={
                     <ul style={{ margin: "8px 0 0 0", paddingLeft: 20 }}>
                       <li>
-                        Interview Title: <strong>{createdSession?.title}</strong>
+                        Interview Title:{" "}
+                        <strong>{createdSession?.title}</strong>
                       </li>
                       <li>
                         Interview ID: <strong>{createdSession?.id}</strong>
@@ -1045,8 +1128,7 @@ export default function CreateAIInterviewModal({
               disabled={generatedQuestions.length === 0}
               size="large"
               style={{
-                background:
-                  "linear-gradient(135deg, #52c41a 0%, #389e0d 100%)",
+                background: "linear-gradient(135deg, #52c41a 0%, #389e0d 100%)",
                 border: "none",
               }}
             >

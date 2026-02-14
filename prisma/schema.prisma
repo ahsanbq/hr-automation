@@ -270,6 +270,9 @@ model Interview {
   candidateEmail     String?
   sessionPassword    String?        // Keep for backward compatibility and email display
   sessionPasswordHash String?       // New bcrypt hashed password for validation
+  callId             String?        // AI call/session tracking ID
+  customerSentiment  String?        // Sentiment analysis result from AI interview
+  successEvaluation  String?        // Success evaluation/score from AI interview
   jobPostId          String
   resumeId           String
   userId             Int
