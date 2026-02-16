@@ -1,8 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/db";
 import { getUserFromRequest } from "@/lib/auth";
-
-// Force TypeScript to reload Prisma types
+import { getCached, invalidateCache } from "@/lib/job-cache";
 
 export default async function handler(
   req: NextApiRequest,
@@ -17,80 +16,94 @@ export default async function handler(
       .json({ error: "User must be associated with a company" });
   }
 
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // GET — Fetch jobs (CACHED + optimized query)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   if (req.method === "GET") {
     const { include } = req.query;
+    const cacheKey = `jobs:${user.companyId}:${include || "basic"}`;
 
-    // Get jobs from the user's company
-    const jobs = await prisma.jobPost.findMany({
-      where: {
-        companyId: user.companyId, // Filter by company instead of individual user
-      },
-      include: {
-        companies: true,
-        User: { select: { id: true, name: true, email: true } },
-        _count: {
-          select: {
-            Resume: true,
-            assessmentStages: true,
+    const result = await getCached(
+      cacheKey,
+      async () => {
+        // Use select instead of include — single optimized query
+        // avoids Prisma generating multiple sub-queries
+        const jobs = await prisma.jobPost.findMany({
+          where: {
+            companyId: user.companyId!,
           },
-        },
-        assessmentStages: {
           select: {
-            type: true,
-            status: true,
-          },
-        },
-        // Include resume statistics if requested
-        ...(include === "resumeStats" && {
-          Resume: {
-            select: {
-              matchScore: true,
-              recommendation: true,
+            id: true,
+            jobTitle: true,
+            companyName: true,
+            location: true,
+            jobType: true,
+            experienceLevel: true,
+            salaryRange: true,
+            skillsRequired: true,
+            jobDescription: true,
+            keyResponsibilities: true,
+            qualifications: true,
+            benefits: true,
+            isActive: true,
+            createdAt: true,
+            updatedAt: true,
+            companyId: true,
+            createdById: true,
+            // Only select what frontend needs from relations
+            User: { select: { id: true, name: true, email: true } },
+            _count: {
+              select: {
+                Resume: true,
+                assessmentStages: true,
+              },
             },
+            // Include resume stats only when requested
+            ...(include === "resumeStats" && {
+              Resume: {
+                select: {
+                  matchScore: true,
+                  recommendation: true,
+                },
+              },
+            }),
           },
-        }),
+          orderBy: { createdAt: "desc" },
+        });
+
+        // Transform in one pass
+        return jobs.map((job) => {
+          const base: any = {
+            ...job,
+            createdBy: job.User,
+            company: job.companyName,
+          };
+
+          // Calculate avg match score if resume stats included
+          if (include === "resumeStats" && "Resume" in job) {
+            const resumes = (job as any).Resume || [];
+            const avgMatchScore =
+              resumes.length > 0
+                ? resumes.reduce(
+                    (sum: number, r: any) => sum + (r.matchScore || 0),
+                    0
+                  ) / resumes.length
+                : 0;
+            base.avgMatchScore = Math.round(avgMatchScore * 10) / 10;
+          }
+
+          return base;
+        });
       },
-      orderBy: { createdAt: "desc" },
-    });
+      30_000 // 30 second TTL
+    );
 
-    // Calculate average match score for each job if resume stats are included
-    if (include === "resumeStats") {
-      const jobsWithStats = jobs.map((job) => {
-        const resumes = job.Resume || [];
-        const avgMatchScore =
-          resumes.length > 0
-            ? resumes.reduce(
-                (sum, resume) => sum + (resume.matchScore || 0),
-                0
-              ) / resumes.length
-            : 0;
-
-        return {
-          ...job,
-          avgMatchScore: Math.round(avgMatchScore * 10) / 10, // Round to 1 decimal place
-        };
-      });
-
-      // Transform the jobs with stats to match frontend expectations
-      const transformedJobsWithStats = jobsWithStats.map((job) => ({
-        ...job,
-        createdBy: job.User, // Map User to createdBy
-        company: job.companyName, // Map companyName to company
-      }));
-
-      return res.json({ jobs: transformedJobsWithStats });
-    }
-
-    // Transform the data to match frontend expectations
-    const transformedJobs = jobs.map((job) => ({
-      ...job,
-      createdBy: job.User, // Map User to createdBy
-      company: job.companyName, // Map companyName to company
-    }));
-
-    return res.json({ jobs: transformedJobs });
+    return res.json({ jobs: result });
   }
 
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // POST — Create job (NO unnecessary re-fetch)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   if (req.method === "POST") {
     const { jobRequirement } = req.body || {};
 
@@ -100,16 +113,13 @@ export default async function handler(
         .json({ error: "Job requirement data is required" });
     }
 
-    if (!user.companyId) {
-      return res
-        .status(400)
-        .json({ error: "User must be associated with a company" });
-    }
-
     try {
+      const jobId = crypto.randomUUID();
+
+      // Just INSERT — don't include relations (saves 2 extra round trips)
       const created = await prisma.jobPost.create({
         data: {
-          id: crypto.randomUUID(),
+          id: jobId,
           jobTitle: jobRequirement.title || "Untitled Job",
           companyName: jobRequirement.company || "",
           location: jobRequirement.location || "",
@@ -127,16 +137,40 @@ export default async function handler(
           createdById: user.userId,
           updatedAt: new Date(),
         },
-        include: {
-          companies: true,
-          User: { select: { id: true, name: true, email: true } },
+        // Only select scalar fields — no joins needed
+        select: {
+          id: true,
+          jobTitle: true,
+          companyName: true,
+          location: true,
+          jobType: true,
+          experienceLevel: true,
+          salaryRange: true,
+          skillsRequired: true,
+          jobDescription: true,
+          keyResponsibilities: true,
+          qualifications: true,
+          benefits: true,
+          isActive: true,
+          createdAt: true,
+          updatedAt: true,
+          companyId: true,
+          createdById: true,
         },
       });
-      // Transform the created job to match frontend expectations
+
+      // Invalidate job list cache so next GET fetches fresh data
+      invalidateCache(`jobs:${user.companyId}`);
+
+      // Build response from the data we already have (no extra queries)
       const transformedJob = {
         ...created,
-        createdBy: created.User, // Map User to createdBy
-        company: created.companyName, // Map companyName to company
+        company: created.companyName,
+        createdBy: {
+          id: user.userId,
+          name: user.email.split("@")[0], // We already have this from JWT
+          email: user.email,
+        },
       };
 
       return res.status(201).json(transformedJob);
@@ -146,29 +180,56 @@ export default async function handler(
     }
   }
 
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // PUT — Update job (minimal query + invalidate cache)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   if (req.method === "PUT") {
     const { id, ...data } = req.body || {};
     const updated = await prisma.jobPost.update({
       where: { id },
       data,
-      include: {
-        companies: true,
-        User: { select: { id: true, name: true, email: true } },
+      select: {
+        id: true,
+        jobTitle: true,
+        companyName: true,
+        location: true,
+        jobType: true,
+        experienceLevel: true,
+        salaryRange: true,
+        skillsRequired: true,
+        jobDescription: true,
+        keyResponsibilities: true,
+        qualifications: true,
+        benefits: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+        companyId: true,
+        createdById: true,
       },
     });
-    // Transform the updated job to match frontend expectations
+
+    // Invalidate cache
+    invalidateCache(`jobs:${user.companyId}`);
+
     const transformedJob = {
       ...updated,
-      createdBy: updated.User, // Map User to createdBy
-      company: updated.companyName, // Map companyName to company
+      company: updated.companyName,
     };
 
     return res.json(transformedJob);
   }
 
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // DELETE — Delete job + invalidate cache
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   if (req.method === "DELETE") {
     const { id } = req.body || {};
     await prisma.jobPost.delete({ where: { id } });
+
+    // Invalidate cache
+    invalidateCache(`jobs:${user.companyId}`);
+
     return res.status(204).end();
   }
 
