@@ -21,9 +21,9 @@ export default async function handler(
     const {
       jobPostId,
       candidateId,
-      interviewDate,
-      startTime,
-      endTime,
+      sessionStart, // ISO datetime string — start of the exam window
+      sessionEnd, // ISO datetime string — end of the exam window
+      duration, // Exam duration in minutes (1-20)
     } = req.body;
 
     // Validation
@@ -33,9 +33,30 @@ export default async function handler(
       });
     }
 
-    if (!interviewDate || !startTime || !endTime) {
+    if (!sessionStart || !sessionEnd) {
       return res.status(400).json({
-        error: "Interview date, start time, and end time are required",
+        error: "Session start and end dates are required",
+      });
+    }
+
+    if (!duration || duration < 1 || duration > 20) {
+      return res.status(400).json({
+        error: "Exam duration must be between 1 and 20 minutes",
+      });
+    }
+
+    const startDate = new Date(sessionStart);
+    const endDate = new Date(sessionEnd);
+
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return res.status(400).json({
+        error: "Invalid session start or end date format",
+      });
+    }
+
+    if (endDate <= startDate) {
+      return res.status(400).json({
+        error: "Session end must be after session start",
       });
     }
 
@@ -61,31 +82,23 @@ export default async function handler(
       return res.status(404).json({ error: "Job post not found" });
     }
 
-    // Build session start/end from date + time
-    const sessionStart = new Date(`${interviewDate}T${startTime}`);
-    const sessionEnd = new Date(`${interviewDate}T${endTime}`);
-
-    // Calculate duration in minutes
-    const durationMs = sessionEnd.getTime() - sessionStart.getTime();
-    const duration = Math.max(Math.round(durationMs / 60000), 10);
-
     // Generate session password
     const { plainPassword, hashedPassword } =
       await SessionPasswordService.generateHashedPassword();
 
-    // Create Interview record with title "AI Interview"
+    // Create Interview record
     const interview = await prisma.interview.create({
       data: {
         title: "AI Interview",
         description: `AI Interview for ${jobPost.jobTitle} - ${candidate.candidateName}`,
-        duration,
+        duration: Math.round(duration), // exam duration in minutes (1-20)
         status: "DRAFT",
         attempted: false,
         candidateEmail: candidate.candidateEmail,
-        sessionPassword: plainPassword,
-        sessionPasswordHash: hashedPassword,
-        sessionStart,
-        sessionEnd,
+        sessionPassword: plainPassword, // Plain password for email/display
+        sessionPasswordHash: hashedPassword, // Hashed password for validation
+        sessionStart: startDate,
+        sessionEnd: endDate,
         jobPostId,
         resumeId: candidateId,
         userId: user.userId,
@@ -106,7 +119,7 @@ export default async function handler(
         sessionStart: interview.sessionStart,
         sessionEnd: interview.sessionEnd,
         candidateEmail: interview.candidateEmail,
-        sessionPassword: plainPassword,
+        sessionPassword: plainPassword, // Return plain password for display/email only
         jobTitle: interview.jobPost.jobTitle,
         companyName: interview.jobPost.companyName,
         candidateName: interview.resume.candidateName,
@@ -120,4 +133,3 @@ export default async function handler(
     });
   }
 }
-

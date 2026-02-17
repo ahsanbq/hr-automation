@@ -11,7 +11,6 @@ import {
   Input,
   InputNumber,
   DatePicker,
-  TimePicker,
   message,
   Card,
   Space,
@@ -30,12 +29,10 @@ import {
   CheckCircleOutlined,
   SendOutlined,
   CalendarOutlined,
-  ClockCircleOutlined,
   FileTextOutlined,
   SolutionOutlined,
   MailOutlined,
   CopyOutlined,
-  LockOutlined,
   PlusOutlined,
   DeleteOutlined,
 } from "@ant-design/icons";
@@ -199,46 +196,40 @@ export default function CreateAIInterviewModal({
   const handleCreateSession = async () => {
     try {
       const values = await form.validateFields([
-        "interview_date",
-        "start_time",
-        "end_time",
+        "session_start",
+        "session_end",
+        "exam_duration",
       ]);
 
-      if (!values.interview_date || !values.start_time || !values.end_time) {
+      if (!values.session_start || !values.session_end || !values.exam_duration) {
         message.error("Please fill in all session details");
         return;
       }
 
-      // Validate duration is between 1-20 minutes
-      const startTimeObj = dayjs(values.start_time);
-      const endTimeObj = dayjs(values.end_time);
-      const durationMinutes = endTimeObj.diff(startTimeObj, "minute");
+      const sessionStartDayjs = dayjs(values.session_start);
+      const sessionEndDayjs = dayjs(values.session_end);
 
-      if (durationMinutes < 1) {
-        message.error("Interview duration must be at least 1 minute");
+      if (sessionEndDayjs.isBefore(sessionStartDayjs) || sessionEndDayjs.isSame(sessionStartDayjs)) {
+        message.error("Session end must be after session start");
         return;
       }
 
-      if (durationMinutes > 20) {
-        message.error("Interview duration cannot exceed 20 minutes");
+      if (values.exam_duration < 1 || values.exam_duration > 20) {
+        message.error("Exam duration must be between 1 and 20 minutes");
         return;
       }
 
       setLoading(true);
       const token = localStorage.getItem("token");
 
-      const interviewDate = dayjs(values.interview_date).format("YYYY-MM-DD");
-      const startTime = dayjs(values.start_time).format("HH:mm:ss");
-      const endTime = dayjs(values.end_time).format("HH:mm:ss");
-
       const response = await axios.post(
         "/api/interview/create-ai-session",
         {
           jobPostId: selectedJobId,
           candidateId: selectedCandidateId,
-          interviewDate,
-          startTime,
-          endTime,
+          sessionStart: sessionStartDayjs.toISOString(),
+          sessionEnd: sessionEndDayjs.toISOString(),
+          duration: values.exam_duration,
         },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -548,7 +539,7 @@ export default function CreateAIInterviewModal({
           <div>
             <Alert
               message="Session Setup"
-              description="Set the interview date and time, then create the interview session"
+              description="Define the session window (date range during which the candidate can take the exam) and the exam duration."
               type="info"
               showIcon
               style={{ marginBottom: 24 }}
@@ -571,129 +562,84 @@ export default function CreateAIInterviewModal({
               </Descriptions>
             </Card>
 
-            <Form.Item
-              name="interview_date"
-              label="Interview Date"
-              rules={[
-                { required: true, message: "Please select interview date" },
-              ]}
-            >
-              <DatePicker
-                size="large"
-                style={{ width: "100%" }}
-                placeholder="Select interview date"
-                disabledDate={(current) =>
-                  current && current < dayjs().startOf("day")
-                }
-              />
-            </Form.Item>
+            <Divider orientation="left">Session Window</Divider>
+            <Alert
+              message="The candidate can start the exam anytime within this window."
+              type="warning"
+              showIcon
+              style={{ marginBottom: 16 }}
+            />
 
             <div style={{ display: "flex", gap: 16 }}>
               <Form.Item
-                name="start_time"
-                label="Start Time"
+                name="session_start"
+                label="Session Start (Date & Time)"
                 rules={[
-                  { required: true, message: "Please select start time" },
+                  { required: true, message: "Please select session start" },
                 ]}
                 style={{ flex: 1 }}
               >
-                <TimePicker
+                <DatePicker
+                  showTime={{ format: "HH:mm" }}
+                  format="YYYY-MM-DD HH:mm"
                   size="large"
                   style={{ width: "100%" }}
-                  format="HH:mm"
-                  placeholder="Start time"
-                  minuteStep={1}
-                  onChange={() => {
-                    // Clear end time when start time changes
-                    form.setFieldsValue({ end_time: null });
-                  }}
+                  placeholder="Select start date & time"
+                  disabledDate={(current) =>
+                    current && current < dayjs().startOf("day")
+                  }
                 />
               </Form.Item>
 
               <Form.Item
-                name="end_time"
-                label="End Time (1-20 min after start)"
-                rules={[{ required: true, message: "Please select end time" }]}
+                name="session_end"
+                label="Session End (Date & Time)"
+                rules={[
+                  { required: true, message: "Please select session end" },
+                ]}
                 style={{ flex: 1 }}
               >
-                <TimePicker
+                <DatePicker
+                  showTime={{ format: "HH:mm" }}
+                  format="YYYY-MM-DD HH:mm"
                   size="large"
                   style={{ width: "100%" }}
-                  format="HH:mm"
-                  placeholder="End time"
-                  minuteStep={1}
-                  disabledTime={() => {
-                    const startTime = form.getFieldValue("start_time");
-                    if (!startTime) {
-                      // If no start time, allow all times
-                      return {
-                        disabledHours: () => [],
-                        disabledMinutes: () => [],
-                      };
+                  placeholder="Select end date & time"
+                  disabledDate={(current) => {
+                    const sessionStart = form.getFieldValue("session_start");
+                    if (sessionStart) {
+                      return current && current < dayjs(sessionStart).startOf("day");
                     }
-
-                    const start = dayjs(startTime);
-                    const startHour = start.hour();
-                    const startMinute = start.minute();
-
-                    return {
-                      disabledHours: () => {
-                        const hours = [];
-                        // Calculate which hours are valid
-                        // Valid range: start time + 1 min to start time + 20 min
-                        const minEndHour = start.add(1, "minute").hour();
-                        const maxEndHour = start.add(20, "minute").hour();
-
-                        for (let i = 0; i < 24; i++) {
-                          // Handle potential hour wrap-around
-                          if (maxEndHour >= minEndHour) {
-                            // Normal case: no midnight crossing
-                            if (i < minEndHour || i > maxEndHour) {
-                              hours.push(i);
-                            }
-                          } else {
-                            // Crosses midnight (e.g., 23:55 to 00:15)
-                            if (i > maxEndHour && i < minEndHour) {
-                              hours.push(i);
-                            }
-                          }
-                        }
-                        return hours;
-                      },
-                      disabledMinutes: (selectedHour: number) => {
-                        const minutes = [];
-
-                        for (let i = 0; i < 60; i++) {
-                          // Create a time with selected hour and this minute
-                          let endTime = start
-                            .hour(selectedHour)
-                            .minute(i)
-                            .second(0);
-
-                          // Handle day wrap if end time is before start time
-                          if (endTime.isBefore(start)) {
-                            endTime = endTime.add(1, "day");
-                          }
-
-                          const diffMinutes = endTime.diff(start, "minute");
-
-                          // Disable if less than 1 minute or more than 20 minutes
-                          if (diffMinutes < 1 || diffMinutes > 20) {
-                            minutes.push(i);
-                          }
-                        }
-                        return minutes;
-                      },
-                    };
+                    return current && current < dayjs().startOf("day");
                   }}
                 />
               </Form.Item>
             </div>
 
-            {form.getFieldValue("start_time") &&
-              form.getFieldValue("end_time") && (
+            <Divider orientation="left">Exam Duration</Divider>
+
+            <Form.Item
+              name="exam_duration"
+              label="Exam Duration (minutes)"
+              rules={[
+                { required: true, message: "Please set the exam duration" },
+              ]}
+              tooltip="Maximum 20 minutes. Once the candidate starts the exam, they must finish within this time."
+            >
+              <InputNumber
+                min={1}
+                max={20}
+                size="large"
+                style={{ width: "100%" }}
+                placeholder="e.g. 15"
+                addonAfter="minutes"
+              />
+            </Form.Item>
+
+            {form.getFieldValue("session_start") &&
+              form.getFieldValue("session_end") && (
                 <Alert
-                  message={`Duration: ${dayjs(form.getFieldValue("end_time")).diff(dayjs(form.getFieldValue("start_time")), "minute")} minutes`}
+                  message={`Session window: ${dayjs(form.getFieldValue("session_start")).format("MMM DD, YYYY HH:mm")} → ${dayjs(form.getFieldValue("session_end")).format("MMM DD, YYYY HH:mm")} (${dayjs(form.getFieldValue("session_end")).diff(dayjs(form.getFieldValue("session_start")), "day")} day(s))`}
                   type="info"
                   showIcon
                   style={{ marginTop: 8 }}
@@ -732,7 +678,10 @@ export default function CreateAIInterviewModal({
                   <Descriptions.Item label="Title">
                     {createdSession.title}
                   </Descriptions.Item>
-                  <Descriptions.Item label="Duration">
+                  <Descriptions.Item label="Session Window">
+                    {dayjs(createdSession.sessionStart).format("MMM DD, YYYY HH:mm")} → {dayjs(createdSession.sessionEnd).format("MMM DD, YYYY HH:mm")}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Exam Duration">
                     {createdSession.duration} minutes
                   </Descriptions.Item>
                   <Descriptions.Item label="Session Password">
@@ -887,25 +836,23 @@ export default function CreateAIInterviewModal({
                       <Descriptions.Item label="Email">
                         {createdSession.candidateEmail}
                       </Descriptions.Item>
-                      <Descriptions.Item label="Duration">
+                      <Descriptions.Item label="Session Start">
+                        {createdSession.sessionStart
+                          ? dayjs(createdSession.sessionStart).format("MMM DD, YYYY HH:mm")
+                          : "N/A"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Session End">
+                        {createdSession.sessionEnd
+                          ? dayjs(createdSession.sessionEnd).format("MMM DD, YYYY HH:mm")
+                          : "N/A"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Exam Duration">
                         {createdSession.duration} min
                       </Descriptions.Item>
                       <Descriptions.Item label="Password">
                         <Text code strong>
                           {createdSession.sessionPassword}
                         </Text>
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Start Time">
-                        {createdSession.sessionStart
-                          ? new Date(
-                              createdSession.sessionStart,
-                            ).toLocaleString()
-                          : "N/A"}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="End Time">
-                        {createdSession.sessionEnd
-                          ? new Date(createdSession.sessionEnd).toLocaleString()
-                          : "N/A"}
                       </Descriptions.Item>
                     </Descriptions>
                   </Card>
@@ -1008,24 +955,24 @@ export default function CreateAIInterviewModal({
                         <strong>{createdSession?.candidateEmail}</strong>
                       </li>
                       <li>
-                        Start Time:{" "}
+                        Session Start:{" "}
                         <strong>
                           {createdSession?.sessionStart
-                            ? new Date(
-                                createdSession.sessionStart,
-                              ).toLocaleString()
+                            ? dayjs(createdSession.sessionStart).format("MMM DD, YYYY HH:mm")
                             : "N/A"}
                         </strong>
                       </li>
                       <li>
-                        End Time:{" "}
+                        Session End:{" "}
                         <strong>
                           {createdSession?.sessionEnd
-                            ? new Date(
-                                createdSession.sessionEnd,
-                              ).toLocaleString()
+                            ? dayjs(createdSession.sessionEnd).format("MMM DD, YYYY HH:mm")
                             : "N/A"}
                         </strong>
+                      </li>
+                      <li>
+                        Exam Duration:{" "}
+                        <strong>{createdSession?.duration} minutes</strong>
                       </li>
                       <li>
                         <strong>"Start Now"</strong> button

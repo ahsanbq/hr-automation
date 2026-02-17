@@ -153,8 +153,8 @@ export default async function handler(
         status: "PUBLISHED",
         attempted: false,
         candidateEmail: candidate.candidateEmail,
-        sessionPassword: plainPassword,
-        sessionPasswordHash: hashedPassword,
+        sessionPassword: plainPassword, // Plain password for email/display
+        sessionPasswordHash: hashedPassword, // Hashed password for validation
         jobPostId: jobPostId,
         resumeId: candidateId,
         userId: user.userId,
