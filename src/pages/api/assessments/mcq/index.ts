@@ -1,9 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/db";
 import jwt from "jsonwebtoken";
 import { MCQDifficulty } from "@/types/assessment";
-
-const prisma = new PrismaClient();
 
 interface AuthenticatedRequest extends NextApiRequest {
   user?: {

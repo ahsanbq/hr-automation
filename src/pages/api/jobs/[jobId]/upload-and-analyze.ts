@@ -200,6 +200,18 @@ export default async function handler(
             (r) => r.s3Url === analysis.resume_path
           );
 
+          // Convert education array/object to JSON string (DB field is String?)
+          let educationStr: string | null = null;
+          if (analysis.candidate.education) {
+            if (Array.isArray(analysis.candidate.education)) {
+              educationStr = JSON.stringify(analysis.candidate.education);
+            } else if (typeof analysis.candidate.education === "string") {
+              educationStr = analysis.candidate.education;
+            } else {
+              educationStr = JSON.stringify(analysis.candidate.education);
+            }
+          }
+
           const resume = await prisma.resume.create({
             data: {
               id: uploadInfo?.resumeId || crypto.randomUUID(),
@@ -213,7 +225,7 @@ export default async function handler(
               recommendation: analysis.analysis.recommendation,
               skills: analysis.candidate.skills,
               experienceYears: analysis.candidate.experience_years,
-              education: analysis.candidate.education,
+              education: educationStr,
               summary: analysis.candidate.summary,
               location: analysis.candidate.location,
               linkedinUrl: analysis.candidate.linkedin_url,

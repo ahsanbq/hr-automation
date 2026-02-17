@@ -86,14 +86,18 @@ const AvatarJobAccordionTable: React.FC<AvatarJobAccordionTableProps> = ({
   const [loading, setLoading] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [animatingRows, setAnimatingRows] = useState<Set<string>>(new Set());
+  const [loadingInterviews, setLoadingInterviews] = useState<Set<string>>(new Set());
+  const [interviewCache, setInterviewCache] = useState<Record<string, any[]>>({});
   const [deletingInterview, setDeletingInterview] = useState<any>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
-    fetchJobsWithInterviews();
+    fetchJobs();
   }, []);
 
-  const fetchJobsWithInterviews = async () => {
+  // OPTIMIZED: Only fetch the job list (fast, cached on server).
+  // Avatar interviews are lazy-loaded when the user expands a row.
+  const fetchJobs = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
@@ -110,54 +114,66 @@ const AvatarJobAccordionTable: React.FC<AvatarJobAccordionTableProps> = ({
       const data = await response.json();
       const jobsData = data.jobs || [];
 
-      // Fetch avatar interviews for each job
-      const jobsWithInterviews = await Promise.all(
-        jobsData.map(async (job: any) => {
-          try {
-            const interviewsResponse = await fetch(
-              `/api/assessments/avatar?jobPostId=${job.id}&includeRecordings=true`,
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
-              },
-            );
+      const jobsList = jobsData.map((job: any) => ({
+        ...job,
+        interviews: interviewCache[job.id] || [],
+        _count: {
+          interviews: job._count?.assessmentStages || 0,
+        },
+      }));
 
-            if (interviewsResponse.ok) {
-              const interviewsData = await interviewsResponse.json();
-              return {
-                ...job,
-                interviews: interviewsData.assessmentStages || [],
-                _count: {
-                  interviews: interviewsData.assessmentStages?.length || 0,
-                },
-              };
-            }
-            return {
-              ...job,
-              interviews: [],
-              _count: { interviews: 0 },
-            };
-          } catch (error) {
-            console.error(
-              `Error fetching interviews for job ${job.id}:`,
-              error,
-            );
-            return {
-              ...job,
-              interviews: [],
-              _count: { interviews: 0 },
-            };
-          }
-        }),
-      );
-
-      setJobs(jobsWithInterviews);
+      setJobs(jobsList);
     } catch (error) {
-      console.error("Error fetching jobs with interviews:", error);
-      message.error("Failed to fetch jobs and interviews");
+      console.error("Error fetching jobs:", error);
+      message.error("Failed to fetch jobs");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // LAZY LOAD: Fetch avatar interviews only for a specific job when expanded
+  const fetchInterviewsForJob = async (jobId: string) => {
+    if (interviewCache[jobId]) return;
+
+    try {
+      setLoadingInterviews((prev) => new Set(prev).add(jobId));
+      const token = localStorage.getItem("token");
+      const interviewsResponse = await fetch(
+        `/api/assessments/avatar?jobPostId=${jobId}&includeRecordings=true`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      if (interviewsResponse.ok) {
+        const interviewsData = await interviewsResponse.json();
+        const interviews = interviewsData.assessmentStages || [];
+
+        setInterviewCache((prev) => ({ ...prev, [jobId]: interviews }));
+
+        setJobs((prevJobs) =>
+          prevJobs.map((job) =>
+            job.id === jobId
+              ? {
+                  ...job,
+                  interviews,
+                  _count: { interviews: interviews.length },
+                }
+              : job,
+          ),
+        );
+      }
+    } catch (error) {
+      console.error(`Error fetching interviews for job ${jobId}:`, error);
+      message.error("Failed to fetch AI interviews");
+    } finally {
+      setLoadingInterviews((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(jobId);
+        return newSet;
+      });
     }
   };
 
@@ -182,6 +198,9 @@ const AvatarJobAccordionTable: React.FC<AvatarJobAccordionTableProps> = ({
     } else {
       setExpandedRows((prev) => new Set(prev).add(jobId));
       setAnimatingRows((prev) => new Set(prev).add(jobId));
+
+      // LAZY LOAD: Fetch interviews for this job on expand
+      fetchInterviewsForJob(jobId);
 
       setTimeout(() => {
         setAnimatingRows((prev) => {
@@ -209,7 +228,8 @@ const AvatarJobAccordionTable: React.FC<AvatarJobAccordionTableProps> = ({
       if (response.status === 204 || response.ok) {
         message.success("AI interview deleted successfully");
         setDeletingInterview(null);
-        fetchJobsWithInterviews();
+        setInterviewCache({});
+        fetchJobs();
       } else {
         const data = await response.json().catch(() => ({}));
         message.error(data.error || "Failed to delete AI interview");
@@ -648,16 +668,12 @@ const AvatarJobAccordionTable: React.FC<AvatarJobAccordionTableProps> = ({
                       display: "flex",
                       alignItems: "center",
                       padding: "20px",
-                      cursor: job._count.interviews > 0 ? "pointer" : "default",
+                      cursor: "pointer",
                       transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                     }}
-                    onClick={() =>
-                      job._count.interviews > 0 && handleRowExpand(job.id)
-                    }
+                    onClick={() => handleRowExpand(job.id)}
                     onMouseEnter={(e) => {
-                      if (job._count.interviews > 0) {
-                        e.currentTarget.style.backgroundColor = "#f8f9fa";
-                      }
+                      e.currentTarget.style.backgroundColor = "#f8f9fa";
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = "white";
@@ -734,7 +750,7 @@ const AvatarJobAccordionTable: React.FC<AvatarJobAccordionTableProps> = ({
 
                     {/* Expand Button */}
                     <div style={{ width: "60px", textAlign: "center" }}>
-                      {job._count.interviews > 0 && (
+                      {(
                         <Button
                           type="text"
                           icon={
@@ -777,7 +793,14 @@ const AvatarJobAccordionTable: React.FC<AvatarJobAccordionTableProps> = ({
                         borderTop: "1px solid #f0f0f0",
                       }}
                     >
-                      {job._count.interviews > 0 ? (
+                      {loadingInterviews.has(job.id) ? (
+                        <div style={{ textAlign: "center", padding: "40px 20px" }}>
+                          <Spin size="default" />
+                          <div style={{ color: "#722ed1", marginTop: 8, fontSize: "13px" }}>
+                            Loading AI interviews...
+                          </div>
+                        </div>
+                      ) : job.interviews && job.interviews.length > 0 ? (
                         <div style={{ padding: "16px" }}>
                           {renderInterviewTable(job.interviews)}
                         </div>

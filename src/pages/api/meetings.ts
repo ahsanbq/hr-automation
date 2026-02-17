@@ -1,8 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/db";
 import { getUserFromRequest } from "@/lib/auth";
-
-const prisma = new PrismaClient();
+import { getCached, invalidateCache } from "@/lib/job-cache";
 
 export default async function handler(
   req: NextApiRequest,
@@ -25,13 +24,18 @@ export default async function handler(
         .json({ error: "User must be associated with a company" });
     }
 
-    // Get jobs with their meetings - filtered by company
-    const jobs = await prisma.jobPost.findMany({
-      where: {
-        companyId: user.companyId, // Filter by company
-      },
-      include: {
-        meetings: {
+    const { jobId } = req.query;
+    const companyId = user.companyId!;
+
+    // If jobId is provided, return meetings for that specific job only
+    if (jobId) {
+      const cacheKey = `meetings:job:${jobId}`;
+      const meetings = await getCached(cacheKey, async () => {
+        return prisma.meetings.findMany({
+          where: {
+            jobId: jobId as string,
+            JobPost: { companyId },
+          },
           include: {
             Resume: {
               select: {
@@ -51,21 +55,46 @@ export default async function handler(
           orderBy: {
             meetingTime: "desc",
           },
+        });
+      });
+
+      return res.status(200).json({
+        success: true,
+        meetings,
+      });
+    }
+
+    // Otherwise, return all jobs with meeting counts (no meeting data — lazy loaded)
+    const cacheKey = `meetings:all:${companyId}`;
+    const jobs = await getCached(cacheKey, async () => {
+      return prisma.jobPost.findMany({
+        where: {
+          companyId,
         },
-        _count: {
-          select: {
-            meetings: true,
+        select: {
+          id: true,
+          jobTitle: true,
+          companyName: true,
+          location: true,
+          jobType: true,
+          experienceLevel: true,
+          isActive: true,
+          createdAt: true,
+          _count: {
+            select: {
+              meetings: true,
+            },
           },
         },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
     });
 
     return res.status(200).json({
       success: true,
-      jobs: jobs,
+      jobs,
     });
   } catch (error: any) {
     console.error("Error fetching meetings:", error);
@@ -73,7 +102,5 @@ export default async function handler(
       error: "Failed to fetch meetings",
       details: error.message,
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }

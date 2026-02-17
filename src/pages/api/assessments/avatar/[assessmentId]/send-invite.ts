@@ -1,10 +1,8 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/db";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
 import { SessionPasswordService } from "@/lib/session-password-service";
-
-const prisma = new PrismaClient();
 
 interface AuthenticatedRequest extends NextApiRequest {
   user?: {

@@ -1,10 +1,9 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/db";
+import { invalidateCache } from "@/lib/job-cache";
 import { z } from "zod";
 import { sendEmail } from "../../../lib/email";
 import { getUserFromRequest } from "@/lib/auth";
-
-const prisma = new PrismaClient();
 
 // Validation schema for the request body
 const sendMeetingSchema = z.object({
@@ -205,6 +204,7 @@ export default async function handler(
       });
 
       console.log("Update email sent to:", candidateEmail);
+      invalidateCache("meetings:");
 
       return res.status(200).json({
         success: true,
@@ -284,6 +284,7 @@ export default async function handler(
     });
 
     console.log("Email sent to:", candidateEmail);
+    invalidateCache("meetings:");
 
     return res.status(200).json({
       success: true,
@@ -309,7 +310,5 @@ export default async function handler(
       error: "Failed to create meeting",
       details: error.message,
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }

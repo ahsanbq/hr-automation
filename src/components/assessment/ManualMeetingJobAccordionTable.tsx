@@ -90,15 +90,17 @@ const ManualMeetingJobAccordionTable: React.FC<
   const [loading, setLoading] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [animatingRows, setAnimatingRows] = useState<Set<string>>(new Set());
+  const [meetingLoading, setMeetingLoading] = useState<Set<string>>(new Set());
   const [selectedMeeting, setSelectedMeeting] = useState<any>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
 
   useEffect(() => {
-    fetchJobsWithMeetings();
+    fetchJobs();
   }, []);
 
-  const fetchJobsWithMeetings = async () => {
+  // Only fetch job list with meeting counts (no meeting data)
+  const fetchJobs = async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
@@ -110,7 +112,12 @@ const ManualMeetingJobAccordionTable: React.FC<
 
       if (response.ok) {
         const data = await response.json();
-        setJobs(data.jobs || []);
+        // Initialize meetings as empty — they'll be lazy-loaded on expand
+        const jobsData = (data.jobs || []).map((job: any) => ({
+          ...job,
+          meetings: job.meetings || [],
+        }));
+        setJobs(jobsData);
       } else {
         message.error("Failed to fetch meetings data");
       }
@@ -119,6 +126,43 @@ const ManualMeetingJobAccordionTable: React.FC<
       message.error("Failed to fetch meetings data");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Lazy-load meetings for a specific job on expand
+  const fetchMeetingsForJob = async (jobId: string) => {
+    setMeetingLoading((prev) => new Set(prev).add(jobId));
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`/api/meetings?jobId=${jobId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setJobs((prevJobs) =>
+          prevJobs.map((job) =>
+            job.id === jobId
+              ? {
+                  ...job,
+                  meetings: data.meetings || [],
+                  _count: { meetings: data.meetings?.length || 0 },
+                }
+              : job
+          )
+        );
+      }
+    } catch (error) {
+      console.error(`Error fetching meetings for job ${jobId}:`, error);
+      message.error("Failed to fetch meetings for this job");
+    } finally {
+      setMeetingLoading((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(jobId);
+        return newSet;
+      });
     }
   };
 
@@ -147,6 +191,12 @@ const ManualMeetingJobAccordionTable: React.FC<
       setExpandedRows((prev) => new Set(prev).add(jobId));
       setAnimatingRows((prev) => new Set(prev).add(jobId));
 
+      // Lazy-load meetings for this job if not already loaded
+      const job = jobs.find((j) => j.id === jobId);
+      if (job && job.meetings.length === 0 && job._count.meetings > 0) {
+        fetchMeetingsForJob(jobId);
+      }
+
       // Remove animation class after animation completes
       setTimeout(() => {
         setAnimatingRows((prev) => {
@@ -170,7 +220,7 @@ const ManualMeetingJobAccordionTable: React.FC<
 
       if (response.ok) {
         message.success("Meeting deleted successfully");
-        fetchJobsWithMeetings();
+        fetchJobs();
       } else {
         message.error("Failed to delete meeting");
       }
@@ -587,16 +637,12 @@ const ManualMeetingJobAccordionTable: React.FC<
                     display: "flex",
                     alignItems: "center",
                     padding: "20px",
-                    cursor: job._count.meetings > 0 ? "pointer" : "default",
+                    cursor: "pointer",
                     transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                   }}
-                  onClick={() =>
-                    job._count.meetings > 0 && handleRowExpand(job.id)
-                  }
+                  onClick={() => handleRowExpand(job.id)}
                   onMouseEnter={(e) => {
-                    if (job._count.meetings > 0) {
-                      e.currentTarget.style.backgroundColor = "#f8f9fa";
-                    }
+                    e.currentTarget.style.backgroundColor = "#f8f9fa";
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = "white";
@@ -667,31 +713,29 @@ const ManualMeetingJobAccordionTable: React.FC<
 
                   {/* Expand Button */}
                   <div style={{ width: "60px", textAlign: "center" }}>
-                    {job._count.meetings > 0 && (
-                      <Button
-                        type="text"
-                        icon={
-                          <DownOutlined
-                            style={{
-                              transform: `rotate(${
-                                expandedRows.has(job.id) ||
-                                animatingRows.has(job.id)
-                                  ? 180
-                                  : 0
-                              }deg)`,
-                              transition:
-                                "transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-                              color: "#722ed1",
-                            }}
-                          />
-                        }
-                        style={{
-                          border: "none",
-                          background: "transparent",
-                          boxShadow: "none",
-                        }}
-                      />
-                    )}
+                    <Button
+                      type="text"
+                      icon={
+                        <DownOutlined
+                          style={{
+                            transform: `rotate(${
+                              expandedRows.has(job.id) ||
+                              animatingRows.has(job.id)
+                                ? 180
+                                : 0
+                            }deg)`,
+                            transition:
+                              "transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+                            color: "#722ed1",
+                          }}
+                        />
+                      }
+                      style={{
+                        border: "none",
+                        background: "transparent",
+                        boxShadow: "none",
+                      }}
+                    />
                   </div>
                 </div>
 
@@ -710,7 +754,14 @@ const ManualMeetingJobAccordionTable: React.FC<
                       borderTop: "1px solid #f0f0f0",
                     }}
                   >
-                    {job._count.meetings > 0 ? (
+                    {meetingLoading.has(job.id) ? (
+                      <div style={{ textAlign: "center", padding: "40px 20px" }}>
+                        <Spin size="default" />
+                        <div style={{ marginTop: 8, color: "#722ed1" }}>
+                          Loading meetings...
+                        </div>
+                      </div>
+                    ) : job.meetings.length > 0 ? (
                       <div style={{ padding: "16px" }}>
                         {renderMeetingTable(job.meetings)}
                       </div>
@@ -742,7 +793,7 @@ const ManualMeetingJobAccordionTable: React.FC<
         visible={editModalVisible}
         onClose={() => setEditModalVisible(false)}
         meeting={selectedMeeting}
-        onUpdate={fetchJobsWithMeetings}
+        onUpdate={fetchJobs}
       />
     </>
   );

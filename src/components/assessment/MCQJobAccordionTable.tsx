@@ -131,6 +131,8 @@ const MCQJobAccordionTable: React.FC<MCQJobAccordionTableProps> = ({
   const [loading, setLoading] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [animatingRows, setAnimatingRows] = useState<Set<string>>(new Set());
+  const [loadingInterviews, setLoadingInterviews] = useState<Set<string>>(new Set());
+  const [interviewCache, setInterviewCache] = useState<Record<string, any[]>>({});
   const [selectedInterview, setSelectedInterview] = useState<any>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
 
@@ -208,10 +210,12 @@ const MCQJobAccordionTable: React.FC<MCQJobAccordionTableProps> = ({
   };
 
   useEffect(() => {
-    fetchJobsWithInterviews();
+    fetchJobs();
   }, []);
 
-  const fetchJobsWithInterviews = async () => {
+  // OPTIMIZED: Only fetch the job list (fast, cached on server).
+  // Interviews are lazy-loaded when the user expands a row.
+  const fetchJobs = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
@@ -228,54 +232,70 @@ const MCQJobAccordionTable: React.FC<MCQJobAccordionTableProps> = ({
       const data = await response.json();
       const jobsData = data.jobs || [];
 
-      // Fetch interviews for each job
-      const jobsWithInterviews = await Promise.all(
-        jobsData.map(async (job: any) => {
-          try {
-            const interviewsResponse = await fetch(
-              `/api/interviews?jobPostId=${job.id}&includeQuestions=true`,
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
-              },
-            );
+      // Map jobs with interview count from _count (already in /api/jobs response)
+      const jobsList = jobsData.map((job: any) => ({
+        ...job,
+        interviews: interviewCache[job.id] || [], // Use cached interviews if available
+        _count: {
+          interviews: job._count?.assessmentStages || 0,
+        },
+      }));
 
-            if (interviewsResponse.ok) {
-              const interviewsData = await interviewsResponse.json();
-              return {
-                ...job,
-                interviews: interviewsData.interviews || [],
-                _count: {
-                  interviews: interviewsData.interviews?.length || 0,
-                },
-              };
-            }
-            return {
-              ...job,
-              interviews: [],
-              _count: { interviews: 0 },
-            };
-          } catch (error) {
-            console.error(
-              `Error fetching interviews for job ${job.id}:`,
-              error,
-            );
-            return {
-              ...job,
-              interviews: [],
-              _count: { interviews: 0 },
-            };
-          }
-        }),
-      );
-
-      setJobs(jobsWithInterviews);
+      setJobs(jobsList);
     } catch (error) {
-      console.error("Error fetching jobs with interviews:", error);
-      message.error("Failed to fetch jobs and interviews");
+      console.error("Error fetching jobs:", error);
+      message.error("Failed to fetch jobs");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // LAZY LOAD: Fetch interviews only for a specific job when expanded
+  const fetchInterviewsForJob = async (jobId: string) => {
+    // Skip if already cached
+    if (interviewCache[jobId]) return;
+
+    try {
+      setLoadingInterviews((prev) => new Set(prev).add(jobId));
+      const token = localStorage.getItem("token");
+      const interviewsResponse = await fetch(
+        `/api/interviews?jobPostId=${jobId}&includeQuestions=true`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      if (interviewsResponse.ok) {
+        const interviewsData = await interviewsResponse.json();
+        const interviews = interviewsData.interviews || [];
+
+        // Cache the interviews
+        setInterviewCache((prev) => ({ ...prev, [jobId]: interviews }));
+
+        // Update the job in state with fetched interviews
+        setJobs((prevJobs) =>
+          prevJobs.map((job) =>
+            job.id === jobId
+              ? {
+                  ...job,
+                  interviews,
+                  _count: { interviews: interviews.length },
+                }
+              : job,
+          ),
+        );
+      }
+    } catch (error) {
+      console.error(`Error fetching interviews for job ${jobId}:`, error);
+      message.error("Failed to fetch interviews");
+    } finally {
+      setLoadingInterviews((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(jobId);
+        return newSet;
+      });
     }
   };
 
@@ -304,6 +324,9 @@ const MCQJobAccordionTable: React.FC<MCQJobAccordionTableProps> = ({
       setExpandedRows((prev) => new Set(prev).add(jobId));
       setAnimatingRows((prev) => new Set(prev).add(jobId));
 
+      // LAZY LOAD: Fetch interviews for this job on expand
+      fetchInterviewsForJob(jobId);
+
       // Remove animation class after animation completes
       setTimeout(() => {
         setAnimatingRows((prev) => {
@@ -330,7 +353,9 @@ const MCQJobAccordionTable: React.FC<MCQJobAccordionTableProps> = ({
       }
 
       message.success("Interview deleted successfully");
-      fetchJobsWithInterviews(); // Refresh data
+      // Clear interview cache and refresh
+      setInterviewCache({});
+      fetchJobs();
     } catch (error) {
       console.error("Error deleting interview:", error);
       message.error("Failed to delete interview");
@@ -1141,12 +1166,10 @@ const MCQJobAccordionTable: React.FC<MCQJobAccordionTableProps> = ({
                     display: "flex",
                     alignItems: "center",
                     padding: "20px",
-                    cursor: job._count.interviews > 0 ? "pointer" : "default",
+                    cursor: "pointer",
                     transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                   }}
-                  onClick={() =>
-                    job._count.interviews > 0 && handleRowExpand(job.id)
-                  }
+                  onClick={() => handleRowExpand(job.id)}
                   onMouseEnter={(e) => {
                     if (job._count.interviews > 0) {
                       e.currentTarget.style.backgroundColor = "#f8f9fa";
@@ -1221,7 +1244,7 @@ const MCQJobAccordionTable: React.FC<MCQJobAccordionTableProps> = ({
 
                   {/* Expand Button */}
                   <div style={{ width: "60px", textAlign: "center" }}>
-                    {job._count.interviews > 0 && (
+                    {(
                       <Button
                         type="text"
                         icon={
@@ -1264,7 +1287,14 @@ const MCQJobAccordionTable: React.FC<MCQJobAccordionTableProps> = ({
                       borderTop: "1px solid #f0f0f0",
                     }}
                   >
-                    {job._count.interviews > 0 ? (
+                    {loadingInterviews.has(job.id) ? (
+                      <div style={{ textAlign: "center", padding: "40px 20px" }}>
+                        <Spin size="default" />
+                        <div style={{ color: "#1890ff", marginTop: 8, fontSize: "13px" }}>
+                          Loading interviews...
+                        </div>
+                      </div>
+                    ) : job.interviews && job.interviews.length > 0 ? (
                       <div style={{ padding: "16px" }}>
                         {renderInterviewTable(job.interviews)}
                       </div>

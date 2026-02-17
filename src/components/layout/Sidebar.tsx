@@ -6,6 +6,7 @@ import {
   PieChartOutlined,
   FileTextOutlined,
   LinkedinOutlined,
+  LinkOutlined,
   ScheduleOutlined,
   FileDoneOutlined,
   InboxOutlined,
@@ -69,12 +70,21 @@ export default function Sidebar({
           </Link>
         ),
       },
+      // {
+      //   key: "/linkedin",
+      //   icon: <LinkedinOutlined />,
+      //   label: (
+      //     <Link href="/linkedin" className="manrope-medium">
+      //       LinkedIn
+      //     </Link>
+      //   ),
+      // },
       {
-        key: "/linkedin",
-        icon: <LinkedinOutlined />,
+        key: "/job-links",
+        icon: <LinkOutlined />,
         label: (
-          <Link href="/linkedin" className="manrope-medium">
-            LinkedIn
+          <Link href="/job-links" className="manrope-medium">
+            Application Links
           </Link>
         ),
       },

@@ -1,8 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/db";
+import { invalidateCache } from "@/lib/job-cache";
 import jwt from "jsonwebtoken";
-
-const prisma = new PrismaClient();
 
 interface AuthenticatedRequest extends NextApiRequest {
   user?: {
@@ -233,6 +232,7 @@ async function handleUpdateInterview(
     },
   });
 
+  invalidateCache("interviews:");
   return res.status(200).json({ interview });
 }
 
@@ -276,5 +276,6 @@ async function handleDeleteInterview(
     where: { id: interviewId },
   });
 
+  invalidateCache("interviews:");
   return res.status(200).json({ message: "Interview deleted successfully" });
 }

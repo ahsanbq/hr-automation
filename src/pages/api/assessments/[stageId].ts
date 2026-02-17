@@ -1,9 +1,8 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/db";
+import { invalidateCache } from "@/lib/job-cache";
 import jwt from "jsonwebtoken";
 import { StageStatus } from "@/types/assessment";
-
-const prisma = new PrismaClient();
 
 interface AuthenticatedRequest extends NextApiRequest {
   user?: {
@@ -266,6 +265,8 @@ async function handleUpdateAssessmentStage(
     },
   });
 
+  invalidateCache("avatar:");
+  invalidateCache("interviews:");
   return res.status(200).json({
     assessmentStage: updatedStage,
     stageSpecificUpdate,
@@ -305,5 +306,7 @@ async function handleDeleteAssessmentStage(
     where: { id: stageId },
   });
 
+  invalidateCache("avatar:");
+  invalidateCache("interviews:");
   return res.status(204).end();
 }

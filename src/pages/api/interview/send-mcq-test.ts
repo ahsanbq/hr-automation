@@ -1,9 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { sendEmail } from "../../../lib/email";
-
-const prisma = new PrismaClient();
 
 // Validation schema for the request body
 const sendMCQTestSchema = z.object({

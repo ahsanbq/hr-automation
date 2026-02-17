@@ -1,8 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/db";
+import { getCached, invalidateCache } from "@/lib/job-cache";
 import jwt from "jsonwebtoken";
-
-const prisma = new PrismaClient();
 
 interface AuthenticatedRequest extends NextApiRequest {
   user?: {
@@ -181,24 +180,30 @@ async function handleGetInterviews(
     };
   }
 
-  const [interviews, total] = await Promise.all([
-    prisma.interview.findMany({
-      where,
-      include,
-      skip,
-      take: limitNum,
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.interview.count({ where }),
-  ]);
+  // Build a cache key from the query params
+  const cacheKey = `interviews:${JSON.stringify(where)}:${skip}:${limitNum}:${includeQuestions}:${includeAnswers}`;
+
+  const result = await getCached(cacheKey, async () => {
+    const [interviews, total] = await Promise.all([
+      prisma.interview.findMany({
+        where,
+        include,
+        skip,
+        take: limitNum,
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.interview.count({ where }),
+    ]);
+    return { interviews, total };
+  });
 
   return res.status(200).json({
-    interviews,
+    interviews: result.interviews,
     pagination: {
       page: pageNum,
       limit: limitNum,
-      total,
-      pages: Math.ceil(total / limitNum),
+      total: result.total,
+      pages: Math.ceil(result.total / limitNum),
     },
   });
 }
@@ -315,5 +320,6 @@ async function handleCreateInterview(
     },
   });
 
+  invalidateCache("interviews:");
   return res.status(201).json({ interview });
 }

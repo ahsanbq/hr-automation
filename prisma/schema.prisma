@@ -66,6 +66,7 @@ model JobPost {
   CandidateInteraction CandidateInteraction[]
   assessmentStages    AssessmentStage[]
   offerLetters        OfferLetter[]
+  applicationLinks    JobApplicationLink[]
 }
 
 model Resume {
@@ -92,6 +93,7 @@ model Resume {
   processingTime    Float?
   recommendation    String?
   skills            String[]
+  source            String?            // e.g. "PUBLIC_LINK", "MANUAL", "LINKEDIN"
   summary           String?
   updatedAt         DateTime
   uploadedById      Int?
@@ -130,6 +132,7 @@ model User {
   mcqTemplates      MCQTemplate[]
   aiInterviewTemplates AIInterviewTemplate[]
   offerLetters     OfferLetter[]
+  applicationLinks JobApplicationLink[]
 }
 
 model companies {
@@ -701,4 +704,34 @@ enum OfferStatus {
   REJECTED
   EXPIRED
   WITHDRAWN
+}
+
+// ----------------------------
+// 🔗 JOB APPLICATION LINK SYSTEM
+// ----------------------------
+
+model JobApplicationLink {
+  id              String               @id @default(cuid())
+  jobId           String
+  token           String               @unique
+  createdAt       DateTime             @default(now())
+  expiresAt       DateTime
+  maxCvLimit      Int
+  currentCvCount  Int                  @default(0)
+  status          ApplicationLinkStatus @default(ACTIVE)
+  createdById     Int
+
+  jobPost         JobPost              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  createdBy       User                 @relation(fields: [createdById], references: [id])
+
+  @@index([token])
+  @@index([jobId])
+  @@index([status])
+  @@map("job_application_links")
+}
+
+enum ApplicationLinkStatus {
+  ACTIVE
+  CLOSED
+  EXPIRED
 }

@@ -1,8 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/db";
+import { getCached, invalidateCache } from "@/lib/job-cache";
 import jwt from "jsonwebtoken";
-
-const prisma = new PrismaClient();
 
 interface AuthenticatedRequest extends NextApiRequest {
   user?: {
@@ -127,24 +126,30 @@ async function handleGetAvatarAssessments(
     };
   }
 
-  const [assessmentStages, total] = await Promise.all([
-    prisma.assessmentStage.findMany({
-      where,
-      include,
-      skip,
-      take: limitNum,
-      orderBy: [{ sequenceOrder: "asc" }, { createdAt: "desc" }],
-    }),
-    prisma.assessmentStage.count({ where }),
-  ]);
+  // Build a cache key from the query params
+  const cacheKey = `avatar:${JSON.stringify(where)}:${skip}:${limitNum}:${includeRecordings}`;
+
+  const result = await getCached(cacheKey, async () => {
+    const [assessmentStages, total] = await Promise.all([
+      prisma.assessmentStage.findMany({
+        where,
+        include,
+        skip,
+        take: limitNum,
+        orderBy: [{ sequenceOrder: "asc" }, { createdAt: "desc" }],
+      }),
+      prisma.assessmentStage.count({ where }),
+    ]);
+    return { assessmentStages, total };
+  });
 
   return res.status(200).json({
-    assessmentStages,
+    assessmentStages: result.assessmentStages,
     pagination: {
       page: pageNum,
       limit: limitNum,
-      total,
-      pages: Math.ceil(total / limitNum),
+      total: result.total,
+      pages: Math.ceil(result.total / limitNum),
     },
   });
 }
@@ -293,6 +298,7 @@ async function handleCreateAvatarAssessment(
     },
   });
 
+  invalidateCache("avatar:");
   return res.status(201).json({
     assessmentStage: completeAssessmentStage,
     avatarAssessment: result.avatarAssessment,
