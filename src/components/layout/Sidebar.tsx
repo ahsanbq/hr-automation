@@ -216,55 +216,48 @@ export default function Sidebar({
       {/* Header */}
       <div
         style={{
-          height: 80,
+          height: 72,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          padding: collapsed ? "0 12px" : "0 20px",
-          position: "relative",
-          transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+          padding: "12px",
           borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
+          overflow: "hidden",
         }}
       >
-        <div
+        <Link
+          href="/analytics"
           style={{
             display: "flex",
-            flexDirection: "column",
             alignItems: "center",
+            gap: "10px",
+            textDecoration: "none",
             justifyContent: "center",
-            flex: 1,
-            textAlign: "center",
           }}
         >
-          <div
+          <img
+            src="/Synchro_Hire_Logo.png"
+            alt="Synchro Hire"
             style={{
-              color: "#ffffff",
-              fontSize: collapsed ? 18 : 20,
-              fontWeight: "600",
-              letterSpacing: 0.5,
-              transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-              lineHeight: 1.2,
+              width: "48px",
+              height: "48px",
+              objectFit: "contain",
+              flexShrink: 0,
+              borderRadius: "8px",
             }}
-          >
-            {collapsed ? "SH" : "Synchro Hire"}
-          </div>
+            className="bg-white border border-none rounded-xl "
+          />
           {!collapsed && (
-            <div
-              style={{
-                color: "#e8e8e8",
-                fontSize: 11,
-                fontWeight: "400",
-                letterSpacing: 0.3,
-                marginTop: 2,
-                transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-                lineHeight: 1.2,
-                opacity: 0.8,
-              }}
-            >
-              Streamline hiring
+            <div style={{ lineHeight: 1.3 }}>
+              <div style={{ color: "#ffffff", fontSize: "22px", fontWeight: 700, letterSpacing: "0.3px" }}>
+                Synchro
+              </div>
+              <div style={{ color: "rgba(255,255,255,0.7)", fontSize: "18px", fontWeight: 500 }}>
+                Hire
+              </div>
             </div>
           )}
-        </div>
+        </Link>
       </div>
 
       {/* Menu - Takes up available space */}
