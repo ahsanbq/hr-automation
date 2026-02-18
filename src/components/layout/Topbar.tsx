@@ -58,7 +58,7 @@ export default function Topbar({ title, subtitle }: TopbarProps) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loadingNotifs, setLoadingNotifs] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const pollRef = useRef<ReturnType<typeof setInterval>>();
+  const pollRef = useRef<ReturnType<typeof setInterval>>(undefined);
 
   const fetchNotifications = useCallback(async () => {
     try {
