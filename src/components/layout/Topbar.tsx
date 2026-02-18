@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   Layout,
   Typography,
@@ -8,7 +8,8 @@ import {
   Button,
   Avatar,
   Tooltip,
-  Divider,
+  Empty,
+  Spin,
 } from "antd";
 import {
   BellOutlined,
@@ -16,9 +17,10 @@ import {
   SettingOutlined,
   LogoutOutlined,
   TeamOutlined,
-  DashboardOutlined,
+  CheckOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
+import axios from "axios";
 
 const { Header } = Layout;
 
@@ -34,10 +36,43 @@ export type TopbarProps = {
   subtitle?: string;
 };
 
+type NotificationItem = {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  jobPostId?: string;
+  resumeId?: string;
+  metadata?: any;
+  createdAt: string;
+};
+
+const POLL_INTERVAL = 30_000; // 30 seconds
+
 export default function Topbar({ title, subtitle }: TopbarProps) {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<CurrentUser>(null);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [notifs, setNotifs] = useState<NotificationItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loadingNotifs, setLoadingNotifs] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval>>();
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      const { data } = await axios.get("/api/notifications?limit=20", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setNotifs(data.notifications || []);
+      setUnreadCount(data.unreadCount || 0);
+    } catch {
+      // silent — don't break the UI
+    }
+  }, []);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -47,13 +82,60 @@ export default function Topbar({ title, subtitle }: TopbarProps) {
       } catch {}
     }
 
-    // Add scroll listener for dynamic styling
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
     };
     window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+
+    fetchNotifications();
+    pollRef.current = setInterval(fetchNotifications, POLL_INTERVAL);
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [fetchNotifications]);
+
+  const markAllRead = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      await axios.patch(
+        "/api/notifications",
+        { markAllRead: true },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setNotifs((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+    } catch {}
+  };
+
+  const markOneRead = async (id: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      await axios.patch(
+        "/api/notifications",
+        { notificationId: id },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setNotifs((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+      );
+      setUnreadCount((c) => Math.max(0, c - 1));
+    } catch {}
+  };
+
+  function timeAgo(dateStr: string) {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "Just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days}d ago`;
+  }
 
   const isAdmin = (currentUser?.type || "").toUpperCase() === "ADMIN";
   const avatarColor = isAdmin ? "#ff4d4f" : "#52c41a";
@@ -61,66 +143,134 @@ export default function Topbar({ title, subtitle }: TopbarProps) {
     .slice(0, 1)
     .toUpperCase();
 
+  const notificationMenuItems = notifs.length > 0
+    ? [
+        {
+          key: "header",
+          label: (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "4px 0",
+              }}
+            >
+              <span style={{ fontWeight: 700, fontSize: "14px" }}>
+                Notifications
+              </span>
+              {unreadCount > 0 && (
+                <Button
+                  type="link"
+                  size="small"
+                  icon={<CheckOutlined />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    markAllRead();
+                  }}
+                  style={{ fontSize: "12px", padding: 0 }}
+                >
+                  Mark all read
+                </Button>
+              )}
+            </div>
+          ),
+          disabled: true,
+        },
+        { type: "divider" as const, key: "div-top" },
+        ...notifs.map((n) => ({
+          key: n.id,
+          label: (
+            <div
+              style={{
+                padding: "8px 0",
+                opacity: n.isRead ? 0.6 : 1,
+                maxWidth: "320px",
+              }}
+              onClick={() => {
+                if (!n.isRead) markOneRead(n.id);
+                if (n.jobPostId) {
+                  router.push(`/cv-sorting/${n.jobPostId}`);
+                  setDropdownOpen(false);
+                }
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
+              >
+                {!n.isRead && (
+                  <span
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      background: "#1890ff",
+                      display: "inline-block",
+                      flexShrink: 0,
+                    }}
+                  />
+                )}
+                <span style={{ fontWeight: 600, color: "#1890ff" }}>
+                  {n.title}
+                </span>
+              </div>
+              <div
+                style={{
+                  fontSize: "12px",
+                  color: "#555",
+                  marginTop: 2,
+                  whiteSpace: "normal",
+                  lineHeight: "1.4",
+                }}
+              >
+                {n.message}
+              </div>
+              {n.metadata?.matchScore != null && (
+                <div style={{ fontSize: "11px", color: "#52c41a", marginTop: 2 }}>
+                  Match score: {Math.round(n.metadata.matchScore)}%
+                </div>
+              )}
+              <div style={{ fontSize: "11px", color: "#999", marginTop: 2 }}>
+                {timeAgo(n.createdAt)}
+              </div>
+            </div>
+          ),
+        })),
+      ]
+    : [
+        {
+          key: "empty",
+          label: (
+            <div style={{ padding: "16px 0", textAlign: "center" as const }}>
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="No notifications yet"
+                style={{ margin: 0 }}
+              />
+            </div>
+          ),
+          disabled: true,
+        },
+      ];
+
   const notifications = (
     <Dropdown
-      menu={{
-        items: [
-          {
-            key: "1",
-            label: (
-              <div style={{ padding: "8px 0" }}>
-                <div style={{ fontWeight: "600", color: "#1890ff" }}>
-                  New Application
-                </div>
-                <div style={{ fontSize: "12px", color: "#666" }}>
-                  John Doe applied for Senior Developer
-                </div>
-                <div style={{ fontSize: "11px", color: "#999" }}>
-                  2 minutes ago
-                </div>
-              </div>
-            ),
-          },
-          {
-            key: "2",
-            label: (
-              <div style={{ padding: "8px 0" }}>
-                <div style={{ fontWeight: "600", color: "#52c41a" }}>
-                  Interview Scheduled
-                </div>
-                <div style={{ fontSize: "12px", color: "#666" }}>
-                  Technical interview at 3:00 PM
-                </div>
-                <div style={{ fontSize: "11px", color: "#999" }}>
-                  1 hour ago
-                </div>
-              </div>
-            ),
-          },
-          {
-            key: "3",
-            label: (
-              <div style={{ padding: "8px 0" }}>
-                <div style={{ fontWeight: "600", color: "#fa8c16" }}>
-                  Offer Accepted
-                </div>
-                <div style={{ fontSize: "12px", color: "#666" }}>
-                  Sarah Wilson accepted the offer
-                </div>
-                <div style={{ fontSize: "11px", color: "#999" }}>
-                  3 hours ago
-                </div>
-              </div>
-            ),
-          },
-        ],
-      }}
+      menu={{ items: notificationMenuItems }}
       placement="bottomRight"
       trigger={["click"]}
-      overlayStyle={{ minWidth: "300px" }}
+      overlayStyle={{ minWidth: "340px", maxHeight: "420px", overflowY: "auto" }}
+      open={dropdownOpen}
+      onOpenChange={(open) => {
+        setDropdownOpen(open);
+        if (open) fetchNotifications();
+      }}
     >
       <Tooltip title="Notifications">
-        <Badge count={3} size="small">
+        <Badge count={unreadCount} size="small" overflowCount={99}>
           <Button
             type="text"
             icon={<BellOutlined />}

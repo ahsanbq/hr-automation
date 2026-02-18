@@ -48,7 +48,7 @@ export async function sendMCQInvitation(
   totalQuestions: number,
   customMessage?: string,
 ): Promise<boolean> {
-  const subject = "Technical Assessment Invitation";
+  const subject = "MCQ Interview Invitation";
 
   const html = `
     <!DOCTYPE html>
@@ -56,7 +56,7 @@ export async function sendMCQInvitation(
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Technical Assessment</title>
+        <title>MCQ Interview</title>
         <style>
             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; }
             .container { max-width: 600px; margin: 0 auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
@@ -71,13 +71,13 @@ export async function sendMCQInvitation(
     <body>
         <div class="container">
             <div class="header">
-                <h1>🎯 Technical Assessment Invitation</h1>
+                <h1>🎯 MCQ Interview Invitation</h1>
             </div>
             
             <div class="content">
                 <h2>Hello ${candidateName}!</h2>
                 
-                <p>You have been invited to take a technical assessment. Please find the details below:</p>
+                <p>You have been invited to take an MCQ Interview. Please find the details below:</p>
                 
                 <div class="info-box">
                     <h3>📋 Assessment Details</h3>

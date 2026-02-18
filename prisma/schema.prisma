@@ -735,3 +735,24 @@ enum ApplicationLinkStatus {
   CLOSED
   EXPIRED
 }
+
+// ----------------------------
+// 🔔 IN-APP NOTIFICATION SYSTEM
+// ----------------------------
+
+model Notification {
+  id          String   @id @default(cuid())
+  type        String   // e.g. "NEW_APPLICATION"
+  title       String
+  message     String
+  isRead      Boolean  @default(false)
+  jobPostId   String?
+  resumeId    String?
+  metadata    Json?
+  companyId   Int?
+  createdAt   DateTime @default(now())
+
+  @@index([companyId, isRead, createdAt])
+  @@index([createdAt])
+  @@map("notifications")
+}

@@ -158,9 +158,9 @@ export default async function handler(
       try {
         const testUrl = `https://exam.synchro-hire.com/`;
         const emailContent = `
-          <h2>MCQ Assessment Invitation</h2>
+          <h2>MCQ Interview Invitation</h2>
           <p>Dear ${candidateName || "Candidate"},</p>
-          <p>You have been invited to take an MCQ assessment for the position: <strong>${
+          <p>You have been invited to take an MCQ Interview for the position: <strong>${
             interview.jobPost?.jobTitle || "N/A"
           }</strong></p>
           <p><strong>Assessment Details:</strong></p>
@@ -181,7 +181,7 @@ export default async function handler(
 
         await sendEmail({
           to: candidateEmail,
-          subject: `MCQ Assessment - ${title}`,
+          subject: `MCQ Interview - ${title}`,
           html: emailContent,
         });
 

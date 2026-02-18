@@ -260,6 +260,29 @@ export default async function handler(
       },
     });
 
+    // ─── 7. Create in-app notification for the hiring team ─────
+    try {
+      await prisma.notification.create({
+        data: {
+          type: "NEW_APPLICATION",
+          title: "New Application Received",
+          message: `${savedResume.candidateName} applied for ${jobPost.jobTitle}`,
+          jobPostId: jobId,
+          resumeId: savedResume.id,
+          companyId: jobPost.companyId,
+          metadata: {
+            candidateName: savedResume.candidateName,
+            candidateEmail: savedResume.candidateEmail,
+            jobTitle: jobPost.jobTitle,
+            matchScore: savedResume.matchScore,
+            source: "APPLICATION_LINK",
+          },
+        },
+      });
+    } catch (notifErr) {
+      console.error("⚠️ [PublicLink] Failed to create notification:", notifErr);
+    }
+
     return res.status(200).json({
       success: true,
       message: "Your application has been submitted successfully!",
