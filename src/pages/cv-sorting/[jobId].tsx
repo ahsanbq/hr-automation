@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Row,
   Col,
@@ -17,6 +17,14 @@ import {
   Tabs,
   Upload,
   Dropdown,
+  Select,
+  Slider,
+  Checkbox,
+  Divider,
+  Badge,
+  Empty,
+  Tooltip,
+  InputNumber,
 } from "antd";
 import {
   UploadOutlined,
@@ -26,6 +34,15 @@ import {
   DeleteOutlined,
   FileTextOutlined,
   DownloadOutlined,
+  FilterOutlined,
+  CloseOutlined,
+  SearchOutlined,
+  UserOutlined,
+  BookOutlined,
+  SafetyCertificateOutlined,
+  ToolOutlined,
+  TrophyOutlined,
+  EnvironmentOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/router";
 import AppLayout from "@/components/layout/AppLayout";
@@ -60,6 +77,17 @@ interface Resume {
   education: string;
   summary: string;
   resumeUrl: string;
+  location?: string;
+  currentJobTitle?: string;
+  linkedinUrl?: string;
+  githubUrl?: string;
+  matchedSkills?: string[];
+  // Filter columns from DB
+  degrees: string[];
+  institutes: string[];
+  certificates: string[];
+  languages: string[];
+  portfolioUrl?: string;
   uploadedBy?: {
     name: string;
     email: string;
@@ -84,7 +112,7 @@ export default function JobResumePage() {
   const [uploading, setUploading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
   const [uploadStep, setUploadStep] = useState<"select" | "upload" | "analyze">(
-    "select"
+    "select",
   );
 
   // Upload progress tracking states
@@ -113,6 +141,320 @@ export default function JobResumePage() {
   });
   const [progressInterval, setProgressInterval] =
     useState<NodeJS.Timeout | null>(null);
+
+  // Filter drawer state
+  const [filterDrawerVisible, setFilterDrawerVisible] = useState(false);
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [selectedDegrees, setSelectedDegrees] = useState<string[]>([]);
+  const [selectedInstitutes, setSelectedInstitutes] = useState<string[]>([]);
+  const [selectedCertificates, setSelectedCertificates] = useState<string[]>(
+    [],
+  );
+  const [selectedRecommendations, setSelectedRecommendations] = useState<
+    string[]
+  >([]);
+  const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+  const [experienceRange, setExperienceRange] = useState<[number, number]>([
+    0, 30,
+  ]);
+  const [scoreRange, setScoreRange] = useState<[number, number]>([0, 100]);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+
+  // Helper to parse education JSON from resume (fallback for old records without degrees/institutes columns)
+  const parseEducation = (
+    edu: string | null | undefined,
+  ): Array<{ degree?: string; university?: string }> => {
+    if (!edu) return [];
+    try {
+      const parsed = JSON.parse(edu);
+      if (Array.isArray(parsed)) return parsed;
+      if (typeof parsed === "object") return [parsed];
+      return [];
+    } catch {
+      return [{ degree: edu }];
+    }
+  };
+
+  // Dynamically extract all filter options from resume data (DB columns)
+  const filterOptions = useMemo(() => {
+    const allSkills = new Set<string>();
+    const allDegrees = new Set<string>();
+    const allInstitutes = new Set<string>();
+    const allCertificates = new Set<string>();
+    const allRecommendations = new Set<string>();
+    const allLocations = new Set<string>();
+    let minExp = Infinity;
+    let maxExp = -Infinity;
+    let minScore = Infinity;
+    let maxScore = -Infinity;
+
+    resumes.forEach((r) => {
+      // Skills from DB array
+      (r.skills || []).forEach((s) => {
+        if (s && s.trim() && s.trim().toLowerCase() !== "null")
+          allSkills.add(s.trim().toLowerCase());
+      });
+
+      // Degrees from DB array column (with fallback to education JSON)
+      if (r.degrees && r.degrees.length > 0) {
+        r.degrees.forEach((d) => {
+          if (d && d.trim() && d.trim().toLowerCase() !== "null")
+            allDegrees.add(d.trim());
+        });
+      } else {
+        // Fallback: parse from education JSON (for old records)
+        const eduEntries = parseEducation(r.education);
+        eduEntries.forEach((e) => {
+          if (
+            e.degree &&
+            e.degree.trim() &&
+            e.degree.trim().toLowerCase() !== "null"
+          )
+            allDegrees.add(e.degree.trim());
+        });
+      }
+
+      // Institutes from DB array column (with fallback to education JSON)
+      if (r.institutes && r.institutes.length > 0) {
+        r.institutes.forEach((i) => {
+          if (i && i.trim() && i.trim().toLowerCase() !== "null")
+            allInstitutes.add(i.trim());
+        });
+      } else {
+        const eduEntries = parseEducation(r.education);
+        eduEntries.forEach((e) => {
+          if (
+            e.university &&
+            e.university.trim() &&
+            e.university.trim().toLowerCase() !== "null"
+          )
+            allInstitutes.add(e.university.trim());
+        });
+      }
+
+      // Certificates from DB array column
+      (r.certificates || []).forEach((c) => {
+        if (c && c.trim() && c.trim().toLowerCase() !== "null")
+          allCertificates.add(c.trim());
+      });
+
+      // Recommendation
+      if (
+        r.recommendation &&
+        r.recommendation.trim() &&
+        r.recommendation.trim().toLowerCase() !== "null"
+      ) {
+        allRecommendations.add(r.recommendation.trim());
+      }
+
+      // Location from DB column
+      if (
+        r.location &&
+        r.location.trim() &&
+        r.location.trim().toLowerCase() !== "null"
+      ) {
+        allLocations.add(r.location.trim());
+      }
+
+      // Experience range
+      if (r.experienceYears != null) {
+        if (r.experienceYears < minExp) minExp = r.experienceYears;
+        if (r.experienceYears > maxExp) maxExp = r.experienceYears;
+      }
+
+      // Score range
+      if (r.matchScore != null) {
+        if (r.matchScore < minScore) minScore = r.matchScore;
+        if (r.matchScore > maxScore) maxScore = r.matchScore;
+      }
+    });
+
+    return {
+      skills: Array.from(allSkills).sort(),
+      degrees: Array.from(allDegrees).sort(),
+      institutes: Array.from(allInstitutes).sort(),
+      certificates: Array.from(allCertificates).sort(),
+      recommendations: Array.from(allRecommendations).sort(),
+      locations: Array.from(allLocations).sort(),
+      experienceMin: minExp === Infinity ? 0 : minExp,
+      experienceMax: maxExp === -Infinity ? 30 : maxExp,
+      scoreMin: minScore === Infinity ? 0 : Math.floor(minScore),
+      scoreMax: maxScore === -Infinity ? 100 : Math.ceil(maxScore),
+    };
+  }, [resumes]);
+
+  // Reset range sliders to actual data bounds when resumes load
+  useEffect(() => {
+    if (resumes.length > 0) {
+      setExperienceRange([
+        filterOptions.experienceMin,
+        filterOptions.experienceMax,
+      ]);
+      setScoreRange([filterOptions.scoreMin, filterOptions.scoreMax]);
+    }
+  }, [filterOptions]);
+
+  // Get degrees for a resume (DB column with fallback)
+  const getResumeDegrees = (r: Resume): string[] => {
+    if (r.degrees && r.degrees.length > 0) return r.degrees;
+    return parseEducation(r.education)
+      .map((e) => e.degree || "")
+      .filter(Boolean);
+  };
+
+  // Get institutes for a resume (DB column with fallback)
+  const getResumeInstitutes = (r: Resume): string[] => {
+    if (r.institutes && r.institutes.length > 0) return r.institutes;
+    return parseEducation(r.education)
+      .map((e) => e.university || "")
+      .filter(Boolean);
+  };
+
+  // Apply all filters to produce filteredResumes
+  const filteredResumes = useMemo(() => {
+    return resumes.filter((r) => {
+      // Search query filter (name, email, phone, job title)
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const nameMatch = (r.candidateName || "").toLowerCase().includes(q);
+        const emailMatch = (r.candidateEmail || "").toLowerCase().includes(q);
+        const phoneMatch = (r.candidatePhone || "").toLowerCase().includes(q);
+        const titleMatch = (r.currentJobTitle || "").toLowerCase().includes(q);
+        if (!nameMatch && !emailMatch && !phoneMatch && !titleMatch)
+          return false;
+      }
+
+      // Skills filter (candidate must have ALL selected skills)
+      if (selectedSkills.length > 0) {
+        const resumeSkillsLower = (r.skills || []).map((s) => s.toLowerCase());
+        const hasAllSkills = selectedSkills.every((sk) =>
+          resumeSkillsLower.includes(sk.toLowerCase()),
+        );
+        if (!hasAllSkills) return false;
+      }
+
+      // Degree filter (from DB column)
+      if (selectedDegrees.length > 0) {
+        const resumeDegrees = getResumeDegrees(r).map((d) => d.toLowerCase());
+        const hasDegree = selectedDegrees.some((d) =>
+          resumeDegrees.some((rd) => rd.includes(d.toLowerCase())),
+        );
+        if (!hasDegree) return false;
+      }
+
+      // Institute filter (from DB column)
+      if (selectedInstitutes.length > 0) {
+        const resumeInstitutes = getResumeInstitutes(r).map((i) =>
+          i.toLowerCase(),
+        );
+        const hasInstitute = selectedInstitutes.some((inst) =>
+          resumeInstitutes.some((ri) => ri.includes(inst.toLowerCase())),
+        );
+        if (!hasInstitute) return false;
+      }
+
+      // Certificates filter (from DB column)
+      if (selectedCertificates.length > 0) {
+        const resumeCerts = (r.certificates || []).map((c) => c.toLowerCase());
+        const hasCert = selectedCertificates.some((cert) =>
+          resumeCerts.some((rc) => rc.includes(cert.toLowerCase())),
+        );
+        if (!hasCert) return false;
+      }
+
+      // Recommendation filter
+      if (selectedRecommendations.length > 0) {
+        if (!selectedRecommendations.includes(r.recommendation || ""))
+          return false;
+      }
+
+      // Location filter (from DB column)
+      if (selectedLocations.length > 0) {
+        if (!selectedLocations.includes(r.location || "")) return false;
+      }
+
+      // Experience range filter
+      if (r.experienceYears != null) {
+        if (
+          r.experienceYears < experienceRange[0] ||
+          r.experienceYears > experienceRange[1]
+        )
+          return false;
+      }
+
+      // Score range filter
+      if (r.matchScore != null) {
+        if (r.matchScore < scoreRange[0] || r.matchScore > scoreRange[1])
+          return false;
+      }
+
+      return true;
+    });
+  }, [
+    resumes,
+    searchQuery,
+    selectedSkills,
+    selectedDegrees,
+    selectedInstitutes,
+    selectedCertificates,
+    selectedRecommendations,
+    selectedLocations,
+    experienceRange,
+    scoreRange,
+  ]);
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setSelectedSkills([]);
+    setSelectedDegrees([]);
+    setSelectedInstitutes([]);
+    setSelectedCertificates([]);
+    setSelectedRecommendations([]);
+    setSelectedLocations([]);
+    setExperienceRange([
+      filterOptions.experienceMin,
+      filterOptions.experienceMax,
+    ]);
+    setScoreRange([filterOptions.scoreMin, filterOptions.scoreMax]);
+    setSearchQuery("");
+  };
+
+  // Count active filters
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (selectedSkills.length > 0) count++;
+    if (selectedDegrees.length > 0) count++;
+    if (selectedInstitutes.length > 0) count++;
+    if (selectedCertificates.length > 0) count++;
+    if (selectedRecommendations.length > 0) count++;
+    if (selectedLocations.length > 0) count++;
+    if (
+      experienceRange[0] !== filterOptions.experienceMin ||
+      experienceRange[1] !== filterOptions.experienceMax
+    )
+      count++;
+    if (
+      scoreRange[0] !== filterOptions.scoreMin ||
+      scoreRange[1] !== filterOptions.scoreMax
+    )
+      count++;
+    if (searchQuery.trim()) count++;
+    return count;
+  }, [
+    selectedSkills,
+    selectedDegrees,
+    selectedInstitutes,
+    selectedCertificates,
+    selectedRecommendations,
+    selectedLocations,
+    experienceRange,
+    scoreRange,
+    searchQuery,
+    filterOptions,
+  ]);
+
+  // Check if any filter is applied
+  const hasActiveFilters = () => activeFilterCount > 0;
 
   useEffect(() => {
     if (jobId) {
@@ -265,11 +607,11 @@ export default function JobResumePage() {
           setShowUploadProgress(false);
           if (errors.length > 0) {
             message.warning(
-              `${uploadedResults.length} file(s) uploaded successfully, ${errors.length} failed. Ready for analysis.`
+              `${uploadedResults.length} file(s) uploaded successfully, ${errors.length} failed. Ready for analysis.`,
             );
           } else {
             message.success(
-              `All ${uploadedResults.length} file(s) uploaded successfully! Ready for analysis.`
+              `All ${uploadedResults.length} file(s) uploaded successfully! Ready for analysis.`,
             );
           }
         }, 1500);
@@ -324,7 +666,7 @@ export default function JobResumePage() {
               Authorization: `Bearer ${token}`,
               "Cache-Control": "no-cache",
             },
-          }
+          },
         );
 
         console.log("📊 Progress API response:", response.status);
@@ -350,7 +692,7 @@ export default function JobResumePage() {
                 message.success(
                   `Analysis complete! ${
                     data.successful || 0
-                  } resumes processed successfully.`
+                  } resumes processed successfully.`,
                 );
               }, 2000);
             }
@@ -488,7 +830,7 @@ export default function JobResumePage() {
 
       if (response.ok) {
         message.success(
-          `${data.resumes?.length || 0} resumes analyzed successfully`
+          `${data.resumes?.length || 0} resumes analyzed successfully`,
         );
         handleCloseModal();
         fetchJobAndResumes();
@@ -575,10 +917,10 @@ export default function JobResumePage() {
           ).toFixed(1)
         : 0;
     const highlyRecommended = resumes.filter(
-      (r) => r.recommendation?.toLowerCase() === "highly recommended"
+      (r) => r.recommendation?.toLowerCase() === "highly recommended",
     ).length;
     const consider = resumes.filter(
-      (r) => r.recommendation?.toLowerCase() === "consider"
+      (r) => r.recommendation?.toLowerCase() === "consider",
     ).length;
 
     const csvContent = [
@@ -625,7 +967,7 @@ export default function JobResumePage() {
       "download",
       `resumes_${job?.jobTitle || "job"}_${
         new Date().toISOString().split("T")[0]
-      }.csv`
+      }.csv`,
     );
     link.style.visibility = "hidden";
     document.body.appendChild(link);
@@ -646,10 +988,10 @@ export default function JobResumePage() {
           ).toFixed(1)
         : 0;
     const highlyRecommended = resumes.filter(
-      (r) => r.recommendation?.toLowerCase() === "highly recommended"
+      (r) => r.recommendation?.toLowerCase() === "highly recommended",
     ).length;
     const consider = resumes.filter(
-      (r) => r.recommendation?.toLowerCase() === "consider"
+      (r) => r.recommendation?.toLowerCase() === "consider",
     ).length;
 
     // Create a simple HTML table for PDF generation
@@ -753,7 +1095,7 @@ export default function JobResumePage() {
                   <td>${resume.experienceYears || 0} years</td>
                   <td></td>
                 </tr>
-              `
+              `,
                 )
                 .join("")}
             </tbody>
@@ -936,7 +1278,7 @@ export default function JobResumePage() {
                   `/api/resumes/${record.id}/presigned-url`,
                   {
                     headers: { Authorization: `Bearer ${token}` },
-                  }
+                  },
                 );
 
                 if (response.ok) {
@@ -944,7 +1286,7 @@ export default function JobResumePage() {
                   window.open(
                     data.presignedUrl,
                     "_blank",
-                    "noopener,noreferrer"
+                    "noopener,noreferrer",
                   );
                 } else if (response.status === 401) {
                   alert("Please log in to access CV files.");
@@ -955,16 +1297,16 @@ export default function JobResumePage() {
                   const errorData = await response.json();
                   console.error(
                     "Failed to get fresh presigned URL:",
-                    errorData
+                    errorData,
                   );
 
                   if (errorData.error === "S3 configuration error") {
                     alert(
-                      "CV access is temporarily unavailable due to server configuration. Please contact support."
+                      "CV access is temporarily unavailable due to server configuration. Please contact support.",
                     );
                   } else {
                     alert(
-                      "Unable to access CV. Please try again or contact support."
+                      "Unable to access CV. Please try again or contact support.",
                     );
                   }
                 }
@@ -972,7 +1314,7 @@ export default function JobResumePage() {
                 console.error("Error getting fresh URL:", error);
                 // Show error message instead of using expired URL
                 alert(
-                  "Unable to access CV. Please try again or contact support."
+                  "Unable to access CV. Please try again or contact support.",
                 );
               }
             }}
@@ -1116,8 +1458,21 @@ export default function JobResumePage() {
                         style={{ textAlign: "center", borderRadius: "6px" }}
                       >
                         <Statistic
-                          title="Total Resumes"
-                          value={resumes.length}
+                          title={
+                            hasActiveFilters()
+                              ? "Filtered / Total"
+                              : "Total Resumes"
+                          }
+                          value={
+                            hasActiveFilters()
+                              ? filteredResumes.length
+                              : resumes.length
+                          }
+                          suffix={
+                            hasActiveFilters()
+                              ? `/ ${resumes.length}`
+                              : undefined
+                          }
                           valueStyle={{ color: "#1890ff", fontSize: "24px" }}
                         />
                       </Card>
@@ -1130,23 +1485,23 @@ export default function JobResumePage() {
                         <Statistic
                           title="Avg Match Score"
                           value={
-                            resumes.length > 0
-                              ? resumes.reduce(
+                            filteredResumes.length > 0
+                              ? filteredResumes.reduce(
                                   (sum, r) => sum + (r.matchScore || 0),
-                                  0
-                                ) / resumes.length
+                                  0,
+                                ) / filteredResumes.length
                               : 0
                           }
                           suffix="%"
                           precision={1}
                           valueStyle={{
                             color:
-                              resumes.length > 0 &&
-                              resumes.reduce(
+                              filteredResumes.length > 0 &&
+                              filteredResumes.reduce(
                                 (sum, r) => sum + (r.matchScore || 0),
-                                0
+                                0,
                               ) /
-                                resumes.length >=
+                                filteredResumes.length >=
                                 70
                                 ? "#52c41a"
                                 : "#faad14",
@@ -1163,10 +1518,10 @@ export default function JobResumePage() {
                         <Statistic
                           title="Highly Recommended"
                           value={
-                            resumes.filter(
+                            filteredResumes.filter(
                               (r) =>
                                 r.recommendation?.toLowerCase() ===
-                                "highly recommended"
+                                "highly recommended",
                             ).length
                           }
                           valueStyle={{ color: "#52c41a", fontSize: "24px" }}
@@ -1181,9 +1536,9 @@ export default function JobResumePage() {
                         <Statistic
                           title="Consider"
                           value={
-                            resumes.filter(
+                            filteredResumes.filter(
                               (r) =>
-                                r.recommendation?.toLowerCase() === "consider"
+                                r.recommendation?.toLowerCase() === "consider",
                             ).length
                           }
                           valueStyle={{ color: "#faad14", fontSize: "24px" }}
@@ -1191,6 +1546,58 @@ export default function JobResumePage() {
                       </Card>
                     </Col>
                   </Row>
+                </div>
+
+                {/* Search & Quick Filter Bar */}
+                <div
+                  style={{
+                    marginBottom: "16px",
+                    display: "flex",
+                    gap: "12px",
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <Input
+                    placeholder="Search by name, email, or phone..."
+                    prefix={<SearchOutlined style={{ color: "#bfbfbf" }} />}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    allowClear
+                    style={{ width: "300px", borderRadius: "6px" }}
+                  />
+                  <Badge
+                    count={activeFilterCount}
+                    size="small"
+                    offset={[-2, 2]}
+                  >
+                    <Button
+                      icon={<FilterOutlined />}
+                      onClick={() => setFilterDrawerVisible(true)}
+                      type={hasActiveFilters() ? "primary" : "default"}
+                      ghost={hasActiveFilters()}
+                      style={{ borderRadius: "6px" }}
+                    >
+                      Filters
+                    </Button>
+                  </Badge>
+                  {hasActiveFilters() && (
+                    <Button
+                      type="link"
+                      danger
+                      size="small"
+                      icon={<CloseOutlined />}
+                      onClick={clearAllFilters}
+                    >
+                      Clear all filters
+                    </Button>
+                  )}
+                  {hasActiveFilters() && (
+                    <span style={{ color: "#666", fontSize: "12px" }}>
+                      Showing {filteredResumes.length} of {resumes.length}{" "}
+                      resumes
+                    </span>
+                  )}
                 </div>
 
                 {/* Progress Bar */}
@@ -1201,7 +1608,7 @@ export default function JobResumePage() {
                 />
 
                 <Table
-                  dataSource={resumes}
+                  dataSource={filteredResumes}
                   columns={columns}
                   rowKey="id"
                   pagination={{
@@ -1306,7 +1713,7 @@ export default function JobResumePage() {
                                 >
                                   {skill.trim()}
                                 </Tag>
-                              )
+                              ),
                             );
                           } catch (e) {
                             return (
@@ -1345,6 +1752,29 @@ export default function JobResumePage() {
                       </div>
                     )}
 
+                    {/* Filter Button */}
+                    <div style={{ marginBottom: "16px" }}>
+                      <Badge
+                        count={activeFilterCount}
+                        size="small"
+                        offset={[-6, 2]}
+                      >
+                        <Button
+                          type="primary"
+                          icon={<FilterOutlined />}
+                          onClick={() => setFilterDrawerVisible(true)}
+                          block
+                          style={{
+                            borderRadius: "6px",
+                            height: "40px",
+                            fontWeight: 500,
+                          }}
+                        >
+                          Filter Resumes
+                        </Button>
+                      </Badge>
+                    </div>
+
                     {job.keyResponsibilities && (
                       <div style={{ marginBottom: "16px" }}>
                         <h4
@@ -1365,7 +1795,7 @@ export default function JobResumePage() {
                                 // Try to parse as JSON first
                                 if (job.keyResponsibilities.startsWith("[")) {
                                   responsibilities = JSON.parse(
-                                    job.keyResponsibilities
+                                    job.keyResponsibilities,
                                   );
                                 } else {
                                   // Split by newline if it's a newline-separated string
@@ -1399,7 +1829,7 @@ export default function JobResumePage() {
                                     >
                                       {item.trim()}
                                     </Tag>
-                                  )
+                                  ),
                                 )
                               ) : (
                                 <span
@@ -1442,7 +1872,7 @@ export default function JobResumePage() {
                                 // Try to parse as JSON first
                                 if (job.qualifications.startsWith("[")) {
                                   qualifications = JSON.parse(
-                                    job.qualifications
+                                    job.qualifications,
                                   );
                                 } else {
                                   // Split by newline if it's a newline-separated string
@@ -1529,10 +1959,10 @@ export default function JobResumePage() {
                 {activeUploadTab === "urls"
                   ? "Analyze URLs"
                   : uploadStep === "select"
-                  ? "Upload Files"
-                  : uploadStep === "upload"
-                  ? "Uploading..."
-                  : "Analyze CVs"}
+                    ? "Upload Files"
+                    : uploadStep === "upload"
+                      ? "Uploading..."
+                      : "Analyze CVs"}
               </Button>,
             ]}
             confirmLoading={false}
@@ -1617,9 +2047,9 @@ export default function JobResumePage() {
                                 uploadStep === "select"
                                   ? "#1890ff"
                                   : uploadStep === "upload" ||
-                                    uploadStep === "analyze"
-                                  ? "#52c41a"
-                                  : "#d9d9d9",
+                                      uploadStep === "analyze"
+                                    ? "#52c41a"
+                                    : "#d9d9d9",
                               color: "white",
                               fontSize: "12px",
                               display: "flex",
@@ -1636,9 +2066,9 @@ export default function JobResumePage() {
                                 uploadStep === "select"
                                   ? "#1890ff"
                                   : uploadStep === "upload" ||
-                                    uploadStep === "analyze"
-                                  ? "#52c41a"
-                                  : "#666",
+                                      uploadStep === "analyze"
+                                    ? "#52c41a"
+                                    : "#666",
                               fontWeight:
                                 uploadStep === "select" ? "bold" : "normal",
                             }}
@@ -1667,8 +2097,8 @@ export default function JobResumePage() {
                                 uploadStep === "analyze"
                                   ? "#1890ff"
                                   : uploadedFiles.length > 0
-                                  ? "#52c41a"
-                                  : "#d9d9d9",
+                                    ? "#52c41a"
+                                    : "#d9d9d9",
                               color: "white",
                               fontSize: "12px",
                               display: "flex",
@@ -1685,8 +2115,8 @@ export default function JobResumePage() {
                                 uploadStep === "analyze"
                                   ? "#1890ff"
                                   : uploadedFiles.length > 0
-                                  ? "#52c41a"
-                                  : "#666",
+                                    ? "#52c41a"
+                                    : "#666",
                               fontWeight:
                                 uploadStep === "analyze" ? "bold" : "normal",
                             }}
@@ -1858,7 +2288,7 @@ export default function JobResumePage() {
                             suffix="%"
                             valueStyle={{
                               color: getScoreColor(
-                                selectedResume.matchScore || 0
+                                selectedResume.matchScore || 0,
                               ),
                               fontSize: "20px",
                             }}
@@ -1877,7 +2307,7 @@ export default function JobResumePage() {
                             </p>
                             <Tag
                               color={getRecommendationColor(
-                                selectedResume.recommendation
+                                selectedResume.recommendation,
                               )}
                               style={{ fontSize: "14px", padding: "4px 8px" }}
                             >
@@ -1966,7 +2396,7 @@ export default function JobResumePage() {
                               `/api/resumes/${selectedResume.id}/presigned-url`,
                               {
                                 headers: { Authorization: `Bearer ${token}` },
-                              }
+                              },
                             );
 
                             if (response.ok) {
@@ -1974,31 +2404,31 @@ export default function JobResumePage() {
                               window.open(
                                 data.presignedUrl,
                                 "_blank",
-                                "noopener,noreferrer"
+                                "noopener,noreferrer",
                               );
                             } else if (response.status === 401) {
                               alert("Please log in to access CV files.");
                             } else if (response.status === 403) {
                               alert(
-                                "You don't have permission to access this CV."
+                                "You don't have permission to access this CV.",
                               );
                             } else {
                               // Show specific error message
                               const errorData = await response.json();
                               console.error(
                                 "Failed to get fresh presigned URL:",
-                                errorData
+                                errorData,
                               );
 
                               if (
                                 errorData.error === "S3 configuration error"
                               ) {
                                 alert(
-                                  "CV access is temporarily unavailable due to server configuration. Please contact support."
+                                  "CV access is temporarily unavailable due to server configuration. Please contact support.",
                                 );
                               } else {
                                 alert(
-                                  "Unable to access CV. Please try again or contact support."
+                                  "Unable to access CV. Please try again or contact support.",
                                 );
                               }
                             }
@@ -2006,7 +2436,7 @@ export default function JobResumePage() {
                             console.error("Error getting fresh URL:", error);
                             // Show error message instead of using expired URL
                             alert(
-                              "Unable to access CV. Please try again or contact support."
+                              "Unable to access CV. Please try again or contact support.",
                             );
                           }
                         }}
@@ -2035,6 +2465,661 @@ export default function JobResumePage() {
             progress={progress}
             onCancel={() => setShowProgress(false)}
           />
+
+          {/* Filter Drawer */}
+          <Drawer
+            title={
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <span style={{ fontSize: "18px", fontWeight: 600 }}>
+                  <FilterOutlined style={{ marginRight: "8px" }} />
+                  Filter Resumes
+                </span>
+                <Space>
+                  {hasActiveFilters() && (
+                    <Tag color="blue" style={{ margin: 0 }}>
+                      {activeFilterCount} active
+                    </Tag>
+                  )}
+                  {hasActiveFilters() && (
+                    <Button
+                      type="link"
+                      danger
+                      size="small"
+                      onClick={clearAllFilters}
+                      icon={<CloseOutlined />}
+                    >
+                      Clear All
+                    </Button>
+                  )}
+                </Space>
+              </div>
+            }
+            placement="right"
+            width={420}
+            open={filterDrawerVisible}
+            onClose={() => setFilterDrawerVisible(false)}
+            bodyStyle={{ padding: "16px" }}
+            footer={
+              <div style={{ display: "flex", gap: "8px" }}>
+                <Button
+                  block
+                  size="large"
+                  onClick={() => setFilterDrawerVisible(false)}
+                  style={{ borderRadius: "6px", height: "44px" }}
+                >
+                  Close
+                </Button>
+                {hasActiveFilters() && (
+                  <Button
+                    block
+                    size="large"
+                    danger
+                    onClick={clearAllFilters}
+                    style={{ borderRadius: "6px", height: "44px" }}
+                  >
+                    Reset Filters
+                  </Button>
+                )}
+              </div>
+            }
+          >
+            {resumes.length === 0 ? (
+              <Empty description="No resumes to filter. Upload and analyze resumes first." />
+            ) : (
+              <>
+                {/* Live filter results indicator */}
+                <div
+                  style={{
+                    padding: "10px 14px",
+                    backgroundColor: hasActiveFilters() ? "#e6f7ff" : "#f6ffed",
+                    borderRadius: "8px",
+                    border: `1px solid ${hasActiveFilters() ? "#91d5ff" : "#b7eb8f"}`,
+                    marginBottom: "20px",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <span style={{ fontSize: "13px", color: "#333" }}>
+                    <UserOutlined style={{ marginRight: "6px" }} />
+                    Showing <strong>{filteredResumes.length}</strong> of{" "}
+                    <strong>{resumes.length}</strong> candidates
+                  </span>
+                  {hasActiveFilters() && (
+                    <Tag color="blue" style={{ margin: 0 }}>
+                      {activeFilterCount} filter
+                      {activeFilterCount > 1 ? "s" : ""}
+                    </Tag>
+                  )}
+                </div>
+
+                {/* Skills Filter */}
+                {filterOptions.skills.length > 0 && (
+                  <>
+                    <div style={{ marginBottom: "20px" }}>
+                      <h4
+                        style={{
+                          marginBottom: "8px",
+                          color: "#1890ff",
+                          fontSize: "14px",
+                          fontWeight: 600,
+                        }}
+                      >
+                        <ToolOutlined style={{ marginRight: "6px" }} />
+                        Skills
+                        {selectedSkills.length > 0 && (
+                          <Tag
+                            color="blue"
+                            style={{ marginLeft: "8px", fontSize: "11px" }}
+                          >
+                            {selectedSkills.length} selected
+                          </Tag>
+                        )}
+                      </h4>
+                      <p
+                        style={{
+                          marginBottom: "8px",
+                          color: "#888",
+                          fontSize: "11px",
+                        }}
+                      >
+                        Candidates must have ALL selected skills
+                      </p>
+                      <Select
+                        mode="multiple"
+                        placeholder="Search and select skills..."
+                        value={selectedSkills}
+                        onChange={setSelectedSkills}
+                        style={{ width: "100%" }}
+                        maxTagCount={3}
+                        maxTagTextLength={15}
+                        showSearch
+                        filterOption={(input, option) =>
+                          (option?.label ?? "")
+                            .toLowerCase()
+                            .includes(input.toLowerCase())
+                        }
+                        options={filterOptions.skills.map((skill) => ({
+                          value: skill,
+                          label: skill,
+                        }))}
+                        optionRender={(option) => {
+                          const count = resumes.filter((r) =>
+                            (r.skills || []).some(
+                              (s) =>
+                                s.toLowerCase() ===
+                                (option.value as string).toLowerCase(),
+                            ),
+                          ).length;
+                          return (
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                              }}
+                            >
+                              <span>{option.label}</span>
+                              <Tag style={{ margin: 0, fontSize: "10px" }}>
+                                {count}
+                              </Tag>
+                            </div>
+                          );
+                        }}
+                      />
+                    </div>
+                    <Divider style={{ margin: "12px 0" }} />
+                  </>
+                )}
+
+                {/* Match Score Range */}
+                <div style={{ marginBottom: "20px" }}>
+                  <h4
+                    style={{
+                      marginBottom: "8px",
+                      color: "#1890ff",
+                      fontSize: "14px",
+                      fontWeight: 600,
+                    }}
+                  >
+                    <TrophyOutlined style={{ marginRight: "6px" }} />
+                    Match Score Range
+                    {(scoreRange[0] !== filterOptions.scoreMin ||
+                      scoreRange[1] !== filterOptions.scoreMax) && (
+                      <Tag
+                        color="blue"
+                        style={{ marginLeft: "8px", fontSize: "11px" }}
+                      >
+                        {scoreRange[0]}% - {scoreRange[1]}%
+                      </Tag>
+                    )}
+                  </h4>
+                  <Slider
+                    range
+                    min={filterOptions.scoreMin}
+                    max={filterOptions.scoreMax}
+                    value={scoreRange}
+                    onChange={(value) =>
+                      setScoreRange(value as [number, number])
+                    }
+                    marks={{
+                      [filterOptions.scoreMin]: `${filterOptions.scoreMin}%`,
+                      50: "50%",
+                      70: "70%",
+                      85: "85%",
+                      [filterOptions.scoreMax]: `${filterOptions.scoreMax}%`,
+                    }}
+                    tooltip={{ formatter: (value) => `${value}%` }}
+                  />
+                </div>
+
+                <Divider style={{ margin: "12px 0" }} />
+
+                {/* Experience Range */}
+                <div style={{ marginBottom: "20px" }}>
+                  <h4
+                    style={{
+                      marginBottom: "8px",
+                      color: "#1890ff",
+                      fontSize: "14px",
+                      fontWeight: 600,
+                    }}
+                  >
+                    <UserOutlined style={{ marginRight: "6px" }} />
+                    Experience (Years)
+                    {(experienceRange[0] !== filterOptions.experienceMin ||
+                      experienceRange[1] !== filterOptions.experienceMax) && (
+                      <Tag
+                        color="blue"
+                        style={{ marginLeft: "8px", fontSize: "11px" }}
+                      >
+                        {experienceRange[0]} - {experienceRange[1]} yrs
+                      </Tag>
+                    )}
+                  </h4>
+                  <Slider
+                    range
+                    min={filterOptions.experienceMin}
+                    max={Math.max(filterOptions.experienceMax, 1)}
+                    value={experienceRange}
+                    onChange={(value) =>
+                      setExperienceRange(value as [number, number])
+                    }
+                    marks={{
+                      [filterOptions.experienceMin]: `${filterOptions.experienceMin}`,
+                      [Math.max(filterOptions.experienceMax, 1)]:
+                        `${Math.max(filterOptions.experienceMax, 1)}+`,
+                    }}
+                    tooltip={{ formatter: (value) => `${value} years` }}
+                  />
+                </div>
+
+                <Divider style={{ margin: "12px 0" }} />
+
+                {/* Recommendation Filter */}
+                {filterOptions.recommendations.length > 0 && (
+                  <>
+                    <div style={{ marginBottom: "20px" }}>
+                      <h4
+                        style={{
+                          marginBottom: "8px",
+                          color: "#1890ff",
+                          fontSize: "14px",
+                          fontWeight: 600,
+                        }}
+                      >
+                        <SafetyCertificateOutlined
+                          style={{ marginRight: "6px" }}
+                        />
+                        Recommendation
+                        {selectedRecommendations.length > 0 && (
+                          <Tag
+                            color="blue"
+                            style={{ marginLeft: "8px", fontSize: "11px" }}
+                          >
+                            {selectedRecommendations.length} selected
+                          </Tag>
+                        )}
+                      </h4>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: "6px",
+                        }}
+                      >
+                        {filterOptions.recommendations.map((rec) => {
+                          const isSelected =
+                            selectedRecommendations.includes(rec);
+                          const count = resumes.filter(
+                            (r) => r.recommendation === rec,
+                          ).length;
+                          let color = "default";
+                          if (rec.toLowerCase().includes("highly"))
+                            color = "green";
+                          else if (
+                            rec.toLowerCase().includes("consider") ||
+                            rec.toLowerCase().includes("recommended")
+                          )
+                            color = "orange";
+                          else if (rec.toLowerCase().includes("not"))
+                            color = "red";
+
+                          return (
+                            <Tag
+                              key={rec}
+                              color={isSelected ? color : "default"}
+                              style={{
+                                cursor: "pointer",
+                                padding: "4px 10px",
+                                fontSize: "12px",
+                                border: isSelected
+                                  ? undefined
+                                  : "1px solid #d9d9d9",
+                                opacity: isSelected ? 1 : 0.7,
+                              }}
+                              onClick={() => {
+                                if (isSelected) {
+                                  setSelectedRecommendations(
+                                    selectedRecommendations.filter(
+                                      (r) => r !== rec,
+                                    ),
+                                  );
+                                } else {
+                                  setSelectedRecommendations([
+                                    ...selectedRecommendations,
+                                    rec,
+                                  ]);
+                                }
+                              }}
+                            >
+                              {rec} ({count})
+                            </Tag>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <Divider style={{ margin: "12px 0" }} />
+                  </>
+                )}
+
+                {/* Degree Filter */}
+                {filterOptions.degrees.length > 0 && (
+                  <>
+                    <div style={{ marginBottom: "20px" }}>
+                      <h4
+                        style={{
+                          marginBottom: "8px",
+                          color: "#1890ff",
+                          fontSize: "14px",
+                          fontWeight: 600,
+                        }}
+                      >
+                        <BookOutlined style={{ marginRight: "6px" }} />
+                        Degree
+                        {selectedDegrees.length > 0 && (
+                          <Tag
+                            color="blue"
+                            style={{ marginLeft: "8px", fontSize: "11px" }}
+                          >
+                            {selectedDegrees.length} selected
+                          </Tag>
+                        )}
+                      </h4>
+                      <Select
+                        mode="multiple"
+                        placeholder="Search degrees..."
+                        value={selectedDegrees}
+                        onChange={setSelectedDegrees}
+                        style={{ width: "100%" }}
+                        maxTagCount={2}
+                        maxTagTextLength={20}
+                        showSearch
+                        filterOption={(input, option) =>
+                          (option?.label ?? "")
+                            .toLowerCase()
+                            .includes(input.toLowerCase())
+                        }
+                        options={filterOptions.degrees.map((deg) => {
+                          const count = resumes.filter((r) => {
+                            const degrees = getResumeDegrees(r);
+                            return degrees.some((d) =>
+                              d.toLowerCase().includes(deg.toLowerCase()),
+                            );
+                          }).length;
+                          return { value: deg, label: `${deg} (${count})` };
+                        })}
+                      />
+                    </div>
+                    <Divider style={{ margin: "12px 0" }} />
+                  </>
+                )}
+
+                {/* Institute Filter */}
+                {filterOptions.institutes.length > 0 && (
+                  <>
+                    <div style={{ marginBottom: "20px" }}>
+                      <h4
+                        style={{
+                          marginBottom: "8px",
+                          color: "#1890ff",
+                          fontSize: "14px",
+                          fontWeight: 600,
+                        }}
+                      >
+                        <BookOutlined style={{ marginRight: "6px" }} />
+                        University / Institute
+                        {selectedInstitutes.length > 0 && (
+                          <Tag
+                            color="blue"
+                            style={{ marginLeft: "8px", fontSize: "11px" }}
+                          >
+                            {selectedInstitutes.length} selected
+                          </Tag>
+                        )}
+                      </h4>
+                      <Select
+                        mode="multiple"
+                        placeholder="Search universities..."
+                        value={selectedInstitutes}
+                        onChange={setSelectedInstitutes}
+                        style={{ width: "100%" }}
+                        maxTagCount={2}
+                        maxTagTextLength={20}
+                        showSearch
+                        filterOption={(input, option) =>
+                          (option?.label ?? "")
+                            .toLowerCase()
+                            .includes(input.toLowerCase())
+                        }
+                        options={filterOptions.institutes.map((inst) => {
+                          const count = resumes.filter((r) => {
+                            const institutes = getResumeInstitutes(r);
+                            return institutes.some((i) =>
+                              i.toLowerCase().includes(inst.toLowerCase()),
+                            );
+                          }).length;
+                          return { value: inst, label: `${inst} (${count})` };
+                        })}
+                      />
+                    </div>
+                    <Divider style={{ margin: "12px 0" }} />
+                  </>
+                )}
+
+                {/* Certificates Filter */}
+                {filterOptions.certificates.length > 0 && (
+                  <>
+                    <div style={{ marginBottom: "20px" }}>
+                      <h4
+                        style={{
+                          marginBottom: "8px",
+                          color: "#1890ff",
+                          fontSize: "14px",
+                          fontWeight: 600,
+                        }}
+                      >
+                        <SafetyCertificateOutlined
+                          style={{ marginRight: "6px" }}
+                        />
+                        Certifications
+                        {selectedCertificates.length > 0 && (
+                          <Tag
+                            color="blue"
+                            style={{ marginLeft: "8px", fontSize: "11px" }}
+                          >
+                            {selectedCertificates.length} selected
+                          </Tag>
+                        )}
+                      </h4>
+                      <Select
+                        mode="multiple"
+                        placeholder="Search certifications..."
+                        value={selectedCertificates}
+                        onChange={setSelectedCertificates}
+                        style={{ width: "100%" }}
+                        maxTagCount={2}
+                        maxTagTextLength={20}
+                        showSearch
+                        filterOption={(input, option) =>
+                          (option?.label ?? "")
+                            .toLowerCase()
+                            .includes(input.toLowerCase())
+                        }
+                        options={filterOptions.certificates.map((cert) => {
+                          const count = resumes.filter((r) =>
+                            (r.certificates || []).some((c) =>
+                              c.toLowerCase().includes(cert.toLowerCase()),
+                            ),
+                          ).length;
+                          return { value: cert, label: `${cert} (${count})` };
+                        })}
+                      />
+                    </div>
+                    <Divider style={{ margin: "12px 0" }} />
+                  </>
+                )}
+
+                {/* Location Filter */}
+                {filterOptions.locations.length > 0 && (
+                  <>
+                    <div style={{ marginBottom: "20px" }}>
+                      <h4
+                        style={{
+                          marginBottom: "8px",
+                          color: "#1890ff",
+                          fontSize: "14px",
+                          fontWeight: 600,
+                        }}
+                      >
+                        <EnvironmentOutlined style={{ marginRight: "6px" }} />
+                        Location
+                        {selectedLocations.length > 0 && (
+                          <Tag
+                            color="blue"
+                            style={{ marginLeft: "8px", fontSize: "11px" }}
+                          >
+                            {selectedLocations.length} selected
+                          </Tag>
+                        )}
+                      </h4>
+                      <Select
+                        mode="multiple"
+                        placeholder="Search locations..."
+                        value={selectedLocations}
+                        onChange={setSelectedLocations}
+                        style={{ width: "100%" }}
+                        maxTagCount={2}
+                        maxTagTextLength={20}
+                        showSearch
+                        filterOption={(input, option) =>
+                          (option?.label ?? "")
+                            .toLowerCase()
+                            .includes(input.toLowerCase())
+                        }
+                        options={filterOptions.locations.map((loc) => {
+                          const count = resumes.filter(
+                            (r) => r.location === loc,
+                          ).length;
+                          return { value: loc, label: `${loc} (${count})` };
+                        })}
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* Filter Summary */}
+                {hasActiveFilters() && (
+                  <div
+                    style={{
+                      marginTop: "16px",
+                      padding: "12px",
+                      backgroundColor: "#f0f5ff",
+                      borderRadius: "8px",
+                      border: "1px solid #adc6ff",
+                    }}
+                  >
+                    <h5
+                      style={{
+                        marginBottom: "8px",
+                        color: "#1890ff",
+                        fontSize: "13px",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Active Filters Summary
+                    </h5>
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        color: "#555",
+                        lineHeight: "1.8",
+                      }}
+                    >
+                      {searchQuery.trim() && (
+                        <div>
+                          <SearchOutlined style={{ marginRight: "4px" }} />
+                          Search: "{searchQuery}"
+                        </div>
+                      )}
+                      {selectedSkills.length > 0 && (
+                        <div>
+                          <ToolOutlined style={{ marginRight: "4px" }} />
+                          Skills: {selectedSkills.join(", ")}
+                        </div>
+                      )}
+                      {(scoreRange[0] !== filterOptions.scoreMin ||
+                        scoreRange[1] !== filterOptions.scoreMax) && (
+                        <div>
+                          <TrophyOutlined style={{ marginRight: "4px" }} />
+                          Score: {scoreRange[0]}% - {scoreRange[1]}%
+                        </div>
+                      )}
+                      {(experienceRange[0] !== filterOptions.experienceMin ||
+                        experienceRange[1] !== filterOptions.experienceMax) && (
+                        <div>
+                          <UserOutlined style={{ marginRight: "4px" }} />
+                          Experience: {experienceRange[0]} -{" "}
+                          {experienceRange[1]} years
+                        </div>
+                      )}
+                      {selectedRecommendations.length > 0 && (
+                        <div>
+                          <SafetyCertificateOutlined
+                            style={{ marginRight: "4px" }}
+                          />
+                          Recommendation: {selectedRecommendations.join(", ")}
+                        </div>
+                      )}
+                      {selectedDegrees.length > 0 && (
+                        <div>
+                          <BookOutlined style={{ marginRight: "4px" }} />
+                          Degree: {selectedDegrees.join(", ")}
+                        </div>
+                      )}
+                      {selectedInstitutes.length > 0 && (
+                        <div>
+                          <BookOutlined style={{ marginRight: "4px" }} />
+                          Institute: {selectedInstitutes.join(", ")}
+                        </div>
+                      )}
+                      {selectedCertificates.length > 0 && (
+                        <div>
+                          <SafetyCertificateOutlined
+                            style={{ marginRight: "4px" }}
+                          />
+                          Certifications: {selectedCertificates.join(", ")}
+                        </div>
+                      )}
+                      {selectedLocations.length > 0 && (
+                        <div>
+                          <EnvironmentOutlined style={{ marginRight: "4px" }} />
+                          Location: {selectedLocations.join(", ")}
+                        </div>
+                      )}
+                    </div>
+                    <div
+                      style={{
+                        marginTop: "8px",
+                        borderTop: "1px solid #d6e4ff",
+                        paddingTop: "8px",
+                      }}
+                    >
+                      <strong style={{ color: "#1890ff", fontSize: "13px" }}>
+                        {filteredResumes.length} candidate
+                        {filteredResumes.length !== 1 ? "s" : ""} matched
+                      </strong>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </Drawer>
         </div>
       </Spin>
     </AppLayout>

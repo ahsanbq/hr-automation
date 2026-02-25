@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import axios from "axios";
+import { AIResumeService } from "@/lib/ai-resume-service";
 
 function makeFallback(paths: string[]) {
   return paths.map((p, idx) => ({
@@ -29,20 +29,9 @@ function makeFallback(paths: string[]) {
   }));
 }
 
-async function callExternalSortAPI(requestBody: any) {
-  return axios.post(
-    "https://ai.synchro-hire.com/analyze-resumes-v2",
-    requestBody,
-    {
-      headers: { "Content-Type": "application/json" },
-      timeout: 120000, // 120s to allow remote processing
-    }
-  );
-}
-
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse
+  res: NextApiResponse,
 ) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -64,52 +53,43 @@ export default async function handler(
       return res.status(400).json({ error: "job_req is required" });
     }
 
-    const requestBody = { resume_paths, job_req };
-
     try {
-      // First attempt
-      const response = await callExternalSortAPI(requestBody);
-      if (response.data && response.data.success) {
+      // Use v3-background for batch processing, v2 for single
+      if (resume_paths.length === 1) {
+        // Single CV → use v2 directly
+        const response = await AIResumeService.analyzeResumes({
+          resume_paths,
+          job_req,
+        });
+        if (response && response.analyses) {
+          return res
+            .status(200)
+            .json({ success: true, analyses: response.analyses });
+        }
         return res
-          .status(200)
-          .json({ success: true, analyses: response.data.analyses });
+          .status(502)
+          .json({ error: "Invalid response format from CV sorting service" });
+      } else {
+        // Batch → use v3-background
+        const results = await AIResumeService.analyzeResumesBackground({
+          resume_paths,
+          job_req,
+        });
+        if (results && results.analyses) {
+          return res
+            .status(200)
+            .json({ success: true, analyses: results.analyses });
+        }
+        return res
+          .status(502)
+          .json({ error: "Invalid response format from CV sorting service" });
       }
-      return res
-        .status(502)
-        .json({ error: "Invalid response format from CV sorting service" });
     } catch (err: any) {
-      // One retry on timeout or 5xx
-      const shouldRetry =
-        err?.code === "ECONNABORTED" ||
-        (err?.response && err.response.status >= 500);
-      if (!shouldRetry) {
-        // If 404 or other client error from external API, fall back with provisional scores
-        if (
-          err?.response &&
-          (err.response.status === 404 || err.response.status === 400)
-        ) {
-          return res
-            .status(200)
-            .json({ success: true, analyses: makeFallback(resume_paths) });
-        }
-        throw err;
-      }
-      try {
-        const retryRes = await callExternalSortAPI(requestBody);
-        if (retryRes.data && retryRes.data.success) {
-          return res
-            .status(200)
-            .json({ success: true, analyses: retryRes.data.analyses });
-        }
-        return res
-          .status(200)
-          .json({ success: true, analyses: makeFallback(resume_paths) });
-      } catch (retryErr: any) {
-        // Graceful fallback
-        return res
-          .status(200)
-          .json({ success: true, analyses: makeFallback(resume_paths) });
-      }
+      console.error("CV Sorting API Error:", err?.message);
+      // Graceful fallback with provisional scores
+      return res
+        .status(200)
+        .json({ success: true, analyses: makeFallback(resume_paths) });
     }
   } catch (error: any) {
     console.error("CV Sorting API Error:", error);

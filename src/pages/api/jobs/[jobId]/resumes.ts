@@ -6,9 +6,27 @@ import {
   ResumeAnalysisRequest,
 } from "@/lib/ai-resume-service";
 
+/** Filter out null-like strings from arrays */
+function cleanArray(arr: string[]): string[] {
+  return arr.filter(
+    (v) =>
+      v &&
+      typeof v === "string" &&
+      v.trim() !== "" &&
+      v.trim().toLowerCase() !== "null",
+  );
+}
+
+/** Sanitize a nullable string — convert "null" to actual null */
+function cleanNullable(val: string | null | undefined): string | null {
+  if (!val || val.trim() === "" || val.trim().toLowerCase() === "null")
+    return null;
+  return val.trim();
+}
+
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse
+  res: NextApiResponse,
 ) {
   const user = getUserFromRequest(req);
   if (!user) return res.status(401).json({ error: "Unauthorized" });
@@ -46,7 +64,7 @@ export default async function handler(
 async function handleGetResumes(
   req: NextApiRequest,
   res: NextApiResponse,
-  jobId: string
+  jobId: string,
 ) {
   const { sortBy = "matchScore", order = "desc" } = req.query;
 
@@ -76,23 +94,27 @@ async function handleAnalyzeResumes(
   req: NextApiRequest,
   res: NextApiResponse,
   jobPost: any,
-  userId: number
+  userId: number,
 ) {
   const { resume_paths, uploaded_files } = req.body;
 
   // Support both URL-based and file upload analysis
   let pathsToAnalyze: string[] = [];
-  
+
   if (resume_paths && Array.isArray(resume_paths) && resume_paths.length > 0) {
     pathsToAnalyze = resume_paths;
-  } else if (uploaded_files && Array.isArray(uploaded_files) && uploaded_files.length > 0) {
+  } else if (
+    uploaded_files &&
+    Array.isArray(uploaded_files) &&
+    uploaded_files.length > 0
+  ) {
     // Extract S3 URLs from uploaded files
     pathsToAnalyze = uploaded_files.map((file: any) => file.s3Url);
   }
 
   if (pathsToAnalyze.length === 0) {
-    return res.status(400).json({ 
-      error: "Either resume_paths array or uploaded_files array is required" 
+    return res.status(400).json({
+      error: "Either resume_paths array or uploaded_files array is required",
     });
   }
 
@@ -134,6 +156,27 @@ async function handleAnalyzeResumes(
             }
           }
 
+          // Extract filter-specific arrays from AI response (sanitised)
+          const filterData = analysis.filter || {};
+          const degrees: string[] = cleanArray(
+            Array.isArray(filterData.degree) ? filterData.degree : [],
+          );
+          const institutes: string[] = cleanArray(
+            Array.isArray(filterData.institute) ? filterData.institute : [],
+          );
+          const certificates: string[] = cleanArray(
+            Array.isArray(filterData.certificate) ? filterData.certificate : [],
+          );
+
+          // Extract languages from candidate data (sanitised)
+          const languages: string[] = cleanArray(
+            Array.isArray(analysis.candidate.languages)
+              ? analysis.candidate.languages.map((l: any) =>
+                  typeof l === "string" ? l : l?.language || "",
+                )
+              : [],
+          );
+
           const resume = await prisma.resume.create({
             data: {
               id: crypto.randomUUID(),
@@ -148,18 +191,26 @@ async function handleAnalyzeResumes(
               experienceYears: analysis.candidate.experience_years,
               education: educationStr,
               summary: analysis.candidate.summary,
-              location: analysis.candidate.location,
-              linkedinUrl: analysis.candidate.linkedin_url,
-              githubUrl: analysis.candidate.github_url,
-              currentJobTitle: analysis.candidate.current_job_title,
+              location: cleanNullable(analysis.candidate.location),
+              linkedinUrl: cleanNullable(analysis.candidate.linkedin_url),
+              githubUrl: cleanNullable(analysis.candidate.github_url),
+              currentJobTitle: cleanNullable(
+                analysis.candidate.current_job_title,
+              ),
               processingMethod: analysis.candidate.processing_method,
               analysisTimestamp: new Date(
-                analysis.candidate.analysis_timestamp
+                analysis.candidate.analysis_timestamp,
               ),
               fileName: analysis.analysis.file_name,
               fileSizeMb: analysis.analysis.file_size_mb,
               processingTime: analysis.analysis.processing_time,
               matchedSkills: analysis.analysis.matched_skills,
+              // Filter-specific columns
+              degrees,
+              institutes,
+              certificates,
+              languages,
+              portfolioUrl: cleanNullable(analysis.candidate.portfolio_url),
               jobPostId: jobPost.id,
               uploadedById: userId,
               updatedAt: new Date(),

@@ -97,6 +97,14 @@ model Resume {
   summary           String?
   updatedAt         DateTime
   uploadedById      Int?
+
+  // Filter-specific columns (extracted from AI analysis for fast filtering)
+  degrees           String[]           // e.g. ["Bachelor's degree in CS", "Master's in AI"]
+  institutes        String[]           // e.g. ["MIT", "Stanford University"]
+  certificates      String[]           // e.g. ["AWS Solutions Architect", "PMP"]
+  portfolioUrl      String?
+  languages         String[]           // e.g. ["English", "French"]
+
   JobPost           JobPost   @relation(fields: [jobPostId], references: [id], onDelete: Cascade)
   User              User?     @relation(fields: [uploadedById], references: [id])
   meetings          meetings?

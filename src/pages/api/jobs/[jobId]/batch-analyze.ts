@@ -4,8 +4,103 @@ import { getUserFromRequest } from "@/lib/auth";
 import {
   AIResumeService,
   ResumeAnalysisRequest,
+  ResumeAnalysisItem,
 } from "@/lib/ai-resume-service";
 import { updateProgress } from "@/lib/progress-store";
+
+/** Filter out null-like strings from arrays */
+function cleanArray(arr: string[]): string[] {
+  return arr.filter(
+    (v) =>
+      v &&
+      typeof v === "string" &&
+      v.trim() !== "" &&
+      v.trim().toLowerCase() !== "null",
+  );
+}
+
+/** Sanitize a nullable string — convert "null" to actual null */
+function cleanNullable(val: string | null | undefined): string | null {
+  if (!val || val.trim() === "" || val.trim().toLowerCase() === "null")
+    return null;
+  return val.trim();
+}
+
+/**
+ * Save a single analysis result to the database.
+ * Returns the saved resume or null on failure.
+ */
+async function saveAnalysisToDb(
+  analysis: any,
+  jobPostId: string,
+  userId: number,
+) {
+  // Convert education array to JSON string if it's an array
+  let educationStr: string | null = null;
+  if (analysis.candidate.education) {
+    if (Array.isArray(analysis.candidate.education)) {
+      educationStr = JSON.stringify(analysis.candidate.education);
+    } else if (typeof analysis.candidate.education === "string") {
+      educationStr = analysis.candidate.education;
+    }
+  }
+
+  // Extract filter-specific arrays from AI response (sanitised)
+  const filterData = analysis.filter || {};
+  const degrees: string[] = cleanArray(
+    Array.isArray(filterData.degree) ? filterData.degree : [],
+  );
+  const institutes: string[] = cleanArray(
+    Array.isArray(filterData.institute) ? filterData.institute : [],
+  );
+  const certificates: string[] = cleanArray(
+    Array.isArray(filterData.certificate) ? filterData.certificate : [],
+  );
+
+  // Extract languages from candidate data (sanitised)
+  const languages: string[] = cleanArray(
+    Array.isArray(analysis.candidate.languages)
+      ? analysis.candidate.languages.map((l: any) =>
+          typeof l === "string" ? l : l?.language || "",
+        )
+      : [],
+  );
+
+  return prisma.resume.create({
+    data: {
+      id: crypto.randomUUID(),
+      resumeUrl: analysis.resume_path,
+      candidateName: analysis.candidate.name,
+      candidateEmail: analysis.candidate.email,
+      candidatePhone: analysis.candidate.phone,
+      matchScore: analysis.candidate.match_score,
+      recommendation: analysis.analysis.recommendation,
+      skills: analysis.candidate.skills,
+      experienceYears: analysis.candidate.experience_years,
+      education: educationStr,
+      summary: analysis.candidate.summary,
+      location: cleanNullable(analysis.candidate.location),
+      linkedinUrl: cleanNullable(analysis.candidate.linkedin_url),
+      githubUrl: cleanNullable(analysis.candidate.github_url),
+      currentJobTitle: cleanNullable(analysis.candidate.current_job_title),
+      processingMethod: analysis.candidate.processing_method,
+      analysisTimestamp: new Date(analysis.candidate.analysis_timestamp),
+      fileName: analysis.analysis.file_name,
+      fileSizeMb: analysis.analysis.file_size_mb,
+      processingTime: analysis.analysis.processing_time,
+      matchedSkills: analysis.analysis.matched_skills,
+      // Filter-specific columns
+      degrees,
+      institutes,
+      certificates,
+      languages,
+      portfolioUrl: cleanNullable(analysis.candidate.portfolio_url),
+      jobPostId,
+      uploadedById: userId,
+      updatedAt: new Date(),
+    },
+  });
+}
 
 export default async function handler(
   req: NextApiRequest,
@@ -44,9 +139,11 @@ export default async function handler(
 
   // Support both URL-based and file upload analysis
   let pathsToAnalyze: string[] = [];
+  let isUploadedFiles = false;
 
   if (resume_paths && Array.isArray(resume_paths) && resume_paths.length > 0) {
     pathsToAnalyze = resume_paths;
+    isUploadedFiles = false; // URL batch → v3-background
   } else if (
     uploaded_files &&
     Array.isArray(uploaded_files) &&
@@ -54,6 +151,7 @@ export default async function handler(
   ) {
     // Extract S3 URLs from uploaded files
     pathsToAnalyze = uploaded_files.map((file: any) => file.s3Url);
+    isUploadedFiles = true; // Uploaded files → single v2 processing
   }
 
   if (pathsToAnalyze.length === 0) {
@@ -68,6 +166,7 @@ export default async function handler(
       jobTitle: jobPost.jobTitle,
       total_resumes: pathsToAnalyze.length,
       batch_size,
+      mode: isUploadedFiles ? "single-v2" : "batch-v3-background",
     });
 
     // Initialize progress
@@ -77,7 +176,7 @@ export default async function handler(
       successful: 0,
       failed: 0,
       currentBatch: 0,
-      totalBatches: Math.ceil(pathsToAnalyze.length / batch_size),
+      totalBatches: isUploadedFiles ? pathsToAnalyze.length : 1,
       isComplete: false,
       currentFile: null,
       percentage: 0,
@@ -86,51 +185,148 @@ export default async function handler(
     // Convert JobPost to format expected by external AI API
     const jobReq = AIResumeService.mapJobPostToJobReq(jobPost);
 
-    // Split resumes into batches
-    const batches = [];
-    for (let i = 0; i < pathsToAnalyze.length; i += batch_size) {
-      batches.push(pathsToAnalyze.slice(i, i + batch_size));
-    }
-
-    console.log(
-      `🔄 Processing ${pathsToAnalyze.length} resumes in ${batches.length} batches of ${batch_size}`,
-    );
-
-    const savedResumes = [];
-    const failedResumes = [];
+    const savedResumes: any[] = [];
+    const failedResumes: any[] = [];
     let processedCount = 0;
 
-    // Process each batch sequentially
-    for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
-      const batch = batches[batchIndex];
-
+    if (isUploadedFiles) {
+      // ─── UPLOADED FILES: process each one individually via v2 (single CV) ───
       console.log(
-        `📦 Processing batch ${batchIndex + 1}/${batches.length} (${
-          batch.length
-        } resumes)`,
+        `🔄 Processing ${pathsToAnalyze.length} uploaded files individually via v2 API`,
       );
 
-      // Update progress for current batch
+      for (let i = 0; i < pathsToAnalyze.length; i++) {
+        const resumePath = pathsToAnalyze[i];
+        const fileName =
+          resumePath.split("/").pop()?.split("?")[0] || `File ${i + 1}`;
+
+        updateProgress(user.userId, jobIdString, {
+          currentBatch: i + 1,
+          currentFile: `Analyzing ${fileName}...`,
+        });
+
+        try {
+          const singleResponse = await AIResumeService.analyzeResumes({
+            resume_paths: [resumePath],
+            job_req: jobReq,
+          });
+
+          for (const analysis of singleResponse.analyses) {
+            processedCount++;
+            const currentPercentage = Math.round(
+              (processedCount / pathsToAnalyze.length) * 100,
+            );
+
+            updateProgress(user.userId, jobIdString, {
+              processed: processedCount,
+              percentage: currentPercentage,
+              currentFile: fileName,
+            });
+
+            if (analysis.success) {
+              try {
+                const resume = await saveAnalysisToDb(
+                  analysis,
+                  jobPost.id,
+                  user.userId,
+                );
+                savedResumes.push(resume);
+                updateProgress(user.userId, jobIdString, {
+                  successful: savedResumes.length,
+                  percentage: currentPercentage,
+                });
+                console.log(
+                  `✅ Saved resume ${processedCount}/${pathsToAnalyze.length}: ${analysis.candidate.name}`,
+                );
+              } catch (dbError) {
+                console.error("Database error saving resume:", dbError);
+                failedResumes.push({
+                  resume_path: analysis.resume_path,
+                  error:
+                    "Database error: " +
+                    (dbError instanceof Error
+                      ? dbError.message
+                      : "Unknown error"),
+                });
+                updateProgress(user.userId, jobIdString, {
+                  failed: failedResumes.length,
+                  percentage: currentPercentage,
+                });
+              }
+            } else {
+              failedResumes.push({
+                resume_path: analysis.resume_path,
+                error: "Analysis failed",
+              });
+              updateProgress(user.userId, jobIdString, {
+                failed: failedResumes.length,
+                percentage: currentPercentage,
+              });
+              console.log(
+                `❌ Failed resume ${processedCount}/${pathsToAnalyze.length}: ${analysis.resume_path}`,
+              );
+            }
+          }
+        } catch (singleError) {
+          processedCount++;
+          console.error(
+            `❌ Single analysis failed for ${fileName}:`,
+            singleError,
+          );
+          failedResumes.push({
+            resume_path: resumePath,
+            error:
+              singleError instanceof Error
+                ? singleError.message
+                : "Unknown error",
+          });
+          updateProgress(user.userId, jobIdString, {
+            processed: processedCount,
+            failed: failedResumes.length,
+            percentage: Math.round(
+              (processedCount / pathsToAnalyze.length) * 100,
+            ),
+          });
+        }
+
+        // Small delay between individual requests
+        if (i < pathsToAnalyze.length - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      }
+    } else {
+      // ─── URL BATCH: use v3-background API ───
+      console.log(
+        `🚀 Submitting ${pathsToAnalyze.length} resumes to v3-background API`,
+      );
+
       updateProgress(user.userId, jobIdString, {
-        currentBatch: batchIndex + 1,
-        currentFile: `Processing batch ${batchIndex + 1}/${batches.length}...`,
+        currentBatch: 1,
+        currentFile: "Submitting batch to AI service...",
       });
 
       try {
-        // Call external AI API for this batch
-        const batchAnalysisResponse = await AIResumeService.analyzeResumes({
-          resume_paths: batch,
-          job_req: jobReq,
-        });
+        const results = await AIResumeService.analyzeResumesBackground(
+          { resume_paths: pathsToAnalyze, job_req: jobReq },
+          (msg) => {
+            console.log(`📡 Background: ${msg}`);
+            updateProgress(user.userId, jobIdString, {
+              currentFile: msg,
+            });
+          },
+        );
 
-        // Process the batch response
-        for (const analysis of batchAnalysisResponse.analyses) {
+        console.log(
+          `✅ Background analysis returned ${results.analyses.length} results`,
+        );
+
+        // Process all results from the background job
+        for (const analysis of results.analyses) {
           processedCount++;
           const currentPercentage = Math.round(
             (processedCount / pathsToAnalyze.length) * 100,
           );
 
-          // Update current file being processed
           updateProgress(user.userId, jobIdString, {
             processed: processedCount,
             percentage: currentPercentage,
@@ -141,54 +337,16 @@ export default async function handler(
 
           if (analysis.success) {
             try {
-              // Convert education array to JSON string if it's an array
-              let educationStr: string | null = null;
-              if (analysis.candidate.education) {
-                if (Array.isArray(analysis.candidate.education)) {
-                  educationStr = JSON.stringify(analysis.candidate.education);
-                } else if (typeof analysis.candidate.education === "string") {
-                  educationStr = analysis.candidate.education;
-                }
-              }
-
-              const resume = await prisma.resume.create({
-                data: {
-                  id: crypto.randomUUID(),
-                  resumeUrl: analysis.resume_path,
-                  candidateName: analysis.candidate.name,
-                  candidateEmail: analysis.candidate.email,
-                  candidatePhone: analysis.candidate.phone,
-                  matchScore: analysis.candidate.match_score,
-                  recommendation: analysis.analysis.recommendation,
-                  skills: analysis.candidate.skills,
-                  experienceYears: analysis.candidate.experience_years,
-                  education: educationStr,
-                  summary: analysis.candidate.summary,
-                  location: analysis.candidate.location,
-                  linkedinUrl: analysis.candidate.linkedin_url,
-                  githubUrl: analysis.candidate.github_url,
-                  currentJobTitle: analysis.candidate.current_job_title,
-                  processingMethod: analysis.candidate.processing_method,
-                  analysisTimestamp: new Date(
-                    analysis.candidate.analysis_timestamp,
-                  ),
-                  fileName: analysis.analysis.file_name,
-                  fileSizeMb: analysis.analysis.file_size_mb,
-                  processingTime: analysis.analysis.processing_time,
-                  matchedSkills: analysis.analysis.matched_skills,
-                  jobPostId: jobPost.id,
-                  uploadedById: user.userId,
-                  updatedAt: new Date(),
-                },
-              });
+              const resume = await saveAnalysisToDb(
+                analysis,
+                jobPost.id,
+                user.userId,
+              );
               savedResumes.push(resume);
-
-              // Update progress with success
               updateProgress(user.userId, jobIdString, {
                 successful: savedResumes.length,
                 percentage: currentPercentage,
               });
-
               console.log(
                 `✅ Saved resume ${processedCount}/${pathsToAnalyze.length}: ${analysis.candidate.name}`,
               );
@@ -202,8 +360,6 @@ export default async function handler(
                     ? dbError.message
                     : "Unknown error"),
               });
-
-              // Update progress with failure
               updateProgress(user.userId, jobIdString, {
                 failed: failedResumes.length,
                 percentage: currentPercentage,
@@ -214,40 +370,31 @@ export default async function handler(
               resume_path: analysis.resume_path,
               error: "Analysis failed",
             });
-
-            // Update progress with failure
             updateProgress(user.userId, jobIdString, {
               failed: failedResumes.length,
               percentage: currentPercentage,
             });
-
             console.log(
               `❌ Failed resume ${processedCount}/${pathsToAnalyze.length}: ${analysis.resume_path}`,
             );
           }
 
-          // Small delay between each resume for smoother progress updates
+          // Small delay for smoother progress updates
           await new Promise((resolve) => setTimeout(resolve, 200));
         }
-
-        // Add a small delay between batches to prevent overwhelming the external API
-        if (batchIndex < batches.length - 1) {
-          await new Promise((resolve) => setTimeout(resolve, 1000)); // 1 second delay
-        }
-      } catch (batchError) {
-        console.error(`❌ Batch ${batchIndex + 1} failed:`, batchError);
-        // Mark all resumes in this batch as failed
-        for (const resumePath of batch) {
+      } catch (bgError) {
+        console.error("❌ Background analysis failed:", bgError);
+        // Mark all as failed
+        for (const resumePath of pathsToAnalyze) {
           failedResumes.push({
             resume_path: resumePath,
-            error: `Batch processing failed: ${
-              batchError instanceof Error ? batchError.message : "Unknown error"
-            }`,
+            error:
+              bgError instanceof Error
+                ? bgError.message
+                : "Background processing failed",
           });
         }
-        processedCount += batch.length;
-
-        // Update progress with batch failure
+        processedCount = pathsToAnalyze.length;
         updateProgress(user.userId, jobIdString, {
           processed: processedCount,
           failed: failedResumes.length,
@@ -284,8 +431,6 @@ export default async function handler(
         total: pathsToAnalyze.length,
         successful: savedResumes.length,
         failed: failedResumes.length,
-        batches_processed: batches.length,
-        batch_size,
       },
       progress: 100,
     });

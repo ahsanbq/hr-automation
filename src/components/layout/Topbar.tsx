@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Layout,
   Typography,
@@ -48,8 +48,6 @@ type NotificationItem = {
   createdAt: string;
 };
 
-const POLL_INTERVAL = 30_000; // 30 seconds
-
 export default function Topbar({ title, subtitle }: TopbarProps) {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<CurrentUser>(null);
@@ -58,7 +56,6 @@ export default function Topbar({ title, subtitle }: TopbarProps) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loadingNotifs, setLoadingNotifs] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const pollRef = useRef<ReturnType<typeof setInterval>>(undefined);
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -88,11 +85,9 @@ export default function Topbar({ title, subtitle }: TopbarProps) {
     window.addEventListener("scroll", handleScroll);
 
     fetchNotifications();
-    pollRef.current = setInterval(fetchNotifications, POLL_INTERVAL);
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
-      if (pollRef.current) clearInterval(pollRef.current);
     };
   }, [fetchNotifications]);
 
@@ -103,7 +98,7 @@ export default function Topbar({ title, subtitle }: TopbarProps) {
       await axios.patch(
         "/api/notifications",
         { markAllRead: true },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       setNotifs((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setUnreadCount(0);
@@ -117,10 +112,10 @@ export default function Topbar({ title, subtitle }: TopbarProps) {
       await axios.patch(
         "/api/notifications",
         { notificationId: id },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       setNotifs((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
       );
       setUnreadCount((c) => Math.max(0, c - 1));
     } catch {}
@@ -143,126 +138,133 @@ export default function Topbar({ title, subtitle }: TopbarProps) {
     .slice(0, 1)
     .toUpperCase();
 
-  const notificationMenuItems = notifs.length > 0
-    ? [
-        {
-          key: "header",
-          label: (
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "4px 0",
-              }}
-            >
-              <span style={{ fontWeight: 700, fontSize: "14px" }}>
-                Notifications
-              </span>
-              {unreadCount > 0 && (
-                <Button
-                  type="link"
-                  size="small"
-                  icon={<CheckOutlined />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    markAllRead();
-                  }}
-                  style={{ fontSize: "12px", padding: 0 }}
-                >
-                  Mark all read
-                </Button>
-              )}
-            </div>
-          ),
-          disabled: true,
-        },
-        { type: "divider" as const, key: "div-top" },
-        ...notifs.map((n) => ({
-          key: n.id,
-          label: (
-            <div
-              style={{
-                padding: "8px 0",
-                opacity: n.isRead ? 0.6 : 1,
-                maxWidth: "320px",
-              }}
-              onClick={() => {
-                if (!n.isRead) markOneRead(n.id);
-                if (n.jobPostId) {
-                  router.push(`/cv-sorting/${n.jobPostId}`);
-                  setDropdownOpen(false);
-                }
-              }}
-            >
+  const notificationMenuItems =
+    notifs.length > 0
+      ? [
+          {
+            key: "header",
+            label: (
               <div
                 style={{
                   display: "flex",
+                  justifyContent: "space-between",
                   alignItems: "center",
-                  gap: "6px",
+                  padding: "4px 0",
                 }}
               >
-                {!n.isRead && (
-                  <span
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      background: "#1890ff",
-                      display: "inline-block",
-                      flexShrink: 0,
-                    }}
-                  />
-                )}
-                <span style={{ fontWeight: 600, color: "#1890ff" }}>
-                  {n.title}
+                <span style={{ fontWeight: 700, fontSize: "14px" }}>
+                  Notifications
                 </span>
+                {unreadCount > 0 && (
+                  <Button
+                    type="link"
+                    size="small"
+                    icon={<CheckOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      markAllRead();
+                    }}
+                    style={{ fontSize: "12px", padding: 0 }}
+                  >
+                    Mark all read
+                  </Button>
+                )}
               </div>
+            ),
+            disabled: true,
+          },
+          { type: "divider" as const, key: "div-top" },
+          ...notifs.map((n) => ({
+            key: n.id,
+            label: (
               <div
                 style={{
-                  fontSize: "12px",
-                  color: "#555",
-                  marginTop: 2,
-                  whiteSpace: "normal",
-                  lineHeight: "1.4",
+                  padding: "8px 0",
+                  opacity: n.isRead ? 0.6 : 1,
+                  maxWidth: "320px",
+                }}
+                onClick={() => {
+                  if (!n.isRead) markOneRead(n.id);
+                  if (n.jobPostId) {
+                    router.push(`/cv-sorting/${n.jobPostId}`);
+                    setDropdownOpen(false);
+                  }
                 }}
               >
-                {n.message}
-              </div>
-              {n.metadata?.matchScore != null && (
-                <div style={{ fontSize: "11px", color: "#52c41a", marginTop: 2 }}>
-                  Match score: {Math.round(n.metadata.matchScore)}%
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  {!n.isRead && (
+                    <span
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        background: "#1890ff",
+                        display: "inline-block",
+                        flexShrink: 0,
+                      }}
+                    />
+                  )}
+                  <span style={{ fontWeight: 600, color: "#1890ff" }}>
+                    {n.title}
+                  </span>
                 </div>
-              )}
-              <div style={{ fontSize: "11px", color: "#999", marginTop: 2 }}>
-                {timeAgo(n.createdAt)}
+                <div
+                  style={{
+                    fontSize: "12px",
+                    color: "#555",
+                    marginTop: 2,
+                    whiteSpace: "normal",
+                    lineHeight: "1.4",
+                  }}
+                >
+                  {n.message}
+                </div>
+                {n.metadata?.matchScore != null && (
+                  <div
+                    style={{ fontSize: "11px", color: "#52c41a", marginTop: 2 }}
+                  >
+                    Match score: {Math.round(n.metadata.matchScore)}%
+                  </div>
+                )}
+                <div style={{ fontSize: "11px", color: "#999", marginTop: 2 }}>
+                  {timeAgo(n.createdAt)}
+                </div>
               </div>
-            </div>
-          ),
-        })),
-      ]
-    : [
-        {
-          key: "empty",
-          label: (
-            <div style={{ padding: "16px 0", textAlign: "center" as const }}>
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="No notifications yet"
-                style={{ margin: 0 }}
-              />
-            </div>
-          ),
-          disabled: true,
-        },
-      ];
+            ),
+          })),
+        ]
+      : [
+          {
+            key: "empty",
+            label: (
+              <div style={{ padding: "16px 0", textAlign: "center" as const }}>
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description="No notifications yet"
+                  style={{ margin: 0 }}
+                />
+              </div>
+            ),
+            disabled: true,
+          },
+        ];
 
   const notifications = (
     <Dropdown
       menu={{ items: notificationMenuItems }}
       placement="bottomRight"
       trigger={["click"]}
-      overlayStyle={{ minWidth: "340px", maxHeight: "420px", overflowY: "auto" }}
+      overlayStyle={{
+        minWidth: "340px",
+        maxHeight: "420px",
+        overflowY: "auto",
+      }}
       open={dropdownOpen}
       onOpenChange={(open) => {
         setDropdownOpen(open);
