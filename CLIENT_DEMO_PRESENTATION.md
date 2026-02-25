@@ -1,6 +1,7 @@
 # 🎯 Synchro Hire - Client Demo & Product Walkthrough
 
 ## 📌 Document Purpose
+
 This document provides a comprehensive, step-by-step demonstration guide for presenting Synchro Hire's HR Automation Platform to clients. It walks through the complete recruitment lifecycle from job creation to offer letter generation, including both bulk resume upload and candidate self-application scenarios.
 
 ---
@@ -15,9 +16,10 @@ This document provides a comprehensive, step-by-step demonstration guide for pre
 ✅ **AI-Powered Intelligence** - Automated resume analysis, MCQ generation, and interview questions  
 ✅ **Complete Workflow** - Single platform for entire recruitment lifecycle  
 ✅ **Data-Driven Decisions** - Real-time analytics and candidate scoring  
-✅ **Candidate Experience** - Professional portals for assessments and interviews  
+✅ **Candidate Experience** - Professional portals for assessments and interviews
 
 ### Technology Stack
+
 - **Frontend**: Next.js, React, TypeScript with modern UI
 - **Backend**: Secure API with PostgreSQL database
 - **AI Engine**: Advanced AI for resume parsing, question generation, and offer letters
@@ -48,6 +50,7 @@ Let me walk you through a real-world scenario where you're hiring for a "Senior 
    - Click "Company Sign Up"
 
 3. **Enter Company Information**
+
    ```
    📋 Company Details:
    • Company Name: "Tech Innovations Ltd."
@@ -58,6 +61,7 @@ Let me walk you through a real-world scenario where you're hiring for a "Senior 
    ```
 
 4. **Create Admin Account**
+
    ```
    👤 Administrator Details:
    • Admin Name: "Sarah Johnson"
@@ -86,6 +90,7 @@ Let me walk you through a real-world scenario where you're hiring for a "Senior 
 2. **Click "Add User"**
 
 3. **Enter Team Member Details**
+
    ```
    👥 New User:
    • Name: "Michael Chen"
@@ -118,6 +123,7 @@ Let me walk you through a real-world scenario where you're hiring for a "Senior 
 2. **Click "Create Job Post"**
 
 3. **Enter Basic Information**
+
    ```
    💼 Job Details:
    • Job Title: "Senior Software Engineer"
@@ -128,17 +134,18 @@ Let me walk you through a real-world scenario where you're hiring for a "Senior 
    ```
 
 4. **Specify Requirements**
+
    ```
    🎯 Technical Requirements:
-   • Skills Required: 
+   • Skills Required:
      - JavaScript, React, Node.js
      - AWS, Docker, Kubernetes
      - PostgreSQL, MongoDB
      - CI/CD, Git
-   
+
    💰 Compensation:
    • Salary Range: "$120,000 - $150,000/year"
-   
+
    🎁 Benefits (Optional):
    • Health insurance, 401(k) matching
    • Remote work flexibility
@@ -151,17 +158,19 @@ Let me walk you through a real-world scenario where you're hiring for a "Senior 
    - 🤖 Generates 2-3 professional variations
 
 6. **Review AI-Generated Content**
-   
+
    The AI creates a complete job posting with:
-   
+
    **📝 Job Description:**
+
    ```
-   "We are seeking an experienced Senior Software Engineer to join our 
-   innovative team. You'll work on cutting-edge projects using modern 
+   "We are seeking an experienced Senior Software Engineer to join our
+   innovative team. You'll work on cutting-edge projects using modern
    technologies and lead technical initiatives..."
    ```
-   
+
    **🎯 Key Responsibilities:**
+
    ```
    • Design and develop scalable web applications
    • Lead technical architecture decisions
@@ -169,8 +178,9 @@ Let me walk you through a real-world scenario where you're hiring for a "Senior 
    • Collaborate with cross-functional teams
    • Implement best practices and code reviews
    ```
-   
+
    **✅ Qualifications:**
+
    ```
    • 5+ years of software development experience
    • Strong proficiency in JavaScript, React, and Node.js
@@ -178,8 +188,9 @@ Let me walk you through a real-world scenario where you're hiring for a "Senior 
    • Bachelor's degree in Computer Science or equivalent
    • Excellent problem-solving and communication skills
    ```
-   
+
    **🎁 Benefits:**
+
    ```
    • Comprehensive health coverage
    • Competitive salary with performance bonuses
@@ -250,14 +261,16 @@ Now that your job is posted, candidates can apply in two ways. Let me show you b
 4. **Upload Multiple Resumes**
 
    **Method 1: Drag & Drop**
+
    ```
    📎 Upload Area:
    • Drag all 10 PDF files from your desktop
    • Drop them into the upload zone
    • Watch progress bar for each file
    ```
-   
+
    **Method 2: File Browser**
+
    ```
    📎 File Selection:
    • Click "Browse Files"
@@ -266,6 +279,7 @@ Now that your job is posted, candidates can apply in two ways. Let me show you b
    ```
 
 5. **Upload Progress**
+
    ```
    📤 Uploading Files:
    ┌─────────────────────────────────────┐
@@ -281,6 +295,7 @@ Now that your job is posted, candidates can apply in two ways. Let me show you b
    - ✅ Ready for AI analysis
 
 7. **Automatic AI Analysis Triggered**
+
    ```
    🤖 AI Analysis in Progress:
    ┌─────────────────────────────────────┐
@@ -296,7 +311,7 @@ Now that your job is posted, candidates can apply in two ways. Let me show you b
    ```
 
 8. **AI Processing (Behind the Scenes)**
-   
+
    For each resume, AI analyzes:
    - ✅ **Personal Information**: Name, email, phone, location
    - ✅ **Skills**: Extracts all technical and soft skills
@@ -309,6 +324,7 @@ Now that your job is posted, candidates can apply in two ways. Let me show you b
    - ✅ **Recommendation**: Highly Recommended / Consider / Not Suitable
 
 9. **Analysis Complete**
+
    ```
    ✅ Analysis Complete!
    • 10 resumes processed successfully
@@ -319,10 +335,10 @@ Now that your job is posted, candidates can apply in two ways. Let me show you b
 10. **View Results - Candidate Dashboard**
 
     **Screen: Sorted Candidate List**
-    
+
     ```
     📊 Candidate Rankings (Auto-sorted by match score):
-    
+
     ┌──────────────────────────────────────────────────────────────────────┐
     │ 🥇 #1 - SARAH MARTINEZ - 92% Match                                  │
     ├──────────────────────────────────────────────────────────────────────┤
@@ -343,7 +359,7 @@ Now that your job is posted, candidates can apply in two ways. Let me show you b
     │ 🔗 LinkedIn  •  GitHub                                               │
     │ [View Full Resume] [Send MCQ Test] [Schedule Interview]              │
     └──────────────────────────────────────────────────────────────────────┘
-    
+
     ┌──────────────────────────────────────────────────────────────────────┐
     │ 🥈 #2 - JAMES WILSON - 88% Match                                    │
     ├──────────────────────────────────────────────────────────────────────┤
@@ -362,7 +378,7 @@ Now that your job is posted, candidates can apply in two ways. Let me show you b
     │ 🔗 LinkedIn  •  GitHub                                               │
     │ [View Full Resume] [Send MCQ Test] [Schedule Interview]              │
     └──────────────────────────────────────────────────────────────────────┘
-    
+
     ┌──────────────────────────────────────────────────────────────────────┐
     │ 🥉 #3 - EMILY CHEN - 85% Match                                      │
     ├──────────────────────────────────────────────────────────────────────┤
@@ -381,19 +397,20 @@ Now that your job is posted, candidates can apply in two ways. Let me show you b
     │ 🔗 LinkedIn  •  GitHub                                               │
     │ [View Full Resume] [Send MCQ Test] [Schedule Interview]              │
     └──────────────────────────────────────────────────────────────────────┘
-    
+
     ┌──────────────────────────────────────────────────────────────────────┐
     │ #4 - MICHAEL BROWN - 78% Match                                      │
     ├──────────────────────────────────────────────────────────────────────┤
     │ [Similar detailed view...]                                           │
     └──────────────────────────────────────────────────────────────────────┘
-    
+
     ... (Candidates #5-#10 displayed similarly, sorted by score)
     ```
 
 11. **Use Dashboard Features**
 
     **Filtering Options:**
+
     ```
     🔍 Filter Candidates:
     • By Match Score: 90-100% | 80-90% | 70-80% | Below 70%
@@ -401,8 +418,9 @@ Now that your job is posted, candidates can apply in two ways. Let me show you b
     • By Skill: Filter by specific required skills
     • By Experience: Filter by years of experience
     ```
-    
+
     **Sorting Options:**
+
     ```
     ⬇️ Sort By:
     • Match Score (Highest to Lowest) - Default
@@ -410,8 +428,9 @@ Now that your job is posted, candidates can apply in two ways. Let me show you b
     • Upload Date (Newest First)
     • Experience Years (Most to Least)
     ```
-    
+
     **Bulk Actions:**
+
     ```
     ☑️ Select Multiple Candidates:
     • Send MCQ test to multiple candidates
@@ -423,14 +442,14 @@ Now that your job is posted, candidates can apply in two ways. Let me show you b
 12. **View Individual Candidate Details**
 
     Click on any candidate card to see complete profile:
-    
+
     ```
     👤 SARAH MARTINEZ - Detailed Profile
     ═══════════════════════════════════════════════════════════
-    
-    📊 Match Analysis: 92% 
-    [▓▓▓▓▓▓▓▓▓░] 
-    
+
+    📊 Match Analysis: 92%
+    [▓▓▓▓▓▓▓▓▓░]
+
     👤 Personal Information:
     • Full Name: Sarah Martinez
     • Email: sarah.martinez@email.com
@@ -438,18 +457,18 @@ Now that your job is posted, candidates can apply in two ways. Let me show you b
     • Location: San Francisco, CA
     • LinkedIn: linkedin.com/in/sarahmartinez
     • GitHub: github.com/sarahmartinez
-    
+
     💼 Professional Summary:
-    "Experienced Senior Full Stack Developer with 7 years of expertise 
-    in building scalable cloud applications. Led multiple teams in 
-    delivering enterprise-grade solutions using modern JavaScript 
+    "Experienced Senior Full Stack Developer with 7 years of expertise
+    in building scalable cloud applications. Led multiple teams in
+    delivering enterprise-grade solutions using modern JavaScript
     frameworks and AWS infrastructure..."
-    
+
     🛠️ Skills Breakdown:
-    
+
     ✅ Required Skills (Match: 9/10 = 90%):
     • JavaScript ⭐⭐⭐⭐⭐ Expert
-    • React ⭐⭐⭐⭐⭐ Expert  
+    • React ⭐⭐⭐⭐⭐ Expert
     • Node.js ⭐⭐⭐⭐⭐ Expert
     • AWS ⭐⭐⭐⭐ Advanced
     • Docker ⭐⭐⭐⭐ Advanced
@@ -457,50 +476,50 @@ Now that your job is posted, candidates can apply in two ways. Let me show you b
     • PostgreSQL ⭐⭐⭐⭐ Advanced
     • MongoDB ⭐⭐⭐ Intermediate
     • Git ⭐⭐⭐⭐⭐ Expert
-    
+
     ❌ Missing Skills:
     • CI/CD (Jenkins/GitLab CI) - Can be trained
-    
+
     💡 Additional Skills:
     • Python, TypeScript, GraphQL
     • Redis, Elasticsearch
     • Microservices Architecture
     • Agile/Scrum Leadership
-    
+
     📚 Experience: 7 Years
     • 2020 - Present: Senior Full Stack Developer @ Google Cloud
     • 2018 - 2020: Software Engineer @ Stripe
     • 2017 - 2018: Junior Developer @ Startup Inc.
-    
+
     🎓 Education:
     • MS Computer Science - Stanford University (2017)
     • BS Software Engineering - UC Berkeley (2015)
-    
+
     🏆 Achievements/Certifications:
     • AWS Certified Solutions Architect
     • Led team of 5 developers
     • Published 3 technical articles
-    
+
     🤖 AI Assessment:
     Recommendation: HIGHLY RECOMMENDED
-    
+
     Strengths:
     ✓ Excellent match with required skills (90%)
     ✓ Extensive experience with similar tech stack
     ✓ Leadership experience aligns with senior role
     ✓ Strong educational background
     ✓ Active open-source contributor
-    
+
     Considerations:
     ⚠ CI/CD experience not explicitly mentioned
     ⚠ Salary expectations may be at higher end
-    
+
     Hiring Confidence: 95%
-    
+
     📎 Documents:
     • [Download Original Resume PDF]
     • [View Parsed Data JSON]
-    
+
     🎯 Next Actions:
     [📝 Send MCQ Test]  [🎙️ Schedule AI Interview]  [📅 Book Manual Meeting]
     [✉️ Send Email]     [📝 Add Notes]              [⭐ Mark as Favorite]
@@ -523,8 +542,8 @@ Now that your job is posted, candidates can apply in two ways. Let me show you b
 1. **Generate Application URL**
    - Navigate to your "Senior Software Engineer" job
    - Click "Generate Application Link"
-   
 2. **Configure Link Settings**
+
    ```
    ⚙️ Application Link Settings:
    • Maximum Applications: 100 CVs
@@ -534,10 +553,11 @@ Now that your job is posted, candidates can apply in two ways. Let me show you b
    ```
 
 3. **Get Shareable Link**
+
    ```
    🔗 Your Application URL:
    https://exam.synchro-hire.com/apply/abc123xyz
-   
+
    Share this link on:
    • LinkedIn posts
    • Company website careers page
@@ -546,19 +566,19 @@ Now that your job is posted, candidates can apply in two ways. Let me show you b
    ```
 
 4. **Candidate Experience**
-   
+
    When candidates click the link, they see:
-   
+
    ```
    🌐 Application Portal
    ═══════════════════════════════════════════════════════════
-   
+
    Tech Innovations Ltd.
    Senior Software Engineer
    San Francisco, CA (Hybrid) • Full-time
-   
+
    [Job Description Display]
-   
+
    📋 Apply for this position:
    ┌─────────────────────────────────────┐
    │ Full Name: [________________]       │
@@ -574,7 +594,7 @@ Now that your job is posted, candidates can apply in two ways. Let me show you b
    │                                     │
    │ [Submit Application]                │
    └─────────────────────────────────────┘
-   
+
    Applications remaining: 47/100
    Deadline: December 31, 2025
    ```
@@ -601,6 +621,7 @@ Now that your job is posted, candidates can apply in two ways. Let me show you b
 Now you have your top candidates identified. Let's move them through the assessment process.
 
 **Assessment Workflow Options:**
+
 - **Option 1:** MCQ Test → AI Interview → Manual Meeting _(Recommended)_
 - **Option 2:** MCQ Test → Manual Meeting _(Faster)_
 - **Option 3:** AI Interview → Manual Meeting _(Technical focus)_
@@ -624,40 +645,41 @@ Let's demonstrate Option 1 (Complete workflow) with Sarah Martinez, our top cand
 2. **Click "Generate Questions with AI"**
 
 3. **Configure Question Generation**
+
    ```
    🤖 AI MCQ Generation Settings:
-   
+
    Topics/Skills to Test:
    • JavaScript (Advanced)
    • React (Advanced)
    • Node.js (Intermediate)
    • AWS (Intermediate)
    • System Design (Senior Level)
-   
-   Difficulty Level: 
+
+   Difficulty Level:
    ◉ Mixed (Recommended for Senior role)
    ○ Easy
-   ○ Medium  
+   ○ Medium
    ○ Hard
-   
+
    Number of Questions: 20
-   
+
    Question Distribution:
    • JavaScript: 5 questions
    • React: 5 questions
    • Node.js: 4 questions
    • AWS: 3 questions
    • System Design: 3 questions
-   
+
    Time Limit: 45 minutes
    ```
 
 4. **Click "Generate Questions"**
-   
+
    ```
    🤖 AI Generating MCQ Questions...
    ⏱️ This will take 15-20 seconds
-   
+
    Creating:
    ✅ JavaScript questions (5/5)
    ✅ React questions (5/5)
@@ -669,59 +691,59 @@ Let's demonstrate Option 1 (Complete workflow) with Sarah Martinez, our top cand
 5. **Review Generated Questions**
 
    **Sample Generated Questions:**
-   
+
    ```
    ═══════════════════════════════════════════════════════════
    Question 1 of 20 - JavaScript (Hard)
    ───────────────────────────────────────────────────────────
    What is the output of the following code?
-   
+
    const arr = [1, 2, 3];
    const [a, , b] = arr;
    console.log(a + b);
-   
+
    A) 3
    B) 4  ✓ Correct Answer
    C) 6
    D) undefined
-   
+
    Points: 5
    Difficulty: Hard
    Topic: JavaScript - Destructuring
    ───────────────────────────────────────────────────────────
-   
+
    ═══════════════════════════════════════════════════════════
    Question 2 of 20 - React (Medium)
    ───────────────────────────────────────────────────────────
    Which hook would you use to perform side effects in a
    functional component?
-   
+
    A) useState
    B) useEffect  ✓ Correct Answer
    C) useContext
    D) useCallback
-   
+
    Points: 3
    Difficulty: Medium
    Topic: React Hooks
    ───────────────────────────────────────────────────────────
-   
+
    ═══════════════════════════════════════════════════════════
    Question 5 of 20 - AWS (Medium)
    ───────────────────────────────────────────────────────────
    Which AWS service is best suited for hosting a serverless
    function that processes S3 upload events?
-   
+
    A) EC2
    B) ECS
    C) Lambda  ✓ Correct Answer
    D) Elastic Beanstalk
-   
+
    Points: 3
    Difficulty: Medium
    Topic: AWS Services
    ───────────────────────────────────────────────────────────
-   
+
    ... (17 more questions)
    ```
 
@@ -733,16 +755,17 @@ Let's demonstrate Option 1 (Complete workflow) with Sarah Martinez, our top cand
    - Delete or add questions
 
 7. **Save as Template**
+
    ```
    💾 Save Question Bank:
-   
+
    Template Name: "Senior Software Engineer - Technical Test"
    Description: "20-question assessment covering JS, React, Node,
                  AWS, and System Design for senior positions"
-   
+
    [Save Template]
    ```
-   
+
    - ✅ Template saved for reuse
    - ✅ Can use for future candidates
    - ✅ Can edit template anytime
@@ -750,24 +773,24 @@ Let's demonstrate Option 1 (Complete workflow) with Sarah Martinez, our top cand
 #### Step 2: Assign Test to Candidate
 
 1. **Create Assessment for Sarah**
-   
+
    **Navigate to:** CV Sorting → Select Sarah Martinez
-   
+
    ```
    📝 Create MCQ Assessment
    ═══════════════════════════════════════════════════════════
-   
+
    Candidate: Sarah Martinez
    Email: sarah.martinez@email.com
    Job Position: Senior Software Engineer
-   
+
    Assessment Details:
    • Test Template: "Senior Software Engineer - Technical Test"
    • Number of Questions: 20
    • Total Points: 75
    • Duration: 45 minutes
    • Passing Score: 70% (53/75 points)
-   
+
    Test Configuration:
    ☑ Shuffle questions
    ☑ Shuffle answer options
@@ -775,15 +798,15 @@ Let's demonstrate Option 1 (Complete workflow) with Sarah Martinez, our top cand
    ☑ Prevent tab switching (anti-cheat)
    ☑ Record attempt violations
    ☐ Allow multiple attempts
-   
+
    Security:
    • Session Password: [Auto-generated: "TEST-2026-XYZR"]
    • Valid for: 7 days
    • Expires: February 26, 2026
-   
+
    Email Settings:
    Subject: "Technical Assessment - Senior Software Engineer"
-   
+
    Include in email:
    ☑ Test link
    ☑ Session password
@@ -807,8 +830,8 @@ Subject: Technical Assessment - Senior Software Engineer Position
 
 Dear Sarah Martinez,
 
-Congratulations! We've reviewed your application for the Senior 
-Software Engineer position and would like to move forward with 
+Congratulations! We've reviewed your application for the Senior
+Software Engineer position and would like to move forward with
 the next step.
 
 Please complete the following technical assessment:
@@ -860,20 +883,21 @@ sarah.johnson@techinnovations.com
 **Sarah's Experience (Candidate Portal):**
 
 1. **Clicks Link → Opens Test Portal**
+
    ```
    🌐 Synchro Hire Assessment Portal
    ═══════════════════════════════════════════════════════════
-   
+
    Tech Innovations Ltd.
    Senior Software Engineer - Technical Assessment
-   
+
    Candidate: Sarah Martinez
-   
+
    📋 Test Overview:
    • Questions: 20
    • Duration: 45 minutes
    • Topics: JavaScript, React, Node.js, AWS, System Design
-   
+
    ┌─────────────────────────────────────┐
    │ 🔐 Enter Session Password to Begin:│
    │                                     │
@@ -884,53 +908,56 @@ sarah.johnson@techinnovations.com
    ```
 
 2. **Enters Password → Test Begins**
+
    ```
    ⏱️ Time Remaining: 45:00
-   
+
    Question 1 of 20                                        [Next →]
    ═══════════════════════════════════════════════════════════
-   
+
    What is the output of the following code?
-   
+
    const arr = [1, 2, 3];
    const [a, , b] = arr;
    console.log(a + b);
-   
+
    ○ A) 3
    ○ B) 4
    ○ C) 6
    ○ D) undefined
-   
+
    [Clear Answer]
-   
+
    Progress: [▓░░░░░░░░░░░░░░░░░░░] 5%
    ```
 
 3. **Completes All Questions**
+
    ```
    ⏱️ Time Remaining: 12:35
-   
+
    Question 20 of 20                            [← Previous] [Submit Test]
    ═══════════════════════════════════════════════════════════
-   
+
    [Last question displayed...]
-   
+
    Progress: [▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓] 100%
-   
+
    ✅ All questions answered
-   
+
    [Review Answers] [Submit Test]
    ```
 
 4. **Submits Test**
+
    ```
    ✅ Test Submitted Successfully!
-   
+
    Thank you for completing the assessment.
    Your responses have been recorded.
-   
+
    Results will be shared by the HR team.
-   
+
    Time taken: 32 minutes 25 seconds
    ```
 
@@ -970,7 +997,7 @@ Score: 22/25 (88%)  [▓▓▓▓▓▓▓▓▓░]
 
 React (5 questions):
 Score: 15/15 (100%)  [▓▓▓▓▓▓▓▓▓▓]
-• Correct: 5/5  
+• Correct: 5/5
 • Perfect score on React concepts!
 
 Node.js (4 questions):
@@ -1027,179 +1054,183 @@ Recommendation: Move to AI Interview
 2. **Click "Generate AI Interview Questions"**
 
 3. **Choose Interview Type**
+
    ```
    🤖 AI Interview Question Generation
    ═══════════════════════════════════════════════════════════
-   
+
    Select Interview Type:
-   
+
    ○ Behavioral Questions
      Focus on past experiences, leadership, problem-solving
      Example: "Tell me about a time you handled a conflict..."
-   
-   ○ Technical Questions  
+
+   ○ Technical Questions
      Code reviews, architecture discussions, problem-solving
      Example: "How would you design a scalable API..."
-   
+
    ◉ Customized (Recommended)
      Mix of behavioral and technical based on job requirements
      Personalized to candidate's resume
    ```
 
 4. **Configure Interview Settings**
+
    ```
    Interview Configuration:
    ═══════════════════════════════════════════════════════════
-   
+
    Candidate: Sarah Martinez
    Position: Senior Software Engineer
    Resume: sarah_martinez_resume.pdf (Auto-attached)
    Job Description: senior-software-engineer-job.txt (Auto-attached)
-   
+
    Question Settings:
    • Number of Questions: 8
    • Difficulty: Senior Level
    • Duration: 30-45 minutes estimated
-   
+
    Question Distribution:
    • Technical Questions: 4
      - React architecture
      - System design
      - Performance optimization
      - Code review scenarios
-   
+
    • Behavioral Questions: 4
      - Leadership experience
      - Team collaboration
      - Problem-solving
      - Handling pressure/deadlines
-   
+
    Focus Areas (Based on Resume):
    ☑ Cloud migration experience
    ☑ Team leadership
    ☑ Scalability challenges
    ☑ Cross-functional collaboration
-   
+
    Response Format:
    ☑ Video recording (with AI avatar interaction)
    ☑ Text answers (backup option)
-   
-   Time Limit: 
+
+   Time Limit:
    • Per Question: No strict limit
    • Total Interview: 60 minutes maximum
    ```
 
 5. **Click "Generate Questions"**
+
    ```
    🤖 AI Generating Personalized Interview Questions...
-   
+
    Analyzing:
    ✅ Job requirements
    ✅ Sarah's resume and experience
    ✅ Required competencies
    ✅ Industry best practices
-   
+
    Creating questions... (20 seconds)
    ```
 
 6. **Review Generated Questions**
+
    ```
    📋 Generated Interview Questions (8 Total)
    ═══════════════════════════════════════════════════════════
-   
+
    ━━━ TECHNICAL QUESTIONS (4) ━━━
-   
+
    Q1: [Technical - System Design]
-   "Based on your experience at Google Cloud, can you walk me 
-   through how you would design a microservices architecture for 
-   a high-traffic e-commerce platform? Consider scalability, 
+   "Based on your experience at Google Cloud, can you walk me
+   through how you would design a microservices architecture for
+   a high-traffic e-commerce platform? Consider scalability,
    database design, and inter-service communication."
-   
+
    Expected Focus: Architecture patterns, AWS services, databases,
                    load balancing
    Estimated Time: 7-8 minutes
-   
+
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   
+
    Q2: [Technical - React Performance]
    "Your resume mentions you led performance optimization projects.
    Describe a specific scenario where you improved React application
    performance. What tools did you use, and what were the measurable
    results?"
-   
+
    Expected Focus: React optimization techniques, profiling tools,
                    metrics, before/after comparison
    Estimated Time: 5-6 minutes
-   
+
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   
+
    Q3: [Technical - Code Review]
    "I'll share a React component with performance issues. Walk me
    through your code review process. What problems do you see, and
    how would you refactor it?"
-   
+
    [Code snippet will be shown to candidate]
-   
+
    Expected Focus: Code quality, best practices, optimization,
                    communication skills
    Estimated Time: 6-7 minutes
-   
+
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   
+
    Q4: [Technical - AWS & DevOps]
    "Explain how you would set up a CI/CD pipeline for deploying
    a Node.js application to AWS. Include your approach to testing,
    deployment strategies, and rollback procedures."
-   
+
    Expected Focus: AWS services (ECS/Lambda/CodePipeline), testing
                    strategies, zero-downtime deployment
    Estimated Time: 6-7 minutes
-   
+
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   
+
    ━━━ BEHAVIORAL QUESTIONS (4) ━━━
-   
+
    Q5: [Behavioral - Leadership]
    "You've led a team of 5 developers at Google. Tell me about a
    time when your team faced a major technical challenge or tight
    deadline. How did you handle it, and what was the outcome?"
-   
+
    Looking for: Leadership style, problem-solving, communication,
                 results
    Estimated Time: 5-6 minutes
-   
+
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   
+
    Q6: [Behavioral - Conflict Resolution]
    "Describe a situation where you had a disagreement with a team
    member or stakeholder about a technical decision. How did you
    resolve it?"
-   
+
    Looking for: Communication, empathy, technical reasoning,
                 compromise
    Estimated Time: 4-5 minutes
-   
+
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   
+
    Q7: [Behavioral - Learning & Growth]
    "Your resume shows you've transitioned from Stripe to Google Cloud.
    What motivated this move, and what's one major thing you learned
    from each company that shapes how you work today?"
-   
+
    Looking for: Growth mindset, learning ability, career motivation
    Estimated Time: 4-5 minutes
-   
+
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   
+
    Q8: [Behavioral - Cultural Fit]
    "Why are you interested in joining Tech Innovations Ltd., and
    what kind of work environment helps you perform your best?"
-   
+
    Looking for: Company research, culture fit, work style preferences
    Estimated Time: 3-4 minutes
-   
+
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   
+
    Total Estimated Duration: 40-48 minutes
    ```
 
@@ -1210,50 +1241,52 @@ Recommendation: Move to AI Interview
    - Reorder questions
 
 8. **Save Interview Template**
+
    ```
    💾 Save Interview Template
-   
+
    Template Name: "Senior Engineer - Mixed Interview"
-   Description: "8 questions covering technical depth and 
+   Description: "8 questions covering technical depth and
                  leadership/behavioral aspects for senior roles"
-   
+
    [Save Template]
    ```
 
 #### Step 2: Assign AI Interview to Sarah
 
 1. **Create Interview Session**
+
    ```
    🎙️ Create AI Avatar Interview
    ═══════════════════════════════════════════════════════════
-   
+
    Candidate: Sarah Martinez
    Email: sarah.martinez@email.com
    Position: Senior Software Engineer
-   
+
    Interview Configuration:
    • Template: "Senior Engineer - Mixed Interview"
    • Questions: 8 (4 Technical, 4 Behavioral)
    • Estimated Duration: 45 minutes
    • Avatar: Professional AI Interviewer
-   
+
    Security & Access:
    • Session Password: [Auto-generated: "INTV-2026-ABCD"]
    • Valid for: 7 days
    • Expires: February 26, 2026
-   
+
    Recording Settings:
    ☑ Record video responses
    ☑ Record audio responses
    ☑ Generate transcript
    ☑ Analyze response quality (AI evaluation)
-   
+
    Email Settings:
    Subject: "AI Interview Invitation - Senior Software Engineer"
-   
+
    Include:
    ☑ Interview link
-   ☑ Session password  
+   ☑ Session password
    ☑ Technical requirements (camera, mic, browser)
    ☑ Duration and format
    ☑ Deadline
@@ -1335,15 +1368,16 @@ Questions? Reply to this email.
 **Sarah's Experience:**
 
 1. **Access Interview Portal**
+
    ```
    🌐 AI Interview Portal
    ═══════════════════════════════════════════════════════════
-   
+
    Tech Innovations Ltd.
    Senior Software Engineer - AI Interview
-   
+
    Candidate: Sarah Martinez
-   
+
    ┌─────────────────────────────────────┐
    │ 🔐 Enter Session Password:          │
    │                                     │
@@ -1354,104 +1388,110 @@ Questions? Reply to this email.
    ```
 
 2. **Equipment Check**
+
    ```
    🎥 Equipment Setup
    ═══════════════════════════════════════════════════════════
-   
+
    Let's make sure everything is working:
-   
+
    📹 Camera:
    [Your video preview]
    ✅ Camera detected and working
-   
+
    🎤 Microphone:
    [Audio level indicator ▓▓▓▓▓▓░░░░]
    ✅ Microphone working - speak to test
-   
+
    🔊 Speakers:
    [Test Sound] ✅ Audio playing correctly
-   
+
    [✓ Everything looks good!] [Start Interview →]
    ```
 
 3. **Meet the AI Avatar**
+
    ```
    🤖 AI Interviewer Appears
    ═══════════════════════════════════════════════════════════
-   
+
    [Professional AI Avatar appears - business attire]
-   
+
    Avatar (speaking):
    "Hello Sarah! Welcome to your interview with Tech Innovations.
    I'm Alex, your AI interviewer. I'll be asking you 8 questions
    today covering both technical skills and your professional
-   experience. 
-   
+   experience.
+
    Each question will be displayed on screen, and you'll have
    time to think before responding. Please provide detailed
    answers with specific examples.
-   
+
    Are you ready to begin?"
-   
+
    [Yes, I'm Ready]
    ```
 
 4. **Question 1 Begins**
+
    ```
    Question 1 of 8 - Technical (System Design)
    ═══════════════════════════════════════════════════════════
-   
+
    [AI Avatar speaking]
-   
-   "Based on your experience at Google Cloud, can you walk me 
-   through how you would design a microservices architecture 
+
+   "Based on your experience at Google Cloud, can you walk me
+   through how you would design a microservices architecture
    for a high-traffic e-commerce platform? Consider scalability,
    database design, and inter-service communication."
-   
+
    🎥 Recording: ⏺️ 00:15                    [Pause] [Next Question]
-   
+
    [Sarah's video feed shows her answering...]
    "Absolutely. For a high-traffic e-commerce platform, I would
    start by identifying the core services..."
    ```
 
 5. **AI Follow-up Questions**
+
    ```
    [After Sarah's response]
-   
+
    AI Avatar:
    "That's a great approach. You mentioned using AWS Lambda for
-   certain services. How would you handle cold start latency 
+   certain services. How would you handle cold start latency
    issues?"
-   
+
    🎥 Recording: Follow-up Response
    ```
 
 6. **Progress Through All Questions**
+
    ```
    Interview Progress: [▓▓▓▓▓▓░░] 6 of 8 completed
-   
+
    Estimated time remaining: 12 minutes
    ```
 
 7. **Interview Complete**
+
    ```
    ✅ Interview Complete!
    ═══════════════════════════════════════════════════════════
-   
+
    Thank you, Sarah!
-   
+
    [AI Avatar]
    "Thank you for your thoughtful responses. Your answers have
    been recorded and will be reviewed by our hiring team. We'll
    be in touch soon."
-   
+
    Interview Summary:
    • Questions Answered: 8/8
    • Duration: 42 minutes
    • Video Recorded: Yes ✅
    • Transcript Generated: Yes ✅
-   
+
    [Close]
    ```
 
@@ -1464,7 +1504,7 @@ Questions? Reply to this email.
 ═══════════════════════════════════════════════════════════
 
 Candidate: Sarah Martinez
-Position: Senior Software Engineer  
+Position: Senior Software Engineer
 Interview: Senior Engineer - Mixed Interview
 Completed: February 20, 2026 at 10:30 AM
 Duration: 42 minutes
@@ -1619,7 +1659,7 @@ Q6: Conflict Resolution
 
 Rating: ⭐⭐⭐⭐ Very Good
 
-Story Summary:  
+Story Summary:
 • Disagreement with product manager about feature priority
 • Used data to support technical concerns
 • Proposed compromise solution
@@ -1721,40 +1761,41 @@ Suggested Next Steps:
    - Click "Schedule New Meeting"
 
 2. **Fill Meeting Details**
+
    ```
    📅 Schedule Manual Meeting
    ═══════════════════════════════════════════════════════════
-   
+
    Candidate: Sarah Martinez
    Email: sarah.martinez@email.com
    Position: Senior Software Engineer
-   
+
    Meeting Type:
    ◉ Final Round Interview
    ○ Technical Deep Dive
    ○ Cultural Fit Interview
    ○ HR Interview
    ○ Panel Interview
-   
+
    Interview Panel (Select multiple):
    ☑ Sarah Johnson (HR Manager) - sarah.johnson@techinnovations.com
    ☑ David Kim (Engineering Director) - david.kim@techinnovations.com
    ☑ Rachel Cooper (Tech Lead) - rachel.cooper@techinnovations.com
-   
+
    Date & Time:
    📅 Date: February 23, 2026
    ⏰ Time: 2:00 PM - 3:00 PM (PST)
    ⌚ Duration: 60 minutes
-   
+
    Meeting Platform:
    ○ In-Person (Office: 123 Tech Street, Silicon Valley)
    ◉ Google Meet
    ○ Zoom
    ○ Microsoft Teams
-   
+
    Meeting Link: [Auto-generated when selecting Google Meet]
    https://meet.google.com/abc-defg-hij
-   
+
    Meeting Agenda (Optional):
    ┌──────────────────────────────────────┐
    │ Final Round Interview Agenda:        │
@@ -1768,7 +1809,7 @@ Suggested Next Steps:
    │    (15 min)                          │
    │ 5. Q&A - Candidate questions (10 min)│
    └──────────────────────────────────────┘
-   
+
    Notes (Internal - Not visible to candidate):
    ┌──────────────────────────────────────┐
    │ • Sarah scored 91% on MCQ            │
@@ -1778,7 +1819,7 @@ Suggested Next Steps:
    │   system design decisions            │
    │ • Discuss: compensation, start date  │
    └──────────────────────────────────────┘
-   
+
    Email Notification:
    ☑ Send calendar invite to candidate
    ☑ Send calendar invite to interviewers
@@ -1826,7 +1867,7 @@ https://meet.google.com/abc-defg-hij
 
 You'll be meeting with:
 • Sarah Johnson - HR Manager
-• David Kim - Engineering Director  
+• David Kim - Engineering Director
 • Rachel Cooper - Tech Lead (Your potential manager)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1864,6 +1905,7 @@ Questions? Reply to this email or call: +1-555-TECH-999
 ```
 
 **Interviewers receive similar email with:**
+
 - Candidate profile summary
 - Previous assessment scores
 - Internal notes
@@ -1872,6 +1914,7 @@ Questions? Reply to this email or call: +1-555-TECH-999
 #### Step 3: Meeting Takes Place
 
 On February 23, 2026:
+
 - All parties join the Google Meet link
 - 60-minute structured interview
 - Engineering Director and Tech Lead discuss technical depth
@@ -1887,7 +1930,7 @@ On February 23, 2026:
 ═══════════════════════════════════════════════════════════
 
 Meeting ID: MTG-2026-XYZ
-Candidate: Sarah Martinez  
+Candidate: Sarah Martinez
 Position: Senior Software Engineer
 Date: February 23, 2026
 Duration: 62 minutes
@@ -1904,7 +1947,7 @@ Interviewers:
 Overall Rating:
 ◉ Excellent - Strong Hire
 ○ Good - Hire
-○ Average - Maybe  
+○ Average - Maybe
 ○ Poor - No Hire
 
 Technical Skills: ⭐⭐⭐⭐⭐ (5/5)
@@ -1921,7 +1964,7 @@ DAVID KIM (Engineering Director):
 "Sarah demonstrated exceptional depth in system architecture
 discussion. Walked us through a complex cloud migration project
 she led at Google. Her approach to solving scalability challenges
-was impressive. Strong technical leader. Answered all deep 
+was impressive. Strong technical leader. Answered all deep
 technical questions confidently."
 
 RACHEL COOPER (Tech Lead):
@@ -1951,7 +1994,7 @@ expectations ($145K + equity - within our range)."
 🟡 CONSIDERATIONS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-⚠ Coming from very large company - may need adjustment to 
+⚠ Coming from very large company - may need adjustment to
   startup pace and wearing multiple hats
 ⚠ Compensation at higher end of range
 
@@ -1996,14 +2039,15 @@ Next Steps:
    - Or click "Generate Offer Letter" from Sarah's profile
 
 2. **Select Candidate**
+
    ```
    📄 Generate Offer Letter
    ═══════════════════════════════════════════════════════════
-   
+
    Candidate: Sarah Martinez
    Position: Senior Software Engineer
    Status: All assessments passed ✅
-   
+
    Assessment Summary:
    • Resume Match Score: 92%
    • MCQ Score: 91% (68/75)
@@ -2022,7 +2066,7 @@ Next Steps:
 Job Title: Senior Software Engineer
 Department: Engineering
 Reports To: Rachel Cooper (Engineering Manager)
-Work Location: 
+Work Location:
 ◉ Hybrid (3 days office, 2 days remote)
 ○ Full Remote
 ○ On-site
@@ -2033,7 +2077,7 @@ Start Date: March 15, 2026
 ━━━ COMPENSATION ━━━
 
 Base Salary: $145,000 per year
-Payroll Frequency: 
+Payroll Frequency:
 ◉ Semi-monthly (24 pay periods)
 ○ Bi-weekly (26 pay periods)
 
@@ -2044,7 +2088,7 @@ Additional Compensation:
 
 ━━━ EMPLOYMENT TERMS ━━━
 
-Employment Type: 
+Employment Type:
 ◉ Full-time, Regular
 ○ Contract
 ○ Part-time
@@ -2392,7 +2436,7 @@ Email Message:
 │ [Edit as needed]                      │
 └──────────────────────────────────────┘
 
-CC: 
+CC:
 ☑ sarah.johnson@techinnovations.com (HR Manager)
 ☑ david.kim@techinnovations.com (Engineering Director)
 
@@ -2497,7 +2541,7 @@ Offer Expiration: March 1, 2026 (5 days remaining)
 Response Deadline: February 28, 2026 (4 days remaining)
 
 Actions:
-[Send Reminder] [Extend Deadline] [Withdraw Offer] 
+[Send Reminder] [Extend Deadline] [Withdraw Offer]
 [Schedule Call] [Track Activity]
 ```
 
@@ -2550,6 +2594,7 @@ First Week:
 ```
 
 **Automatic notifications sent to:**
+
 - HR Manager: Alert to begin onboarding process
 - Engineering Director: New hire confirmation
 - IT Department: Equipment and access requests
@@ -2690,27 +2735,29 @@ Day 14:  Offer accepted! 🎉
 
 ### Feature-by-Feature Summary
 
-| Feature | Traditional Time | Synchro Hire | Time Saved |
-|---------|-----------------|--------------|------------|
-| **Job Description** | 1-2 hours | 5 minutes | 95% faster |
-| **Resume Analysis** (10 CVs) | 4-6 hours | 2 minutes | 99% faster |
-| **MCQ Creation** | 3-4 hours | 20 seconds (AI) | 99% faster |
-| **Interview Questions** | 2-3 hours | 20 seconds (AI) | 99% faster |
-| **Interview Scheduling** | 1-2 hours (emails) | 10 minutes | 85% faster |
-| **Offer Letter** | 1-2 hours | 15 minutes | 87% faster |
-| **Total Process** | 4-6 weeks | 12 days | 70-80% faster |
+| Feature                      | Traditional Time   | Synchro Hire    | Time Saved    |
+| ---------------------------- | ------------------ | --------------- | ------------- |
+| **Job Description**          | 1-2 hours          | 5 minutes       | 95% faster    |
+| **Resume Analysis** (10 CVs) | 4-6 hours          | 2 minutes       | 99% faster    |
+| **MCQ Creation**             | 3-4 hours          | 20 seconds (AI) | 99% faster    |
+| **Interview Questions**      | 2-3 hours          | 20 seconds (AI) | 99% faster    |
+| **Interview Scheduling**     | 1-2 hours (emails) | 10 minutes      | 85% faster    |
+| **Offer Letter**             | 1-2 hours          | 15 minutes      | 87% faster    |
+| **Total Process**            | 4-6 weeks          | 12 days         | 70-80% faster |
 
 ### ROI Calculation
 
 **For a company hiring 10 positions per year:**
 
 Traditional Approach:
+
 - 60 hours per position × 10 = 600 hours
 - At $50/hour HR cost = $30,000
 - Plus recruitment agency fees = $50,000+
 - **Total: $80,000/year**
 
 With Synchro Hire:
+
 - 5 hours per position × 10 = 50 hours
 - At $50/hour HR cost = $2,500
 - Platform subscription = $5,000/year
@@ -2724,24 +2771,28 @@ With Synchro Hire:
 ## 🚀 Key Competitive Advantages
 
 ### 1. **AI-Powered Intelligence**
+
 - Resume analysis with 85%+ accuracy
 - Automated question generation
 - Smart candidate matching
 - Bias reduction through objective scoring
 
 ### 2. **Complete Workflow Integration**
+
 - Single platform for entire process
 - No context switching
 - Unified candidate data
 - Seamless team collaboration
 
 ### 3. **Exceptional Candidate Experience**
+
 - Professional assessment portals
 - Modern, user-friendly interfaces
 - Clear communication at every step
 - Mobile-responsive design
 
 ### 4. **Data Security & Compliance**
+
 - AWS S3 secure storage
 - JWT authentication
 - Role-based access control
@@ -2749,6 +2800,7 @@ With Synchro Hire:
 - GDPR-ready architecture
 
 ### 5. **Scalability**
+
 - Handle 1 or 1,000 candidates
 - Multi-company support
 - Team collaboration features
@@ -2780,17 +2832,20 @@ Ready to transform your hiring process?
 ### Pricing Plans:
 
 **Starter Plan** - $199/month
+
 - 3 active jobs
 - 50 resumes/month
 - Basic analytics
 
 **Professional Plan** - $499/month
+
 - Unlimited jobs
 - 200 resumes/month
 - Advanced analytics
 - Priority support
 
 **Enterprise Plan** - Custom pricing
+
 - Unlimited everything
 - Dedicated account manager
 - Custom integrations
@@ -2853,9 +2908,10 @@ From uploading 10 PDFs from your desktop to accepting an offer letter, every ste
 **Created:** February 19, 2026  
 **Last Updated:** February 19, 2026  
 **Prepared By:** Synchro Hire Product Team  
-**For:** Client Demonstrations & Sales Presentations  
+**For:** Client Demonstrations & Sales Presentations
 
 **Contact:**
+
 - Website: www.synchro-hire.com
 - Email: sales@synchro-hire.com
 - Phone: +1-555-SYNCHRO
@@ -2863,4 +2919,4 @@ From uploading 10 PDFs from your desktop to accepting an offer letter, every ste
 
 ---
 
-*This document contains confidential information. © 2026 Synchro Hire. All rights reserved.*
+_This document contains confidential information. © 2026 Synchro Hire. All rights reserved._
